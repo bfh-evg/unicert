@@ -1,7 +1,13 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
+ * Bern University of Applied Sciences, Engineering and Information Technology,
+ * Research Institute for Security in the Information Society, E-Voting Group,
+ * Biel, Switzerland.
+ *
+ * Project UniCert.
+ *
+ * Distributable under GPL license.
+ * See terms of license at gnu.org.
  */
 package ch.bfh.unicert.webclient.identityfunction;
 
@@ -10,7 +16,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * This function is a specialization of the Standard SwitchAAI function which 
+ * does not use the mail adress as common name, nor the MatriculationNumber, nor
+ * the PersonUID
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class ZurichSwitchAAIIdentityFunction extends StandardSwitchAAIIdentityFunction {
@@ -36,7 +44,7 @@ public class ZurichSwitchAAIIdentityFunction extends StandardSwitchAAIIdentityFu
             } else {
                 // Cannot initialize voter id -- giving up.
                 logger.log(Level.SEVERE, "Cannot initialize common name -- giving up.");
-                throw new IdentityFunctionNotApplicableException("Important identity data missing to initialize common name");
+                throw new IdentityFunctionNotApplicableException("121 Important identity data missing to initialize common name");
             }
         }
         

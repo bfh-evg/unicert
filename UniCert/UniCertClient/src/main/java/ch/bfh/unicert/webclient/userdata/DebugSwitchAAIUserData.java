@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
+ * Bern University of Applied Sciences, Engineering and Information Technology,
+ * Research Institute for Security in the Information Society, E-Voting Group,
+ * Biel, Switzerland.
+ *
+ * Project UniCert.
+ *
+ * Distributable under GPL license.
+ * See terms of license at gnu.org.
+ */
 package ch.bfh.unicert.webclient.userdata;
 
 import java.util.Map;
@@ -5,20 +16,15 @@ import javax.faces.bean.ManagedBean;
 import javax.faces.bean.SessionScoped;
 
 /**
- * Holds the user data relevant for UniVote retrieved from SWITCHaai during a
- * session. Depending on the context, some of the values can be null. For
- * example, when performing a lookup of the certificates of the requestor, the
- * field 'proof' is null. Thus, clients cannot rely on the fact that all fields
- * are always initialized.
- * <p>
- * When used in production, relevant fields are initialized upon calling method
- * readAaiValues().
+ * This user data is a extension of the default SwitchAAI user data.
+ * It simply overwrites the Switch Identity provider keywords since
+ * differents keywors are used in dev and productive environment
  *
  * @author Eric Dubuis &lt;eric.dubuis@bfh.ch&gt;
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  *
  */
-@ManagedBean(name = "userData")
+//@ManagedBean(name = "userData")
 @SessionScoped
 public class DebugSwitchAAIUserData extends SwitchAAIUserData {
 

@@ -1,9 +1,14 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
+ * Bern University of Applied Sciences, Engineering and Information Technology,
+ * Research Institute for Security in the Information Society, E-Voting Group,
+ * Biel, Switzerland.
+ *
+ * Project UniCert.
+ *
+ * Distributable under GPL license.
+ * See terms of license at gnu.org.
  */
-
 package ch.bfh.unicert.webclient.identityfunction;
 
 import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
@@ -17,7 +22,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * This function is a specialization of the Standard SwitchAAI function which 
+ * uses hash value of the mail adress as common name
+ * 
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdentityFunction {
@@ -29,12 +36,12 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
         
         StandardHashingScheme shs = StandardHashingScheme.getInstance(HashMethod.getInstance(HashAlgorithm.SHA1));
 
-        //TODO alphabet?
-        StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
-        String commonName = Base64.encode(shs.hash(sm.getElement(ud.getMail())).getByteArray().getAll());
+        String commonName = "";
+        
         
         //Common name
         if (ud.getMail() != null) {
+            commonName = ud.getMail();
             logger.log(Level.INFO, "Retrieved for common name: value={0}",
                     new Object[]{commonName});
         } else {
@@ -55,11 +62,21 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
                     } else {
                         // Cannot initialize voter id -- giving up.
                         logger.log(Level.SEVERE, "Cannot initialize common name -- giving up.");
-                        throw new IdentityFunctionNotApplicableException("Important identity data missing to initialize common name");
+                        throw new IdentityFunctionNotApplicableException("121 Important identity data missing to initialize common name");
                     }
                 }
             }
         }
+        
+                //TODO MAKE THIS WORK
+
+        try{
+            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+            commonName = Base64.encode(shs.hash(sm.getElement(commonName)).getByteArray().getAll());
+        }catch (Exception e){
+            throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing");
+        }
+        
         return commonName;
     }
         

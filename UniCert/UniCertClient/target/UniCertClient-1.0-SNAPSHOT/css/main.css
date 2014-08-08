@@ -1,14 +1,14 @@
-/* 
- * Copyright (c) 2012 Berner Fachhochschule, Switzerland.
+/*
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
  * Bern University of Applied Sciences, Engineering and Information Technology,
  * Research Institute for Security in the Information Society, E-Voting Group,
  * Biel, Switzerland.
  *
- * Project UniVote.
+ * Project UniCert.
  *
  * Distributable under GPL license.
  * See terms of license at gnu.org.
- * 
+ *
  * General page styling
 */
 
@@ -172,7 +172,8 @@ body.index #logo img{ width: 220px; padding-top: 2px;}
 
 #substep_2_1_1, 
 #substep_2_2,
-#substep_2_3			{ opacity: 0.2; filter: alpha(opacity = 20); }
+#substep_2_3, 			
+#substep_2_4			{ opacity: 0.2; filter: alpha(opacity = 20); }
 
 textarea#secretkey_ta	{ background-color: #eee; width: 220px; height: 60px;}
 
@@ -186,16 +187,6 @@ textarea#secretkey_ta	{ background-color: #eee; width: 220px; height: 60px;}
 #certificate-viewer	table tr { border-bottom: 1px solid #ccc; }
 #certificate-viewer	table tr:last-child { border-bottom: none; }
 
-
-/* V O T E */
-
-#upload_key_form table	{ width: 360px; margin-left: 300px; margin-top: 30px;} 
-#upload_key_form td		{ padding-bottom: 5px; }
-#upload_key_error		{ color: #c00; display: none; }
-
-#sk-upload-manually		{ display: none; }
-#sk-upload-manually div.tiny { color: #aaa; padding: 5px 5px 10px 0px; padding-left: 100px; line-height: 16px;}
-#sk-upload-manually textarea { height: 120px; width: 450px; font-size: 12px; }
 
 
 /* C O N T R O L S */
@@ -222,4 +213,5 @@ input, textarea{
 	-webkit-box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 8px;
 }
 
+.select         { margin-top: 3px; }
 

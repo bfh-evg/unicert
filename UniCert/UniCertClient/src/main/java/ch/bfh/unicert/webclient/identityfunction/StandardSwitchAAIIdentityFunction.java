@@ -1,7 +1,13 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
+ * Bern University of Applied Sciences, Engineering and Information Technology,
+ * Research Institute for Security in the Information Society, E-Voting Group,
+ * Biel, Switzerland.
+ *
+ * Project UniCert.
+ *
+ * Distributable under GPL license.
+ * See terms of license at gnu.org.
  */
 package ch.bfh.unicert.webclient.identityfunction;
 
@@ -14,7 +20,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * Identity function allowing to process SwitchAAI user data
+ * This function the mail address as common name appearing in the certificate.
+ * If it is not available it tries the MatriculationNumber, the SwissEducationUID,
+ * the PersonUID or the PersistentId
+ * 
+ * The unique id, organization and study branch (as organization unit) are also
+ * used and thus, appear in the certificate.
+ * 
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class StandardSwitchAAIIdentityFunction implements IdentityFunction {
@@ -28,7 +41,7 @@ public class StandardSwitchAAIIdentityFunction implements IdentityFunction {
         if (userData instanceof SwitchAAIUserData) {
             ud = (SwitchAAIUserData) userData;
         } else {
-            throw new IdentityFunctionNotApplicableException("The selected function is not applicable on the given user data");
+            throw new IdentityFunctionNotApplicableException("123 The selected function is not applicable on the given user data");
         }
 
         Map otherValues = new HashMap();
@@ -67,7 +80,7 @@ public class StandardSwitchAAIIdentityFunction implements IdentityFunction {
                     } else {
                         // Cannot initialize voter id -- giving up.
                         logger.log(Level.SEVERE, "Cannot initialize common name -- giving up.");
-                        throw new IdentityFunctionNotApplicableException("Important identity data missing to initialize common name");
+                        throw new IdentityFunctionNotApplicableException("121 Important identity data missing to initialize common name");
                     }
                 }
             }
@@ -94,7 +107,7 @@ public class StandardSwitchAAIIdentityFunction implements IdentityFunction {
                 } else {
                     // Cannot initialize uid -- giving up.
                     logger.log(Level.SEVERE, "Cannot initialize uid -- giving up.");
-                    throw new IdentityFunctionNotApplicableException("Important identity data missing to initialize unique id");
+                    throw new IdentityFunctionNotApplicableException("124 Important identity data missing to initialize unique id");
                 }
             }
         }

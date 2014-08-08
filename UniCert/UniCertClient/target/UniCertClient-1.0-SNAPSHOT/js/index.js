@@ -1,14 +1,14 @@
-/* 
- * Copyright (c) 2012 Berner Fachhochschule, Switzerland.
+/*
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
  * Bern University of Applied Sciences, Engineering and Information Technology,
  * Research Institute for Security in the Information Society, E-Voting Group,
  * Biel, Switzerland.
  *
- * Project UniVote.
+ * Project UniCert.
  *
  * Distributable under GPL license.
  * See terms of license at gnu.org.
- * 
+ *
  * This file contains the index-page specific JS. 
  * 
  */

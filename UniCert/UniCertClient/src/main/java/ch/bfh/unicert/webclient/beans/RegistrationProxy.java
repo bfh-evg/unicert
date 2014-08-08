@@ -1,13 +1,19 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
+ * Bern University of Applied Sciences, Engineering and Information Technology,
+ * Research Institute for Security in the Information Society, E-Voting Group,
+ * Biel, Switzerland.
+ *
+ * Project UniCert.
+ *
+ * Distributable under GPL license.
+ * See terms of license at gnu.org.
  */
 package ch.bfh.unicert.webclient.beans;
 
+import ch.bfh.unicert.subsystem.Certificate;
 import ch.bfh.unicert.subsystem.IdentityData;
 import ch.bfh.unicert.subsystem.Registration;
-import ch.bfh.unicert.subsystem.RegistrationMock;
 import ch.bfh.unicert.subsystem.cryptography.CryptographicSetup;
 import ch.bfh.unicert.subsystem.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.subsystem.cryptography.RsaSetup;
@@ -15,9 +21,12 @@ import ch.bfh.unicert.subsystem.exceptions.CertificateCreationException;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.IdentityFunctionNotApplicableException;
 import ch.bfh.unicert.webclient.identityfunction.StandardSwitchAAIIdentityFunction;
+import ch.bfh.unicert.webclient.identityfunction.ZurichSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigInteger;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -28,8 +37,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.ws.rs.core.Response;
 
 /**
+ * Proxy for the registration process between the UniCert subsystem and the web
+ * pages
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
@@ -60,19 +72,19 @@ public class RegistrationProxy extends HttpServlet {
     private static final String APP_IDENTIFIER = "application_identifier";
     private static final String ROLE = "role";
     private static final String RSA_MODULO = "rsa_modulo";
-    private static final String DLOG_PRIME = "dlog_prime";
+    private static final String DLOG_PRIME_P = "dlog_p";
+    private static final String DLOG_PRIME_Q = "dlog_q";
+    private static final String DLOG_PROOF_COMMITMENT = "dlog_proof_commitment";
+    private static final String DLOG_PROOF_CHALLENGE = "dlog_proof_challenge";
+    private static final String DLOG_PROOF_RESPONSE = "dlog_proof_response";
     private static final String DLOG_GENERATOR = "dlog_generator";
-    private static final String VALIDITY = "validity";
 
     /**
      * The logger this servlet uses.
      */
     private static final Logger logger = Logger.getLogger(RegistrationProxy.class.getName());
-    
+
     private static final String SEPARATOR = "||";
-    
-    
-    
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -85,13 +97,36 @@ public class RegistrationProxy extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
+        if (request.getParameter("idp") != null) {
+            switch (request.getParameter("idp")) {
+                case "switchaai":
+                    response.sendRedirect("switchaai.xhtml");
+                    break;
+                case "facebook":
+                    response.sendRedirect("registration.xhtml");
+                    break;
+                case "google":
+                    response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
+                            + " client_id=424911365001.apps.googleusercontent.com&\n"
+                            + " response_type=code&\n"
+                            + " scope=openid%20email&\n"
+                            + " redirect_uri=https://oa2cb.example.com/&\n"
+                            + " state=security_token%3D138r5719ru3e1%26url%3Dhttps://oa2cb.example.com/myHome&\n"
+                            + " login_hint=jsmith@example.com&\n"
+                            + " openid.realm=example.com&\n"
+                            + " hd=example.com");
+                    break;
+            }
+            return;
+        }
+
         Registration registration;
         try {
             registration = getRegistration();
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Error while trying to get proxy for registration subsystem", ex.getMessage());
-            internalServerErrorHandler(response, "Could not get registration subsystem");
+            logger.log(Level.SEVERE, "Error while trying to get proxy for registration subsystem: {0}", ex.getMessage());
+            internalServerErrorHandler(response, ex.getMessage());
             return;
         }
 
@@ -105,90 +140,109 @@ public class RegistrationProxy extends HttpServlet {
 
         // Set character encoding of the response.
         response.setCharacterEncoding("UTF-8");
-        
-        String messageForSignature = "";
 
-        //Get the cryptographic setup
-        String csType = request.getParameter(CRYPTO_SETUP_TYPE);
-        int csSize = Integer.parseInt(request.getParameter(CRYPTO_SETUP_SIZE));
-        messageForSignature += csType + SEPARATOR +  csSize + SEPARATOR;
-        
-        CryptographicSetup cs = null;
-        switch(csType){
-            case "RSA":
-                String modulo = request.getParameter(RSA_MODULO);
-                BigInteger n = new BigInteger(modulo, 10);
-                cs = new RsaSetup(csSize, n);
-                messageForSignature += modulo + SEPARATOR;
-                break;
-            case "DiscreteLog":
-                String prime = request.getParameter(DLOG_PRIME);
-                BigInteger p = new BigInteger(prime, 10);
-                String generator = request.getParameter(DLOG_GENERATOR);
-                BigInteger g = new BigInteger(generator, 10);
-                cs = new DiscreteLogSetup(csSize, g, p);
-                messageForSignature += prime + SEPARATOR + generator + SEPARATOR;
-                break;
-            default:
-                internalServerErrorHandler(response, "Unknown cryptographic setup");
-                logger.log(Level.SEVERE, "Unknown cryptographic setup");
-                return;
-        }
-        
-        //Get the selected Identity Function
-        int functionId = Integer.parseInt(request.getParameter(IDENTITY_FUNCTION));
-        messageForSignature += functionId + SEPARATOR;
-
-        IdentityData idData = null;
-        try{
-        switch(functionId){
-            case 1:
-                idData = new StandardSwitchAAIIdentityFunction().apply(ud);
-                break;
-            case 2:
-                idData = new AnonymizedSwitchAAIIdentityFunction().apply(ud);
-                break;
-            default:
-                internalServerErrorHandler(response, "Unknown identity function");
-                logger.log(Level.SEVERE, "Unknown identity function");
-                return;
-        }
-        } catch(IdentityFunctionNotApplicableException ex){
-                internalServerErrorHandler(response, "Incompatible identity function");
-                logger.log(Level.SEVERE, "Incompatible identity function");
-                return;
-        }
-
-        //Get the public key to certify
-        String publicKey = request.getParameter(PUBLIC_KEY);
-        BigInteger pk = new BigInteger(publicKey, 10);
-        messageForSignature += publicKey + SEPARATOR;
-        
-        //Get the signature/proof
-        String signature = request.getParameter(SIGNATURE);
-        BigInteger sig = new BigInteger(signature, 10);
-                
-        //Get the application identifier
-        String applicationIdentifier = request.getParameter(APP_IDENTIFIER);
-        messageForSignature += applicationIdentifier + SEPARATOR;
-        
-        //Get the role
-        int role = Integer.parseInt(request.getParameter(ROLE));
-        messageForSignature += role + SEPARATOR;
-        
-        //Get the role
-        int validity = Integer.parseInt(request.getParameter(VALIDITY));
-        messageForSignature += validity;
-        
         try {
+            String messageForSignature = "";
+
+            //Get the cryptographic setup
+            String csType = request.getParameter(CRYPTO_SETUP_TYPE);
+            int csSize = Integer.parseInt(request.getParameter(CRYPTO_SETUP_SIZE));
+            messageForSignature += csType + SEPARATOR + csSize + SEPARATOR;
+
+            //Get the public key to certify
+            String publicKey = request.getParameter(PUBLIC_KEY);
+            BigInteger pk = new BigInteger(publicKey, 10);
+            messageForSignature += publicKey + SEPARATOR;
+
+            //Create the needed crypto setup
+            CryptographicSetup cs = null;
+            switch (csType) {
+                case "RSA":
+                    String modulo = request.getParameter(RSA_MODULO);
+                    BigInteger n = new BigInteger(modulo, 10);
+                    //Get the signature
+                    String signature = request.getParameter(SIGNATURE);
+                    BigInteger sig = new BigInteger(signature, 10);
+                    cs = new RsaSetup(csSize, n, pk, sig);
+                    messageForSignature += modulo + SEPARATOR;
+                    break;
+                case "DiscreteLog":
+                    String primeP = request.getParameter(DLOG_PRIME_P);
+                    BigInteger p = new BigInteger(primeP, 10);
+                    String primeQ = request.getParameter(DLOG_PRIME_Q);
+                    BigInteger q = new BigInteger(primeQ, 10);
+                    String generator = request.getParameter(DLOG_GENERATOR);
+                    BigInteger g = new BigInteger(generator, 10);
+                    String proofT = request.getParameter(DLOG_PROOF_COMMITMENT);
+                    BigInteger proofCommitment = new BigInteger(proofT, 10);
+                    String proofC = request.getParameter(DLOG_PROOF_CHALLENGE);
+                    BigInteger proofChallenge = new BigInteger(proofC, 10);
+                    String proofS = request.getParameter(DLOG_PROOF_RESPONSE);
+                    BigInteger proofResponse = new BigInteger(proofS, 10);
+                    cs = new DiscreteLogSetup(csSize, g, p, q, pk, proofCommitment, proofChallenge, proofResponse);
+                    messageForSignature += primeP + SEPARATOR + primeP + SEPARATOR + generator + SEPARATOR;
+                    break;
+                default:
+                    internalServerErrorHandler(response, "131 Unknown cryptographic setup");
+                    logger.log(Level.SEVERE, "Unknown cryptographic setup");
+                    return;
+            }
+
+            //Get the selected Identity Function
+            int functionId = Integer.parseInt(request.getParameter(IDENTITY_FUNCTION));
+            messageForSignature += functionId + SEPARATOR;
+
+            IdentityData idData = null;
+
+            switch (functionId) {
+                case 1:
+                    idData = new StandardSwitchAAIIdentityFunction().apply(ud);
+                    break;
+                case 2:
+                    idData = new AnonymizedSwitchAAIIdentityFunction().apply(ud);
+                    break;
+                case 3:
+                    idData = new ZurichSwitchAAIIdentityFunction().apply(ud);
+                    break;
+                default:
+                    internalServerErrorHandler(response, "120 Unknown identity function");
+                    logger.log(Level.SEVERE, "Unknown identity function");
+                    return;
+            }
+
+            //Get the application identifier
+            String applicationIdentifier = request.getParameter(APP_IDENTIFIER);
+            messageForSignature += applicationIdentifier + SEPARATOR;
+
+            //Get the role
+            int role = Integer.parseInt(request.getParameter(ROLE));
+            messageForSignature += role + SEPARATOR;
+
+            //Set whole signed data in order to be able to verify the signature/proof
+            cs.setSignatureOtherInput(messageForSignature);
+
             //Create the certificate
-            registration.createCertificate(cs, pk, idData, applicationIdentifier, role, sig, messageForSignature);
-            
-            //TODO return certificate ?
+            Certificate cert = registration.createCertificate(cs, idData, applicationIdentifier, role);
+
+            try (PrintWriter out = response.getWriter()) {
+                response.getWriter().printf(cert.toJSON());
+            }
+
         } catch (CertificateCreationException ex) {
             logger.log(Level.SEVERE, "Error while creating the certificate.", ex.getMessage());
-            internalServerErrorHandler(response, "Error while creating the certificate: "+ ex.getMessage());
-            
+            internalServerErrorHandler(response, ex.getMessage());
+        } catch (NullPointerException | NumberFormatException ex) {
+            internalServerErrorHandler(response, "101 Missing parameters");
+            logger.log(Level.SEVERE, "Missing parameters: {0}", ex.getMessage());
+        } catch (IdentityFunctionNotApplicableException ex) {
+            internalServerErrorHandler(response, ex.getMessage());
+            logger.log(Level.SEVERE, ex.getMessage());
+        } catch (IllegalArgumentException | UnsupportedOperationException ex) {
+            internalServerErrorHandler(response, "130 Cryptographic error");
+            logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
+        } catch (Exception ex) {
+            internalServerErrorHandler(response, "Undefined error");
+            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
         }
     }
 
@@ -238,22 +292,20 @@ public class RegistrationProxy extends HttpServlet {
      * @return a stub (proxy)
      * @throws Exception if there is a problem
      */
-    //TODO is that really needed?
     private Registration getRegistration() throws Exception {
         ServletContext sc = getServletContext();
         Registration registration;
-        if (Boolean.parseBoolean(sc.getInitParameter(DEV_MODE))
-                && Boolean.parseBoolean(sc.getInitParameter(DEV_MODE_REGISTRATION_MOCK))) {
-            registration = new RegistrationMock();
-            logger.log(Level.WARNING, "Using mock proxy for registration subsystem");
+//        if (Boolean.parseBoolean(sc.getInitParameter(DEV_MODE))
+//                && Boolean.parseBoolean(sc.getInitParameter(DEV_MODE_REGISTRATION_MOCK))) {
+//            registration = new RegistrationMock();
+//            logger.log(Level.WARNING, "Using mock proxy for registration subsystem");
+//        } else {
+        if (regRef != null) {
+            registration = regRef;
+            logger.log(Level.INFO, "Using real proxy for registration subsystem");
         } else {
-            if (regRef != null) {
-                registration = regRef;
-                logger.log(Level.INFO, "Using real proxy for registration subsystem");
-            } else {
-                logger.log(Level.SEVERE, "Reference to registration subystem not injected");
-                throw new IllegalStateException("Reference to registration subystem not injected");
-            }
+            logger.log(Level.SEVERE, "Reference to registration subystem not injected");
+            throw new IllegalStateException("111 Reference to registration subystem not injected");
         }
         return registration;
     }
@@ -267,16 +319,14 @@ public class RegistrationProxy extends HttpServlet {
      * @return a fully populated user data object, or null
      */
     private UserData getUserData(HttpServletRequest request) {
-        //TODO where are data collected and how
         HttpSession session = request.getSession();
-        UserData ud = (UserData) session.getAttribute("userData");
+        UserData ud = ((UserDataBean) session.getAttribute("userData")).getUserData();
         if (ud != null && ud.getUniqueIdentifier() == null) {
             ud = null;
         }
         return ud;
     }
 
-    //TODO i18n
     /**
      * Error code returned for the case of an error while processing a request.
      *
@@ -285,8 +335,20 @@ public class RegistrationProxy extends HttpServlet {
      * @throws IOException if the response cannot be written
      */
     private void internalServerErrorHandler(HttpServletResponse response, String kind) throws IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error: " + kind);
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        String errorCode = kind.substring(0, 3);
+        String errorMessage = "";
+        //Checks if error code is valid
+        try {
+            Integer.parseInt(errorCode);
+            errorMessage = kind.substring(4);
+        } catch (Exception e) {
+            errorMessage = kind;
+            errorCode = "";
+        }
+        response.getWriter().write("{\"error\": \"" + errorCode + "\", \"message\": \"" + errorMessage + "\"}");
     }
 
     /**
@@ -297,7 +359,11 @@ public class RegistrationProxy extends HttpServlet {
      * @throws IOException if the response cannot be written
      */
     private void handleNoSecurityContext(HttpServletResponse response) throws IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing SWITCHaai authentication");
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        response.getWriter().write("{\"error\": \"100\", \"message\": \"You are not yet authenticated. Go back to the UniVote start page and authenticate yourself.\"}");
+
     }
 }

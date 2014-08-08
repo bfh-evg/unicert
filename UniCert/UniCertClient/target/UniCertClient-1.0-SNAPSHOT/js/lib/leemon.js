@@ -187,7 +187,8 @@
 // 
 // - Added functions powModAsync, powMod_Async and powMod_AsyncRec to run powMod
 //   asynchronous (to prevent slow browsers running into a scrypt timeout)
-//   
+// - Added functions randProbPrimeAsync, randProbPrime_Async, randProbPrime_AsyncRec
+//   asychronous variant of randProbPrime  (to prevent slow browsers running into a scrypt timeout)
 // - Added xor for two bigInts
 // 
 // - Added randBigIntInZq
@@ -382,7 +383,7 @@
 			//   random element of the list of all numbers in [0,L) not divisible by any prime up to p.
 			//   This can reduce the amount of random number generation.
 
-			randBigInt_(ans,k,0); //ans = a random odd number to check
+			this.randBigInt_(ans,k,0); //ans = a random odd number to check
 			ans[0] |= 1; 
 			divisible=0;
 
@@ -1580,7 +1581,7 @@
 		}
 
 		this.powMod_AsyncRec = function(x, y, n, cbProgress, cbDone, k1, k2, kn, np ) {
-			for ( var i = 0; i < 20; i++ ) {
+			for ( var i = 0; i < 20; i++ ) { 
 			  if (!(k2>>=1)) {  //look at next bit of y
 				k1--;
 				if (k1<0) {
@@ -1644,9 +1645,83 @@
 		}
 		
 		////////////////////////////////////////////////////////
-		
-		this.init();
-	}
+                
+                
+                //return a k-bit random probable prime with probability of error < 2^-80
+                //Asynchronous variant
+		this.randProbPrimeAsync = function(k, cbDone, cbProgress) {
+		  if (k>=600) return this.randProbPrimeRoundsAsync(k,2, cbDone, cbProgress); //numbers from HAC table 4.3
+		  if (k>=550) return this.randProbPrimeRoundsAsync(k,4, cbDone, cbProgress);
+		  if (k>=500) return this.randProbPrimeRoundsAsync(k,5, cbDone, cbProgress);
+		  if (k>=400) return this.randProbPrimeRoundsAsync(k,6, cbDone, cbProgress);
+		  if (k>=350) return this.randProbPrimeRoundsAsync(k,7, cbDone, cbProgress);
+		  if (k>=300) return this.randProbPrimeRoundsAsync(k,9, cbDone, cbProgress);
+		  if (k>=250) return this.randProbPrimeRoundsAsync(k,12, cbDone, cbProgress); //numbers from HAC table 4.4
+		  if (k>=200) return this.randProbPrimeRoundsAsync(k,15, cbDone, cbProgress);
+		  if (k>=150) return this.randProbPrimeRoundsAsync(k,18, cbDone, cbProgress);
+		  if (k>=100) return this.randProbPrimeRoundsAsync(k,27, cbDone, cbProgress);
+					  return this.randProbPrimeRoundsAsync(k,40, cbDone, cbProgress); //number from HAC remark 4.26 (only an estimate)
+		}
+
+		//return a k-bit probable random prime using n rounds of Miller Rabin (after trial division with small this.primes)	
+		this.randProbPrimeRoundsAsync = function(k,n, cbDone, cbProgress) {
+		  var ans, i, divisible, B; 
+		  B=30000;  //B is largest prime to use in trial division
+		  ans=this.int2bigInt(0,k,0);
+
+		  //optimization: try larger and smaller B to find the best limit.
+
+		  if (this.primes.length==0)
+			this.primes=this.findPrimes(30000);  //check for divisibility by primes <=30000
+
+		  if (this.rpprb.length!=ans.length)
+			this.rpprb=this.dup(ans);
+
+		  this.randProbPrimeRoundsAsyncRec(k,n,ans, divisible,i,B, cbDone, cbProgress);
+		}
+                
+                this.randProbPrimeRoundsAsyncRec = function(k,n,ans, divisible,i,B, cbDone, cbProgress) {
+                    for ( var i = 0; i < 2; i++ ) {  //keep trying random values for ans until this.one appears to be prime
+			//optimization: pick a random number times L=2*3*5*...*p, plus a 
+			//   random element of the list of all numbers in [0,L) not divisible by any prime up to p.
+			//   This can reduce the amount of random number generation.
+
+			this.randBigInt_(ans,k,0); //ans = a random odd number to check
+			ans[0] |= 1; 
+			divisible=0;
+
+			//check ans for divisibility by small primes up to B
+			for (i=0; (i<this.primes.length) && (this.primes[i]<=B); i++)
+			  if (this.modInt(ans,this.primes[i])==0 && !this.equalsInt(ans,this.primes[i])) {
+				divisible=1;
+				break;
+			  }      
+
+			//optimization: change millerRabin so the base can be bigger than the number being checked, then eliminate the while here.
+
+			//do n rounds of Miller Rabin, with random bases lethis.ss than ans
+			for (i=0; i<n && !divisible; i++) {
+			  this.randBigInt_(this.rpprb,k,0);
+			  while(!this.greater(ans,this.rpprb)) //pick a random rpprb that's < ans
+				this.randBigInt_(this.rpprb,k,0);
+			  if (!this.millerRabin(ans,this.rpprb))
+				divisible=1;
+			}
+
+			if(!divisible){
+                            cbDone(ans);
+                            return ans;
+                        }
+		  } 
+                  
+                  setTimeout( function(){
+					cbProgress();
+					leemon.randProbPrimeRoundsAsyncRec(k,n,ans, divisible,i,B, cbDone, cbProgress);
+				  }, 1);
+                }
+                
+                this.init()
+        }
 	
 	window.leemon = leemon;
 

@@ -1,15 +1,14 @@
 <!--
 /*
- * Copyright (c) 2012 Berner Fachhochschule, Switzerland.
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
  * Bern University of Applied Sciences, Engineering and Information Technology,
  * Research Institute for Security in the Information Society, E-Voting Group,
  * Biel, Switzerland.
  *
- * Project UniVote.
+ * Project UniCert.
  *
  * Distributable under GPL license.
  * See terms of license at gnu.org.
- *
  */
 -->
 <ui:composition template="template.xhtml"
@@ -56,7 +55,43 @@
 
 			<div id="substep_2_1" class="substep clearfix"><div class="substep_nr">1</div>
 				<p>#{msg.genkeysSubstep21Text}</p>
-				<div class="col2only"><button class="button" onclick="generateKeyPair();">#{msg.genkeysButton}</button></div>
+                                
+                                <div class="row clearfix">
+                                <div class="col1 small"><label for="crypto_setup_type">#{msg.keytype}: </label></div>
+				<div class="col2">
+                                    <select id="crypto_setup_type" class="select" name="crypto_setup_type" size="1" onchange="updateKeysOptions()">	
+                                        <option value="" selected="selected">#{msg.pleaseSelect}</option> 
+                                        <option value="RSA">RSA</option> 
+                                        <option value="DiscreteLog">Discrete Logarithm</option> 
+                                    </select>
+                                </div>
+                                </div>
+                                <div id="rsa_options" class="row clearfix hidden">
+                                <div class="col1 small">#{msg.keysize}: </div>
+				<div class="col2">
+                                    <select id="crypto_setup_size" class="select" name="crypto_setup_size" size="1">	
+                                        <option value="1024">1024</option> 
+                                        <option value="2048">2048</option> 
+                                    </select>
+                                </div>
+                                </div>
+                                <div id="dlog_options" class="row clearfix hidden">
+                                <div class="col1 small">#{msg.valuep}: </div>
+				<div class="col2">
+                                    <input type="text" id="p"/>
+                                </div>
+                                <div class="col1 small">#{msg.valueq}: </div>
+                                <div class="col2">
+                                    <input type="text" id="q"/>
+                                </div>
+                                <div class="col1 small">#{msg.valueg}: </div>
+                                <div class="col2">
+                                    <input type="text" id="g" value="4"/>
+                                </div>
+                                </div>
+                                <div class="col2only">
+                                    <button id="generate_key_bu" class="button" onclick="generateKeyPair();">#{msg.genkeysButton}</button>
+                                </div>
 				<div id="substep_2_1_1" class="row clearfix">
 					<div class="col1 small">#{msg.yourVotingKeyLabel}</div>
 					<div class="col2"><textarea id="secretkey_ta" class="middle" readonly="readonly"></textarea></div>
@@ -76,17 +111,43 @@
 					</div>
 				</form>
 			</div>
+                        
+                        <div id="substep_2_3" class="substep clearfix"><div class="substep_nr">3</div>
+				<p>#{msg.genCertSubstep23Text}</p>
+                                <div class="row clearfix">
+                                <div class="col1 small">#{msg.role}: </div>
+				<div class="col2">
+                                    <select id="role" class="select" name="role" size="1">	
+                                        <option value="1">#{msg.voterCert}</option> 
+                                        <option value="2">#{msg.tallierCert}</option> 
+                                        <option value="3">#{msg.mixerCert}</option> 
+                                    </select>
+                                </div>
+                                </div>
+                                <div class="row clearfix">
+                                <div class="col1 small">#{msg.identityFunction}: </div>
+				<div class="col2">
+                                    <select id="identity_function" class="select" name="identity_function" size="1">	
+                                        <option value="1">#{msg.idFStandardSwitch}</option> 
+                                        <option value="2">#{msg.idFAnonymizedSwitch}</option> 
+                                        <option value="3">#{msg.idFZurichSwitch}</option> 
+                                    </select>
+                                </div>
+                                </div>
+			</div>
 
-			<div id="substep_2_3" class="substep clearfix"><div class="substep_nr">3</div>
-				<p>#{msg.genkeysSubstep23Text}</p>
+			<div id="substep_2_4" class="substep clearfix"><div class="substep_nr">4</div>
+				<p>#{msg.genkeysSubstep24Text}</p>
 				<div class="col2only">
-					<button id="retreive_secretkey_bu" class="button" onclick="completeRegistration( true );">#{msg.retreiveSecretKey}</button> <span class="small">#{msg.to} #{userData.email}</span>
+					<button id="retreive_secretkey_bu" class="button" onclick="completeRegistration( false );">#{msg.retreiveSecretKey}</button> <span class="small">#{msg.to} #{userData.email}</span>
 					<c:if test="${initParam['dev-mode'] == 'true'}">
 						<br /><br/><span class="tiny">In dev-mode: <br/>if you don't have a running SMTP Server on your localhost...<br/>
-						<button class="button" onclick="completeRegistration( false );">Save Key</button></span>
+						<button class="button" onclick="completeRegistration( true );">Save Key</button></span>
 					</c:if>
 				</div>
 			</div>
+                        
+                        
 		</div>
 
 		<!-- STEP 3: Confirmation content -->
