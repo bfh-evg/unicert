@@ -21,12 +21,16 @@ import ch.bfh.unicert.subsystem.util.ConfigurationHelperImpl;
 import ch.bfh.unicert.subsystem.util.ExtensionOID;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.helper.Alphabet;
+import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
+import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
 import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
+import ch.bfh.unicrypt.math.function.classes.HashFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -164,6 +168,16 @@ public class RegistrationBean implements Registration {
 
         }
         
+        //Hashing appIdentifier to avoid publishing unwanted texts in certificate
+        String hashedAppId = applicationIdentifier;
+        try{
+            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+            Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
+            hashedAppId = Base64.encode(hashFunction.apply(sm.getElement(applicationIdentifier)).getByteArray().getAll());
+        }catch (Exception e){
+            logger.log(Level.WARNING, "Problem while hashing application identifier: {0}", e.getMessage());
+        }
+        
         Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
         Certificate cert = createClientCertificate(
                 idData,
@@ -171,7 +185,7 @@ public class RegistrationBean implements Registration {
                 createIssuerCipherParams(getIssuerPrivateRSAKey()),
                 pk,
                 expiry,
-                applicationIdentifier,
+                hashedAppId,
                 role);
         
         //TODO post on UniBoard
