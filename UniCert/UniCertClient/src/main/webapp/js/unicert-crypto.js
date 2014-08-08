@@ -23,7 +23,6 @@
  *
  */
 
-
 (function(window) {
 
 	// Check for leemon and seedrandom library. If the libraries aren't loaded,
@@ -48,56 +47,56 @@
 		////////////////////////////////////////////////////////////////////////
 		// Configuration
 
-		window.uvConfig = window.uvConfig || {};
+		window.ucConfig = window.ucConfig || {};
 
 		// Signs used for concat.
-		var CONCAT_SEPARATOR = uvConfig.CONCAT_SEPARATOR || "|";
-		var CONCAT_DELIMINATOR_L = uvConfig.CONCAT_DELIMINATOR_L || "(";
-		var CONCAT_DELIMINATOR_R = uvConfig.CONCAT_DELIMINATOR_R || ")";
+		var CONCAT_SEPARATOR = ucConfig.CONCAT_SEPARATOR || "|";
+		var CONCAT_DELIMINATOR_L = ucConfig.CONCAT_DELIMINATOR_L || "(";
+		var CONCAT_DELIMINATOR_R = ucConfig.CONCAT_DELIMINATOR_R || ")";
 
 		// Pre- and postfix used for secret key padding. Important: As the padded
 		// secret key is converted into a bigInt only leemon's base64 charset can
 		// be used (0-9, A-Z, a-z, _ and =)
-		var PRIVATE_KEY_PREFIX = uvConfig.PRIVATE_KEY_PREFIX || "=====BEGIN_UNICERT_PRIVATE_KEY=====";
-		var PRIVATE_KEY_POSTFIX = uvConfig.PRIVATE_KEY_POSTFIX || "=====END_UNICERT_PRIVATE_KEY=====";
+		var PRIVATE_KEY_PREFIX = ucConfig.PRIVATE_KEY_PREFIX || "=====BEGIN_UNICERT_PRIVATE_KEY=====";
+		var PRIVATE_KEY_POSTFIX = ucConfig.PRIVATE_KEY_POSTFIX || "=====END_UNICERT_PRIVATE_KEY=====";
 
 		// Pre- and postfix used for padding the encrypted secret key.
-		var ENC_PRIVATE_KEY_PREFIX = uvConfig.ENC_PRIVATE_KEY_PREFIX || "-----BEGIN ENCRYPTED UNICERT KEY-----";
-		var ENC_PRIVATE_KEY_POSTFIX = uvConfig.ENC_PRIVATE_KEY_POSTFIX || "-----END ENCRYPTED UNICERT KEY-----";
+		var ENC_PRIVATE_KEY_PREFIX = ucConfig.ENC_PRIVATE_KEY_PREFIX || "-----BEGIN ENCRYPTED UNICERT KEY-----";
+		var ENC_PRIVATE_KEY_POSTFIX = ucConfig.ENC_PRIVATE_KEY_POSTFIX || "-----END ENCRYPTED UNICERT KEY-----";
 
 		// IMPORTANT: (size of q) + (size of pre- and postfix) = 256 + 411 < 1024
-		var PRIVATE_KEY_ONE_TIME_PAD_SIZE = uvConfig.PRIVATE_KEY_ONE_TIME_PAD_SIZE || 1024;
+		var PRIVATE_KEY_ONE_TIME_PAD_SIZE = ucConfig.PRIVATE_KEY_ONE_TIME_PAD_SIZE || 1024;
 
 		// Base refers only to the bigInt representation of Schnorr, Elgamal and RSA parameters.
-		var base = uvConfig.BASE || 10;
+		var base = ucConfig.BASE || 10;
 
 //		// Schnorr
-//		uvConfig.SCHNORR = uvConfig.SCHNORR || {};
+//		ucConfig.SCHNORR = ucConfig.SCHNORR || {};
 //		var schnorr = {};
-//		schnorr.pStr = uvConfig.SCHNORR.P || "161931481198080639220214033595931441094586304918402813506510547237223787775475425991443924977419330663170224569788019900180050114468430413908687329871251101280878786588515668012772798298511621634145464600626619548823238185390034868354933050128115662663653841842699535282987363300852550784188180264807606304297";
-//		schnorr.qStr = uvConfig.SCHNORR.Q || "65133683824381501983523684796057614145070427752690897588060462960319251776021";
-//		schnorr.gStr = uvConfig.SCHNORR.G || "109291242937709414881219423205417309207119127359359243049468707782004862682441897432780127734395596275377218236442035534825283725782836026439537687695084410797228793004739671835061419040912157583607422965551428749149162882960112513332411954585778903685207256083057895070357159920203407651236651002676481874709";
+//		schnorr.pStr = ucConfig.SCHNORR.P || "161931481198080639220214033595931441094586304918402813506510547237223787775475425991443924977419330663170224569788019900180050114468430413908687329871251101280878786588515668012772798298511621634145464600626619548823238185390034868354933050128115662663653841842699535282987363300852550784188180264807606304297";
+//		schnorr.qStr = ucConfig.SCHNORR.Q || "65133683824381501983523684796057614145070427752690897588060462960319251776021";
+//		schnorr.gStr = ucConfig.SCHNORR.G || "109291242937709414881219423205417309207119127359359243049468707782004862682441897432780127734395596275377218236442035534825283725782836026439537687695084410797228793004739671835061419040912157583607422965551428749149162882960112513332411954585778903685207256083057895070357159920203407651236651002676481874709";
 //
 //		schnorr.p = leemon.str2bigInt(schnorr.pStr, base, 1);
 //		schnorr.q = leemon.str2bigInt(schnorr.qStr, base, 1);
 //		schnorr.g = leemon.str2bigInt(schnorr.gStr, base, 1);
 //
 //		// Elgamal
-//		uvConfig.ELGAMAL = uvConfig.ELGAMAL || {};
+//		ucConfig.ELGAMAL = ucConfig.ELGAMAL || {};
 //		var elgamal = {};
-//		elgamal.pStr = uvConfig.ELGAMAL.P || "127557310857026250526155290716175721659501699151591799276600227376716505297573619294610035498965642711634086243287869889860211239877645998908773071410481719856828493012051757158513651215977686324747806475706581177754781891491034188437985448668758765692160128854525678725065063346126289455727622203325341952627";
-//		elgamal.qStr = uvConfig.ELGAMAL.Q || "63778655428513125263077645358087860829750849575795899638300113688358252648786809647305017749482821355817043121643934944930105619938822999454386535705240859928414246506025878579256825607988843162373903237853290588877390945745517094218992724334379382846080064427262839362532531673063144727863811101662670976313";
-//		elgamal.gStr = uvConfig.ELGAMAL.G || "4";
+//		elgamal.pStr = ucConfig.ELGAMAL.P || "127557310857026250526155290716175721659501699151591799276600227376716505297573619294610035498965642711634086243287869889860211239877645998908773071410481719856828493012051757158513651215977686324747806475706581177754781891491034188437985448668758765692160128854525678725065063346126289455727622203325341952627";
+//		elgamal.qStr = ucConfig.ELGAMAL.Q || "63778655428513125263077645358087860829750849575795899638300113688358252648786809647305017749482821355817043121643934944930105619938822999454386535705240859928414246506025878579256825607988843162373903237853290588877390945745517094218992724334379382846080064427262839362532531673063144727863811101662670976313";
+//		elgamal.gStr = ucConfig.ELGAMAL.G || "4";
 //
 //		elgamal.p = leemon.str2bigInt(elgamal.pStr, base, 1);
 //		elgamal.q = leemon.str2bigInt(elgamal.qStr, base, 1);
 //		elgamal.g = leemon.str2bigInt(elgamal.gStr, base, 1);
 //
 //		// RSA
-//		uvConfig.RSA = uvConfig.RSA || {};
+//		ucConfig.RSA = ucConfig.RSA || {};
 //		var rsa = {};
-//		rsa.nStr = uvConfig.RSA.N || "143";
-//		rsa.pkStr = uvConfig.RSA.PK || "23";
+//		rsa.nStr = ucConfig.RSA.N || "143";
+//		rsa.pkStr = ucConfig.RSA.PK || "23";
 //
 //		rsa.n = leemon.str2bigInt(rsa.nStr, base, 1);
 //		rsa.pk = leemon.str2bigInt(rsa.pkStr, base, 1);
@@ -130,15 +129,16 @@
 		 * @param otherInput - Some other input as bigInt or string.
 		 * @return Proof as object containing t (commitment), c (challange) and s (response) as bigInt.
 		 */
-		this.NIZKP = function(system, secretInput, publicInput, otherInput) {
+		this.NIZKP = function(p, q, g, secretInput, publicInput, otherInput) {
 
 			//1. Choose omega at random from Zq
-			var omega = leemon.randBigIntInZq(system.q);
+			var omega = leemon.randBigIntInZq(q);
 
 			//2. Compute t = g^omega mod p
-			var t = leemon.powMod(system.g, omega, system.p);
+			var t = leemon.powMod(g, omega, p);
 
 			//3. Compute c = H(publicInput||t||otherInput) mod q
+                        //TODO adapt
 			var m = [];
 			m.push(leemon.bigInt2str(publicInput, 10), CONCAT_SEPARATOR);
 			m.push(leemon.bigInt2str(t, 10));
@@ -147,10 +147,10 @@
 				m.push(otherInput instanceof Array ? leemon.bigInt2str(otherInput, 10) : otherInput);
 			}
 			var cStr = SHA256(m.join(''));
-			var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), system.q);
+			var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), q);
 
 			//4. Compute s = omega+c*secretInput mod q
-			var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, elgamal.q)), system.q);
+			var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
 
 			// 5. Return proof
 			return {t: t, c: c, s: s};
@@ -159,13 +159,14 @@
 		/**
 		 * Asynchronous version of NIZKP.
 		 **/
-		this.NIZKPAsync = function(system, secretInput, publicInput, otherInput, doneCb, updateCb) {
+		this.NIZKPAsync = function(p, q, g, secretInput, publicInput, otherInput, doneCb, updateCb) {
                         
                         //TODO adapt
 			// step 2
 			var step2 = function(_t) {
 				var t = _t;
 				//3. Compute c = H(publicInput||t||otherInput) mod q
+                                //TODO adapt
 				var m = [];
 				m.push(leemon.bigInt2str(publicInput, 10), CONCAT_SEPARATOR);
 				m.push(leemon.bigInt2str(t, 10));
@@ -174,10 +175,10 @@
 					m.push(otherInput instanceof Array ? leemon.bigInt2str(otherInput, 10) : otherInput);
 				}
 				var cStr = SHA256(m.join(''));
-				var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), system.q);
+				var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), q);
 
 				//4. Compute s = omega+c*secretInput mod q
-				var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, system.q)), system.q);
+				var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
 
 				// 5. Call callback with proof
 				doneCb({t: t, c: c, s: s});
@@ -186,10 +187,10 @@
 
 			// Start with step 1
 			//1. Choose omega at random from Zq
-			var omega = leemon.randBigIntInZq(elgamal.q);
+			var omega = leemon.randBigIntInZq(q);
 
 			//2. Compute t = g^omega mod p
-			leemon.powModAsync(system.g, omega, system.p, updateCb, step2);
+			leemon.powModAsync(g, omega, p, updateCb, step2);
 		}
 
 
@@ -225,7 +226,7 @@
                             
                             //the prime must not be congruent to 1 modulo e
                             if (leemon.equalsInt(leemon.mod(p,e),1) || leemon.equalsInt(leemon.mod(q,e),1)){
-                                uvCrypto.generateRSASecretKey(size, doneCb, progressCb);
+                                ucCrypto.generateRSASecretKey(size, doneCb, progressCb);
                                 return;
                             }
                                 
@@ -281,8 +282,8 @@
 		 * @return Proof as object containing t (commitment), c (challange) and
 		 * s (response) as string representing a bigInt to the base 10.
 		 */
-		this.computeVerificationKeyProof = function(sk, vk, voterId) {
-			var proof = this.NIZKP(schnorr, sk, vk, voterId);
+		this.computeVerificationKeyProof = function(p, q, g, sk, vk, voterId) {
+			var proof = this.NIZKP(p, q, g, sk, vk, voterId);
 			proof.t = leemon.bigInt2str(proof.t, 10);
 			proof.c = leemon.bigInt2str(proof.c, 10);
 			proof.s = leemon.bigInt2str(proof.s, 10);
@@ -292,7 +293,7 @@
 		/**
 		 * Asynchronous version of comupteVerificationKeyProof.
 		 */
-		this.computeVerificationKeyProofAsync = function(sk, vk, voterId, doneCb, updateCb) {
+		this.computeVerificationKeyProofAsync = function(p, q, g, sk, vk, voterId, doneCb, updateCb) {
 
 			// done
 			var nizkpDoneCb = function(proof) {
@@ -302,7 +303,7 @@
 				doneCb(proof);
 			};
 
-			this.NIZKPAsync(schnorr, sk, vk, voterId, nizkpDoneCb, updateCb);
+			this.NIZKPAsync(p, q, g, sk, vk, voterId, nizkpDoneCb, updateCb);
 		}
                 
                 
@@ -529,7 +530,7 @@
 //					// Represent the number in binary number
 //					var votesForActualChoiceBin = votesForActualChoice.toString(2);
 //					// Check what never should be the case! (If it were true, than the
-//					// ruleControle in uv-util would have a bug!)
+//					// ruleControle in uc-util would have a bug!)
 //					if (votesForActualChoiceBin.length > nbrBitsPerCandidate) {
 //						throw new Error("Encoding error: Too many voices for candidate!");
 //					}
@@ -1068,6 +1069,7 @@
 	} // End SHA256
 
 
-	window.uvCrypto = new Crypto();
+	window.ucCrypto = new Crypto();
 
 })(window);
+

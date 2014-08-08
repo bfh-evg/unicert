@@ -22,9 +22,9 @@
 
 	<ui:define name="head_include_js">
 		<script type="text/javascript" src="js/lib/leemon.js"></script>
-		<script type="text/javascript" src="js/univote-random.js"></script>
-		<script type="text/javascript" src="js/univote-ca.js"></script>
-		<script type="text/javascript" src="js/univote-crypto.js"></script>
+		<script type="text/javascript" src="js/unicert-random.js"></script>
+		<script type="text/javascript" src="js/unicert-ca.js"></script>
+		<script type="text/javascript" src="js/unicert-crypto.js"></script>
 		<script type="text/javascript" src="js/registration.js"></script>
 	</ui:define>
 
@@ -114,6 +114,14 @@
                         
                         <div id="substep_2_3" class="substep clearfix"><div class="substep_nr">3</div>
 				<p>#{msg.genCertSubstep23Text}</p>
+                                <div class="row clearfix">
+                                <div class="col1 small">#{msg.application}: </div>
+				<div class="col2">
+                                    <select id="application" class="select" name="application" size="1" >	
+                                        <option value="UniVote">UniVote</option> 
+                                    </select>
+                                </div>
+                                </div>
                                 <div class="row clearfix">
                                 <div class="col1 small">#{msg.role}: </div>
 				<div class="col2">

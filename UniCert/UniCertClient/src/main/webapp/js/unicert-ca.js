@@ -34,11 +34,11 @@
     /**
      * Constructor.
      */
-    function Uvca() {
+    function Ucca() {
 
         // Url of the CA
-        window.uvConfig = window.uvConfig || {};
-        var URL_CERTIFICATE_AUTHORITY = uvConfig.URL_CERTIFICATE_AUTHORITY || "/UniCertClient/registration/";
+        window.ucConfig = window.ucConfig || {};
+        var URL_CERTIFICATE_AUTHORITY = ucConfig.URL_CERTIFICATE_AUTHORITY || "/UniCertClient/registration/";
 
         /**
          * Creates an RSA certificate by sending (asynchronously) the verification key 
@@ -219,6 +219,6 @@
     }
 
     // Create singleton CA object and set it globally. 
-    window.uvCA = new Uvca();
+    window.ucCA = new Ucca();
 
 })(window);

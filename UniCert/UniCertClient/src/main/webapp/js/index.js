@@ -20,7 +20,7 @@
 $(document).ready(function(){
 	
 	// 1. Check cookie support
-	if ( !uvUtilCookie.areSupported() ) {
+	if ( !ucUtilCookie.areSupported() ) {
 		$.blockUI({
 			message: '<div id="browser-check">'+
 				'<h2>'+msg.cookieSupport+'</h2>'+

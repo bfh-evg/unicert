@@ -17,14 +17,16 @@ import ch.bfh.unicrypt.helper.Alphabet;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
+import ch.bfh.unicrypt.math.function.classes.HashFunction;
+import ch.bfh.unicrypt.math.function.interfaces.Function;
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * This function is a specialization of the Standard SwitchAAI function which 
+ * This function is a specialization of the Standard SwitchAAI function which
  * uses hash value of the mail adress as common name
- * 
+ *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdentityFunction {
@@ -32,13 +34,10 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
     private static final Logger logger = Logger.getLogger(AnonymizedSwitchAAIIdentityFunction.class.getName());
 
     @Override
-    protected String selectCommonName(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException{
-        
-        StandardHashingScheme shs = StandardHashingScheme.getInstance(HashMethod.getInstance(HashAlgorithm.SHA1));
+    protected String selectCommonName(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException {
 
         String commonName = "";
-        
-        
+
         //Common name
         if (ud.getMail() != null) {
             commonName = ud.getMail();
@@ -68,16 +67,33 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
             }
         }
         
-                //TODO MAKE THIS WORK
-
-        try{
+        //Anonymization of commonName by hashing it with SHA256
+        try {
             StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
-            commonName = Base64.encode(shs.hash(sm.getElement(commonName)).getByteArray().getAll());
-        }catch (Exception e){
+            Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
+            commonName = getHexValue(hashFunction.apply(sm.getElement(commonName)).getByteArray().getAll());
+            logger.log(Level.SEVERE, "Problem while anonimizing: {0}", commonName);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
             throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing");
         }
-        
+
         return commonName;
     }
-        
+
+    private String getHexValue(byte[] array) {
+        char[] symbols = "0123456789ABCDEF".toCharArray();
+        char[] hexValue = new char[array.length * 2];
+
+        for (int i = 0; i < array.length; i++) {
+            //convert the byte to an int
+            int current = array[i] & 0xff;
+            //determine the Hex symbol for the last 4 bits
+            hexValue[i * 2 + 1] = symbols[current & 0x0f];
+            //determine the Hex symbol for the first 4 bits
+            hexValue[i * 2] = symbols[current >> 4];
+        }
+        return String.valueOf(hexValue);
+    }
+
 }

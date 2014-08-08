@@ -214,7 +214,7 @@
 
 (function(window){
 	
-	function UvUtilCookie() {
+	function UcUtilCookie() {
 		
 		// Creates a cookie.
 		this.create = function(name, value, days) {
@@ -258,6 +258,6 @@
 			return false;
 		}
 	}
-	window.uvUtilCookie = new UvUtilCookie();
+	window.ucUtilCookie = new UcUtilCookie();
 	
 })(window);

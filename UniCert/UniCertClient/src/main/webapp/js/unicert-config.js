@@ -113,6 +113,6 @@
 
 
 	}
-	window.uvConfig = new Config();
+	window.ucConfig = new Config();
 
 })(window);

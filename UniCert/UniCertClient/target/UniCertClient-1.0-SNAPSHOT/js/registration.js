@@ -15,12 +15,12 @@
 
 // Configuration.
 //-------------------------------------
-window.uvConfig = window.uvConfig || {};
+window.ucConfig = window.ucConfig || {};
 
 /**
  * Home site.
  */
-var HOME_SITE = uvConfig.HOME_SITE || 'index.xhtml';
+var HOME_SITE = ucConfig.HOME_SITE || 'index.xhtml';
 //-------------------------------------
 
 
@@ -70,6 +70,7 @@ $(document).ready(function() {
     elements.password = document.getElementById('password');
     elements.password2 = document.getElementById('password2');
     elements.passwordCheckIcon = document.getElementById('password-check-icon');
+    elements.application = document.getElementById('application');
     elements.role = document.getElementById('role');
     elements.cryptoSetupType = document.getElementById('crypto_setup_type');
     elements.cryptoSetupSize = document.getElementById('crypto_setup_size');
@@ -111,12 +112,13 @@ function init() {
     elements.retreiveSecretKeyButton.disabled = true;
     elements.password.disabled = true;
     elements.password2.disabled = true;
+    elements.application.disabled = true;
     elements.role.disabled = true;
     elements.identity_function.disabled = true;
     elements.generateKeyButton.disabled = true;
-    elements.p.value = uvConfig.SCHNORR.P;
-    elements.q.value = uvConfig.SCHNORR.Q;
-    elements.g.value = uvConfig.SCHNORR.G;
+    elements.p.value = ucConfig.SCHNORR.P;
+    elements.q.value = ucConfig.SCHNORR.Q;
+    elements.g.value = ucConfig.SCHNORR.G;
     secretKey = null;
     publicKey = null;
     modulo = null;
@@ -195,15 +197,15 @@ function generateKeyPair() {
     // Generate the keys
     if (elements.cryptoSetupType.value == "RSA") {
         type = "RSA";
-        uvCrypto.generateRSASecretKey(parseInt(elements.cryptoSetupSize.value), doneCbRSA, updateCb);
+        ucCrypto.generateRSASecretKey(parseInt(elements.cryptoSetupSize.value), doneCbRSA, updateCb);
     } else if (elements.cryptoSetupType.value == "DiscreteLog") {
         type = "DLOG";
         p = leemon.str2bigInt(elements.p.value, 10, 1);
         q = leemon.str2bigInt(elements.q.value, 10, 1);
         g = leemon.str2bigInt(elements.g.value, 10, 1);
-        sk = uvCrypto.generateDLOGSecretKey(q);
+        sk = ucCrypto.generateDLOGSecretKey(q);
         // Compute verification key based on secret key
-        uvCrypto.computeVerificationKeyAsync(p, g, sk, doneCbDlog, updateCb);
+        ucCrypto.computeVerificationKeyAsync(p, g, sk, doneCbDlog, updateCb);
     }
 
 }
@@ -258,12 +260,12 @@ function completeRegistration(byMail) {
             // (3) Hand out secret key to the voter
             var sk = leemon.bigInt2str(secretKey, 64);
             // encrypt secret key with users password
-            skC = uvCrypto.encryptSecretKey(sk, pw);
+            skC = ucCrypto.encryptSecretKey(sk, pw);
         } else if (type == "DLOG") {
             // (3) Hand out secret key to the voter
             var sk = leemon.bigInt2str(secretKey, 64);
             // encrypt secret key with users password
-            skC = uvCrypto.encryptSecretKey(sk, pw);
+            skC = ucCrypto.encryptSecretKey(sk, pw);
         }
 
 
@@ -321,23 +323,23 @@ function completeRegistration(byMail) {
     // Done callback of verification key proof computation for DLog
     var computeProofDoneCb = function(proof) {
         // (2) Send verification key to CA and get the certificate
-        uvCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
-                'UniVote', elements.role.value, createCertDoneCb, createCertErrorCb);
+        ucCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
+                elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     }
 
     // Done callback of verification key signature computation for RSA
     var computeSignatureDoneCb = function(signature) {
         // (2) Send verification key to CA and get the certificate
-        uvCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, signature,
-                'UniVote', elements.role.value, createCertDoneCb, createCertErrorCb);
+        ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, signature,
+                elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     }
 
     // (1) Compute verification key proof
     $.blockUI({message: '<p id="blockui-processing">' + msg.processing + '...</p>'});
     if (type == "RSA") {
-        uvCrypto.computeSignatureAsync(secretKey, publicKey, modulo, voter.id, computeSignatureDoneCb, computeUpdateCb);
+        ucCrypto.computeSignatureAsync(secretKey, publicKey, modulo, voter.id, computeSignatureDoneCb, computeUpdateCb);
     } else if (type == "DLOG") {
-        uvCrypto.computeVerificationKeyProofAsync(secretKey, publicKey, voter.id, computeProofDoneCb, computeUpdateCb);
+        ucCrypto.computeVerificationKeyProofAsync(p, q, g, secretKey, publicKey, voter.id, computeProofDoneCb, computeUpdateCb);
     }
 }
 
