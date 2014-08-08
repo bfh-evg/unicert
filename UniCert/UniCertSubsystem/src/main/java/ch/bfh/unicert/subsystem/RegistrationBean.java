@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2013 Berner Fachhochschule, Switzerland.
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
  * Bern University of Applied Sciences, Engineering and Information Technology,
  * Research Institute for Security in the Information Society, E-Voting Group,
  * Biel, Switzerland.
  *
- * Project UniVote.
+ * Project UniCert.
  *
  * Distributable under GPL license.
  * See terms of license at gnu.org.
@@ -20,13 +20,11 @@ import ch.bfh.unicert.subsystem.util.ConfigurationHelper;
 import ch.bfh.unicert.subsystem.util.ConfigurationHelperImpl;
 import ch.bfh.unicert.subsystem.util.ExtensionOID;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
-import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
-import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
-import ch.bfh.unicrypt.math.algebra.general.classes.ProductGroup;
+import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
 import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
 import java.io.ByteArrayInputStream;
@@ -51,6 +49,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.ejb.Remote;
 import javax.ejb.Startup;
 import javax.ejb.Stateless;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -62,7 +61,6 @@ import org.bouncycastle.asn1.DERBoolean;
 import org.bouncycastle.asn1.DERInteger;
 import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.DERObjectIdentifier;
-import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DEROutputStream;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
@@ -90,107 +88,83 @@ import sun.security.rsa.RSAPublicKeyImpl;
 
 /**
  * Implements the registration service used by the registration proxy of the
- * voting client. Upon request constructs a certificate for the requestor and
- * returns it, together with the certificate of the registration service.
- * <p>
- * Further operations allow renew and to revoke a certificate. There is also an
- * operation to list all (currently: all non-revoked) certificates.
- * <p>
- * The current implementation of this class allows at most one, non-revoked
- * certificate per requestor.
- * <p>
- * Operations returning data use JAXP instances. This allows the receiving
- * client to easily convert received data into XML documents.
- * <p>
- * Privacy protection demands that the certificate of the requestor does not
- * contain the name of the requestor. Currently, the certificate contains:
- * <ul>
- * <li>CN=&lt;student number&gt;</li>
- * <li>OU=&lt;organization name&gt;</li>
- * <li>OU=&lt;study branch&gt;</li>
- * <li>UID=&lt;unique SWITCHaai user id&gt;</li>
- * <li>the public key of the requestor (a.k.a. the verification key)
- * </ul>
- *
+ * unicert client. Upon request constructs a certificate for the requestor and
+ * returns it
+ * 
  * @author Eric Dubuis &lt;eric.dubuis@bfh.ch&gt;
  * @author Reto Koenig &lt;reto.koenig@bfh.ch&gt;
+ * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 @Stateless
 @Startup
 public class RegistrationBean implements Registration {
 
-    private static final int MIN_RSA_SIZE = 1024;
-    private static final int MIN_DLOG_SIZE = 1024;
+    private static final int MIN_RSA_SIZE = 1020;
+    private static final int MIN_DLOG_SIZE = 1020;
 
     private static final Logger logger = Logger.getLogger(RegistrationBean.class.getName());
 
     @Override
-    public Certificate createCertificate(CryptographicSetup cs, BigInteger publicKey, IdentityData idData, String applicationIdentifier, int role, BigInteger signature, String originalMessage)
+    public Certificate createCertificate(CryptographicSetup cs, IdentityData idData, String applicationIdentifier, int role)
             throws CertificateCreationException {
 
         PublicKey pk = null;
-        Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
 
         //Check if role is realistic
         if (role < 0) {
-            throw new CertificateCreationException("Unknow role");
+            throw new CertificateCreationException("200 Unknow role");
         }
 
         //Check validity of crypto setup
         if (cs instanceof RsaSetup) {
             RsaSetup setup = (RsaSetup) cs;
-            if (setup.getN().bitLength() != setup.getSize()
+            if (setup.getN().bitLength() < (setup.getSize()-(setup.getSize()*5/1000))
                     || setup.getN().bitLength() < MIN_RSA_SIZE) {
                 logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
-                throw new CertificateCreationException("Illegal cryptographic setup: minimal size not respected");
-            }
-            if (publicKey.bitLength() < MIN_RSA_SIZE) {
-                logger.log(Level.SEVERE, "Illegal cryptographic setup: public key too short");
-                throw new CertificateCreationException("Illegal cryptographic setup: public key too short");
+                throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected. N was "
+                        +setup.getN().bitLength()+" long, but " +(setup.getSize()-(setup.getSize()*5/1000))
+                        +" or "+ MIN_RSA_SIZE+"is required.");
             }
 
             //verify signature
-            RSASignatureScheme rsa = new RSASignatureScheme();
-            ZMod rsaGroup = ZMod.getInstance(setup.getN());
-            StringElement message = StringMonoid.getInstance(Alphabet.UNARY).getElement(originalMessage);
-            if (!rsa.verify(rsaGroup.getElement(publicKey), message, rsaGroup.getElement(signature)).getValue()) {
-                logger.log(Level.SEVERE, "Signature invalid");
-                throw new CertificateCreationException("Signature invalid");
-            }
+            //TODO not implemented in UniCrypt
+//            RSASignatureScheme rsa = RSASignatureScheme.getInstance(setup.);
+//            ZMod rsaGroup = ZMod.getInstance(setup.getN());
+//            StringElement message = StringMonoid.getInstance(Alphabet.UNARY).getElement(originalMessage);
+//            if (!rsa.verify(rsaGroup.getElement(publicKey), message, rsaGroup.getElement(signature)).getValue()) {
+//                logger.log(Level.SEVERE, "Signature invalid");
+//                throw new CertificateCreationException("222 Signature invalid");
+//            }
 
-            pk = createRSAPublicKey(publicKey, setup.getN());
+            pk = createRSAPublicKey(setup.getPublicKey(), setup.getN());
 
         } else if (cs instanceof DiscreteLogSetup) {
             DiscreteLogSetup setup = (DiscreteLogSetup) cs;
-            if (setup.getP().getValue().bitLength() != setup.getSize()
+            if (setup.getP().getValue().bitLength() < (setup.getSize()-(setup.getSize()*5/1000))
                     || setup.getP().getValue().bitLength() < MIN_DLOG_SIZE
                     || !setup.getGenerator().isGenerator()) {
                 logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
-                throw new CertificateCreationException("Illegal cryptographic setup: minimal size not respected");
+                throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected");
             }
 
-            //verify size of key
-            if (publicKey.bitLength() < MIN_DLOG_SIZE) {
-                logger.log(Level.SEVERE, "Illegal cryptographic setup: public key too short");
-                throw new CertificateCreationException("Illegal cryptographic setup: public key too short");
-            }
-
-            StringElement message = StringMonoid.getInstance(Alphabet.BASE64).getElement(originalMessage);
+            
+            StringElement message = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII).getElement(setup.getProofOtherInput());
             Function func = GeneratorFunction.getInstance(setup.getGenerator());
             PreimageProofSystem pips = PreimageProofSystem.getInstance(func, message);
-
-            ProductGroup pg = ProductGroup.getInstance(setup.getG_q(), Z.getInstance(), setup.getZ_q());
             
             //verify proof
-            if (!pips.verify(pg.getElementFrom(signature), setup.getG_q().getElement(publicKey))) {
-                logger.log(Level.SEVERE, "Proof incorrect");
-                throw new CertificateCreationException("Proof incorrect");
-            }
+            //TODO make compatible proof
+            Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), Z.getInstance().getElementFrom(setup.getProofChallenge()), setup.getZ_q().getElementFrom(setup.getProofResponse()));
+//            if (!pips.verify(proof, setup.getPublicKey())) {
+//                logger.log(Level.SEVERE, "Proof incorrect");
+//                throw new CertificateCreationException("223 Proof incorrect");
+//            }
 
-            pk = createDSAPublicKey(publicKey, setup.getP().getValue(), setup.getZ_q().getOrder(), setup.getGenerator().getBigInteger());
+            pk = createDSAPublicKey(setup.getPublicKey().getBigInteger(), setup.getP().getValue(), setup.getZ_q().getOrder(), setup.getGenerator().getBigInteger());
 
         }
-
+        
+        Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
         Certificate cert = createClientCertificate(
                 idData,
                 getIssuerCertificate(),
@@ -224,11 +198,18 @@ public class RegistrationBean implements Registration {
         } catch (InvalidKeyException ex) {
             logger.log(Level.SEVERE, "Could not instantiate DSA public key: {0}",
                     new Object[]{ex.getMessage()});
-            throw new CertificateCreationException("Could not instantiate DSA public key");
+            throw new CertificateCreationException("224 Could not instantiate DSA public key");
         }
         return dpk;
     }
 
+    /**
+     * Creates an RSA public key of the requestor
+     * @param publicKey the value of the public key
+     * @param n the modulus
+     * @return the object representing an RSA public key
+     * @throws CertificateCreationException  if there is an error
+     */
     private RSAPublicKey createRSAPublicKey(BigInteger publicKey, BigInteger n) throws CertificateCreationException {
         RSAPublicKey rpk;
         try {
@@ -236,17 +217,19 @@ public class RegistrationBean implements Registration {
         } catch (InvalidKeyException ex) {
             logger.log(Level.SEVERE, "Could not instantiate RSA public key: {0}",
                     new Object[]{ex.getMessage()});
-            throw new CertificateCreationException("Could not instantiate RSA public key");
+            throw new CertificateCreationException("224 Could not instantiate RSA public key");
         }
         return rpk;
     }
 
     /**
      * Returns the calendar representing the expiration date.
-     *
+     * By default, 2 years after now is set
      * @return a calendar
      */
-    private Calendar getExpiryDate(int validityInYears) {
+    private Calendar getExpiryDate(Integer validityInYears) {
+        //Default is 2
+        if(validityInYears==null) validityInYears=2;
         Calendar expiry = Calendar.getInstance();
         expiry.add(Calendar.YEAR, validityInYears);
         return expiry;
@@ -290,27 +273,22 @@ public class RegistrationBean implements Registration {
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Could not get issuer cipher parameters: {0}",
                     new Object[]{ex.getMessage()});
-            throw new CertificateCreationException("Could not get issuer cipher parameters");
+            throw new CertificateCreationException("200 Could not get issuer cipher parameters");
         }
         return cipherParams;
     }
 
     /**
      * Actually creates the requestor certificate.
-     *
-     * @param voterId the identity of a (potential) voter, used to form the
-     * value for CN
-     * @param organisation the name of the university or university of applied
-     * sciences, used to form the value O
-     * @param studyBranch the identification of the study branch, used to form
-     * the value for OU
-     * @param uid a unique identifier for the subject
-     * @param caCert issuer certificate
+     * @param id requestor identity data
+     * @param caCert certificate of the certification authority
      * @param cipherParams issuer private key parameters used for signing
-     * @param dpk the voter public key
+     * @param pk public key of the requestor to certify
      * @param expiry the expiry date
-     * @return a certificate
-     * @throws RegistrationException
+     * @param applicationIdentifier the application identifier for which te certificate is issued 
+     * @param role role for which the certificate is issued
+     * @return the certificate object containing the X509 certificate
+     * @throws CertificateCreationException if an error occurs
      */
     private Certificate createClientCertificate(
             IdentityData id,
@@ -326,14 +304,14 @@ public class RegistrationBean implements Registration {
 
         Hashtable extension = new Hashtable();
 
-        extension.put(new DERObjectIdentifier(ExtensionOID.APPLICATION_IDENTIFIER.getOID()), new X509Extension(DERBoolean.TRUE, CertificateHelper.stringToDER(applicationIdentifier)));
-        extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.TRUE, CertificateHelper.stringToDER(""+role)));
-        extension.put(new DERObjectIdentifier(ExtensionOID.IDENTITY_PROVIDER.getOID()), new X509Extension(DERBoolean.TRUE, CertificateHelper.stringToDER(id.getIdentityProvider())));
+        extension.put(new DERObjectIdentifier(ExtensionOID.APPLICATION_IDENTIFIER.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(applicationIdentifier)));
+        extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(""+role)));
+        extension.put(new DERObjectIdentifier(ExtensionOID.IDENTITY_PROVIDER.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(id.getIdentityProvider())));
 
         Map<String, String> extensionMap = new HashMap();
         if (id.getOtherValues() != null) {
             for (Entry<ExtensionOID, String> entry : id.getOtherValues().entrySet()) {
-                extension.put(new DERObjectIdentifier(entry.getKey().getOID()), new X509Extension(DERBoolean.TRUE, CertificateHelper.stringToDER(entry.getValue())));
+                extension.put(new DERObjectIdentifier(entry.getKey().getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(entry.getValue())));
                 extensionMap.put(entry.getKey().getName(), entry.getValue());
             }
         }
@@ -414,7 +392,7 @@ public class RegistrationBean implements Registration {
                 InvalidKeyException | NoSuchProviderException | InvalidCipherTextException | SignatureException e) {
             logger.log(Level.SEVERE, "Could not create client certificate: {0}",
                     new Object[]{e.getMessage()});
-            throw new CertificateCreationException("Could not create client certificate");
+            throw new CertificateCreationException("230 Could not create client certificate");
         }
 
         return new Certificate(clientCert, id.getCommonName(), id.getUniqueIdentifier(), id.getOrganisation(), id.getOrganisationUnit(), id.getCountryName(),

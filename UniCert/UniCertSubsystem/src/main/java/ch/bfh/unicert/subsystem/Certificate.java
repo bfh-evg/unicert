@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
+ * Bern University of Applied Sciences, Engineering and Information Technology,
+ * Research Institute for Security in the Information Society, E-Voting Group,
+ * Biel, Switzerland.
+ *
+ * Project UniCert.
+ *
+ * Distributable under GPL license.
+ * See terms of license at gnu.org.
+ */
 package ch.bfh.unicert.subsystem;
 
 import ch.bfh.unicert.subsystem.util.CertificateHelper;
@@ -6,7 +17,6 @@ import java.math.BigInteger;
 import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Hashtable;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -18,26 +28,45 @@ import java.util.logging.Logger;
  * information is added to ease processing.
  *
  * @author Eric Dubuis &lt;eric.dubuis@bfh.ch&gt;
+ * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class Certificate {
 
-    private String commonName;
-    private String uniqueIdentifier;
-    private String organisation;
-    private String organisationUnit;
-    private String countryName;
-    private String state;
-    private String locality;
-    private String surname;
-    private String givenName;
+    private final String commonName;
+    private final String uniqueIdentifier;
+    private final String organisation;
+    private final String organisationUnit;
+    private final String countryName;
+    private final String state;
+    private final String locality;
+    private final String surname;
+    private final String givenName;
 
-    private String issuer;
-    private BigInteger serialNumber;
-    private Date validFrom;
-    private Date validUntil;
-    private Map<String, String> extension;
+    private final String issuer;
+    private final BigInteger serialNumber;
+    private final Date validFrom;
+    private final Date validUntil;
+    private final Map<String, String> extension;
     private String pem;
+    
+    private X509Certificate cert;
 
+    /**
+     * Create an object representing a X509 certificate with redundant information
+     * @param cert the X509 certificate to store in the object
+     * @param commonName the common name appearing in the given certificate
+     * @param uniqueId the unique identifier appearing in the given certificate
+     * @param organisation the organisation appearing in the given certificate
+     * @param organisationUnit the organisation unit appearing in the given certificate
+     * @param countryName the country appearing in the given certificate
+     * @param state the state appearing in the given certificate
+     * @param locality the locality appearing in the given certificate
+     * @param surname the surname appearing in the given certificate
+     * @param givenName the given name appearing in the given certificate
+     * @param extension the extension appearing in the given certificate
+     * 
+     * If some information does not appear in the certificate, null can be passed
+     */
     public Certificate(X509Certificate cert, String commonName, String uniqueId, String organisation, String organisationUnit,
             String countryName, String state, String locality, String surname, String givenName, Map extension) {
 
@@ -57,82 +86,84 @@ public class Certificate {
         this.validUntil = cert.getNotAfter();
         this.extension = extension;
         try {
-            this.pem = CertificateHelper.x509ToBase64PEMString(cert);;
+            this.pem = CertificateHelper.x509ToBase64PEMString(cert);
         } catch (IOException ex) {
+            
             Logger.getLogger(Certificate.class.getName()).log(Level.SEVERE, null, ex);
         }
+        this.cert = cert;  
     }
 
+    /**
+     * Get the common name appearing in the given certificate
+     * @return the common name as string
+     */
     public String getCommonName() {
         return commonName;
     }
 
-    public void setCommonName(String commonName) {
-        this.commonName = commonName;
-    }
-
+    /**
+     * Get the unique identifier appearing in the given certificate
+     * @return the unique identifier
+     */
     public String getUniqueIdentifier() {
         return uniqueIdentifier;
     }
 
-    public void setUniqueIdentifier(String uniqueIdentifier) {
-        this.uniqueIdentifier = uniqueIdentifier;
-    }
-
+    /**
+     * Get the organisation appearing in the given certificate
+     * @return the organisation name
+     */
     public String getOrganisation() {
         return organisation;
     }
 
-    public void setOrganisation(String organisation) {
-        this.organisation = organisation;
-    }
-
+    /**
+     * Get the organisation unit appearing in the given certificate
+     * @return the organisation unit
+     */
     public String getOrganisationUnit() {
         return organisationUnit;
     }
 
-    public void setOrganisationUnit(String organisationUnit) {
-        this.organisationUnit = organisationUnit;
-    }
-
+    /**
+     * Get the country appearing in the given certificate
+     * @return the country name
+     */
     public String getCountryName() {
         return countryName;
     }
 
-    public void setCountryName(String countryName) {
-        this.countryName = countryName;
-    }
-
+    /**
+     * Get the state appearing in the given certificate
+     * @return the state name
+     */
     public String getState() {
         return state;
     }
 
-    public void setState(String state) {
-        this.state = state;
-    }
-
+    /**
+     * Get the locality appearing in the given certificate
+     * @return the locality name
+     */
     public String getLocality() {
         return locality;
     }
 
-    public void setLocality(String locality) {
-        this.locality = locality;
-    }
-
+    /**
+     * Get the surname appearing in the given certificate
+     * @return the surname
+     */
     public String getSurname() {
         return surname;
     }
 
-    public void setSurname(String surname) {
-        this.surname = surname;
-    }
-
+    /**
+     * Get the given name appearing in the given certificate
+     * @return the given name
+     */
     public String getGivenName() {
         return givenName;
-    }
-
-    public void setGivenName(String givenName) {
-        this.givenName = givenName;
     }
 
     /**
@@ -145,30 +176,12 @@ public class Certificate {
     }
 
     /**
-     * Sets the issuer name.
-     *
-     * @param issuer a name
-     */
-    public void setIssuer(String issuer) {
-        this.issuer = issuer;
-    }
-
-    /**
      * Returns the serial number.
      *
      * @return a number
      */
     public BigInteger getSerialNumber() {
         return serialNumber;
-    }
-
-    /**
-     * Sets the serial number.
-     *
-     * @param serialNumber a number
-     */
-    public void setSerialNumber(BigInteger serialNumber) {
-        this.serialNumber = serialNumber;
     }
 
     /**
@@ -181,30 +194,12 @@ public class Certificate {
     }
 
     /**
-     * Sets the valid-from date.
-     *
-     * @param validFrom a date
-     */
-    public void setValidFrom(Date validFrom) {
-        this.validFrom = validFrom;
-    }
-
-    /**
      * Returns the valid-until date.
      *
      * @return a date
      */
     public Date getValidUntil() {
         return validUntil;
-    }
-
-    /**
-     * Sets the valid-until date.
-     *
-     * @param validUntil a date
-     */
-    public void setValidUntil(Date validUntil) {
-        this.validUntil = validUntil;
     }
 
     /**
@@ -218,16 +213,6 @@ public class Certificate {
     }
 
     /**
-     * Sets the extension including application identifier, role and identity
-     * provider
-     *
-     * @param extension the extension
-     */
-    public void setExtension(Map extension) {
-        this.extension = extension;
-    }
-
-    /**
      * Returns the certificate as a PEM structure.
      *
      * @return a string containing PEM encoded certificate
@@ -235,16 +220,19 @@ public class Certificate {
     public String getPem() {
         return pem;
     }
-
+    
     /**
-     * Sets the PEM encoded certificate.
-     *
-     * @param pem a PEM string
+     * Get the X.509 Certificate
+     * @return the X.509 Certificate
      */
-    public void setPem(String pem) {
-        this.pem = pem;
+    public X509Certificate getX509Certificate(){
+        return cert;
     }
 
+    /**
+     * Convert the object to a JSON structure
+     * @return a JSON string representing the certificate
+     */
     public String toJSON() {
         String json = "{ ";
 
@@ -292,10 +280,15 @@ public class Certificate {
                 json += "\"" + e.getKey() + "\": \"" + e.getValue() + "\", ";
             }
         }
-        json += "\"pem\": \"" + this.pem.replace("\n", "") + "\"}";
+        json += "\"pem\": \"" + this.pem.replace("\n", "\\n") + "\"}";
         return json;
     }
 
+    /**
+     * Helper method allowing to convert a Date in ISO format string
+     * @param date the date to convert
+     * @return the string representing the date in ISO format
+     */
     private String formatDate(Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
