@@ -20,7 +20,12 @@
     </properties>
 
     <dependencies>
-       
+        <dependency>
+            <groupId>apache-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.2</version>
+            <type>jar</type>
+        </dependency>
         <dependency>
             <groupId>javax</groupId>
             <artifactId>javaee-api</artifactId>
@@ -68,15 +73,12 @@
             <version>3.1.2.2</version>
             <scope>test</scope>
         </dependency>
-        
-        
-        
-       
-        
-        
-        
-            
-            
+        <dependency>
+            <groupId>ch.bfh.uniboard</groupId>
+            <artifactId>bfh-wsdl</artifactId>
+            <version>1.0</version>
+        </dependency>
+         
     </dependencies>
     
     <dependencyManagement>

@@ -50,6 +50,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private Integer validityYears;
 
     private static final Logger logger = Logger.getLogger(ConfigurationHelperImpl.class.getName());
+    private String uniboardURL;
 
     /**
      * Private constructor, used internally only.
@@ -99,12 +100,22 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     public Integer getValidityYears() {
         return validityYears;
     }
+    
+    /**
+     * @inheritDoc
+     */
+    @Override
+    public String getUniBoardServiceURL() {
+        return uniboardURL;
+    }
+    
+    
 
     public void init() throws CertificateCreationException {
         Properties props;
         try {
             javax.naming.InitialContext ic = new javax.naming.InitialContext();
-            props = (Properties) ic.lookup("java:app/registrationProps");	//TODO why doesn't it work for test with java:app/ and is it required for the web app???????
+            props = (Properties) ic.lookup("unicertProps");
 
         } catch (NamingException ex) {
             logger.log(Level.SEVERE, "JNDI lookup for 'registrationProps' failed. Exception: {0}",
@@ -119,6 +130,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
 
         //Load simple properties
         this.issuerId = retrieveStringProperty(props, "issuerId");
+        this.uniboardURL = retrieveStringProperty(props, "uniboardURL");
         this.validityYears = retrieveIntegerProperty(props, "validityYears");
 
         //Load keystore with private key for the manager

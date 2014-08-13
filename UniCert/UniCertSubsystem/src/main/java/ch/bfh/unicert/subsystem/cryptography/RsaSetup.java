@@ -38,6 +38,8 @@ public class RsaSetup implements CryptographicSetup{
      * Create an object representing an RSA setup
      * @param size the size of the keys required
      * @param n the RSA modulus
+     * @param publicKey the public exponent
+     * @param signature signature to prove knowledge of the secret key
      */
     public RsaSetup(int size, BigInteger n, BigInteger publicKey, BigInteger signature ) {
         this.size = size;
@@ -62,19 +64,35 @@ public class RsaSetup implements CryptographicSetup{
         return n;
     }
 
-    //TODO comments
+    /**
+     * Get the value of the signature of the parameters sent to the server
+     * @return value of the signature
+     */
     public BigInteger getSignature() {
         return signature;
     }
 
+    /**
+     * Get the RSA public key
+     * @return the RSA exponent
+     */
     public BigInteger getPublicKey() {
         return publicKey;
     }
 
+    /**
+     * Get the string of the data that were signed
+     * @return 
+     */
     public String getSignatureOtherInput() {
         return signatureOtherInput;
     }
 
+    /**
+     * Set the string of the data that were signed
+     * @param signatureOtherInput 
+     */
+    @Override
     public void setSignatureOtherInput(String signatureOtherInput) {
         this.signatureOtherInput = signatureOtherInput;
     }

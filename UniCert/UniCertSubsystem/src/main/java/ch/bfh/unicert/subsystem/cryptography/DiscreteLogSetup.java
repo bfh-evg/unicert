@@ -64,7 +64,12 @@ public class DiscreteLogSetup implements CryptographicSetup{
      * Create an object representing an discrete log (DSA, Elgamal) setup
      * @param size size of the keys
      * @param g generator of the cyclic group
-     * @param prime safe prime
+     * @param p prime value
+     * @param q prime value
+     * @param pk public key
+     * @param proofCommitment commitment part of the proof of knowledge of the private key
+     * @param proofChallenge challenge part of the proof of knowledge of the private key
+     * @param proofResponse response part of the proof of knowledge of the private key
      */
     public DiscreteLogSetup(int size, BigInteger g, BigInteger p, BigInteger q, BigInteger pk, BigInteger proofCommitment, BigInteger proofChallenge, BigInteger proofResponse) {
         this.size =size;
@@ -122,27 +127,51 @@ public class DiscreteLogSetup implements CryptographicSetup{
         return p;
     }
 
-    //TODO comment
+    /**
+     * Get the public key
+     * @return the public key
+     */
     public GStarModElement getPublicKey() {
         return publicKey;
     }
 
+    /**
+     * Get the commitment part of the proof of knowledge of the secret key
+     * @return the commitment part of the proof
+     */
     public BigInteger getProofCommitment() {
         return proofCommitment;
     }
-
-    public String getProofOtherInput() {
-        return proofOtherInput;
-    }
-
+    
+    /**
+     * Get the challenge part of the proof of knowledge of the secret key
+     * @return the challenge part of the proof
+     */
     public BigInteger getProofChallenge() {
         return proofChallenge;
     }
     
+    /**
+     * Get the response part of the proof of knowledge of the secret key
+     * @return the response part of the proof
+     */
     public BigInteger getProofResponse() {
         return proofResponse;
     }
+    
+    /**
+     * Get the string containing other values that were linked in the proof
+     * @return the string of values included in the proof
+     */
+    public String getProofOtherInput() {
+        return proofOtherInput;
+    }
 
+    /**
+     * Set the string containing other values that were linked in the proof
+     * @param proofPublicInput the string of values included in the proof
+     */
+    @Override
     public void setSignatureOtherInput(String proofPublicInput) {
         this.proofOtherInput = proofPublicInput;
     }

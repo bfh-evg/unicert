@@ -11,6 +11,13 @@
  */
 package ch.bfh.unicert.subsystem;
 
+//import ch.bfh.uniboard.UniBoardService;
+//import ch.bfh.uniboard.UniBoardService_Service;
+import ch.bfh.uniboard.UniBoardService;
+import ch.bfh.uniboard.UniBoardService_Service;
+import ch.bfh.uniboard.data.AttributesDTO;
+import ch.bfh.uniboard.data.AttributesDTO.AttributeDTO;
+import ch.bfh.uniboard.data.StringValueDTO;
 import ch.bfh.unicert.subsystem.cryptography.CryptographicSetup;
 import ch.bfh.unicert.subsystem.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.subsystem.cryptography.RsaSetup;
@@ -30,11 +37,13 @@ import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
 import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
 import ch.bfh.unicrypt.math.function.classes.HashFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -45,10 +54,12 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -56,6 +67,8 @@ import java.util.logging.Logger;
 import javax.ejb.Remote;
 import javax.ejb.Startup;
 import javax.ejb.Stateless;
+import javax.xml.namespace.QName;
+import javax.xml.ws.BindingProvider;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -94,7 +107,7 @@ import sun.security.rsa.RSAPublicKeyImpl;
  * Implements the registration service used by the registration proxy of the
  * unicert client. Upon request constructs a certificate for the requestor and
  * returns it
- * 
+ *
  * @author Eric Dubuis &lt;eric.dubuis@bfh.ch&gt;
  * @author Reto Koenig &lt;reto.koenig@bfh.ch&gt;
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
@@ -113,6 +126,8 @@ public class RegistrationBean implements Registration {
             throws CertificateCreationException {
 
         PublicKey pk = null;
+        
+        logger.log(Level.INFO, "Certificate requested for {0}", idData.getCommonName());
 
         //Check if role is realistic
         if (role < 0) {
@@ -122,14 +137,16 @@ public class RegistrationBean implements Registration {
         //Check validity of crypto setup
         if (cs instanceof RsaSetup) {
             RsaSetup setup = (RsaSetup) cs;
-            if (setup.getN().bitLength() < (setup.getSize()-(setup.getSize()*5/1000))
+            if (setup.getN().bitLength() < (setup.getSize() - (setup.getSize() * 5 / 1000))
                     || setup.getN().bitLength() < MIN_RSA_SIZE) {
                 logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
                 throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected. N was "
-                        +setup.getN().bitLength()+" long, but " +(setup.getSize()-(setup.getSize()*5/1000))
-                        +" or "+ MIN_RSA_SIZE+"is required.");
+                        + setup.getN().bitLength() + " long, but " + (setup.getSize() - (setup.getSize() * 5 / 1000))
+                        + " or " + MIN_RSA_SIZE + "is required.");
             }
-
+            
+            logger.log(Level.INFO, "Valid RSA setup");
+            
             //verify signature
             //TODO not implemented in UniCrypt
 //            RSASignatureScheme rsa = RSASignatureScheme.getInstance(setup.);
@@ -139,23 +156,23 @@ public class RegistrationBean implements Registration {
 //                logger.log(Level.SEVERE, "Signature invalid");
 //                throw new CertificateCreationException("222 Signature invalid");
 //            }
-
             pk = createRSAPublicKey(setup.getPublicKey(), setup.getN());
 
         } else if (cs instanceof DiscreteLogSetup) {
             DiscreteLogSetup setup = (DiscreteLogSetup) cs;
-            if (setup.getP().getValue().bitLength() < (setup.getSize()-(setup.getSize()*5/1000))
+            if (setup.getP().getValue().bitLength() < (setup.getSize() - (setup.getSize() * 5 / 1000))
                     || setup.getP().getValue().bitLength() < MIN_DLOG_SIZE
                     || !setup.getGenerator().isGenerator()) {
                 logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
                 throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected");
             }
 
+            logger.log(Level.INFO, "Valid DLOG setup");
             
             StringElement message = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII).getElement(setup.getProofOtherInput());
             Function func = GeneratorFunction.getInstance(setup.getGenerator());
-            PreimageProofSystem pips = PreimageProofSystem.getInstance(func, message);
-            
+            PreimageProofSystem pips = PreimageProofSystem.getInstance(func);//, message);
+
             //verify proof
             //TODO make compatible proof
             Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), Z.getInstance().getElementFrom(setup.getProofChallenge()), setup.getZ_q().getElementFrom(setup.getProofResponse()));
@@ -168,15 +185,22 @@ public class RegistrationBean implements Registration {
 
         }
         
+        logger.log(Level.INFO, "Hashing application identifier.");
+
         //Hashing appIdentifier to avoid publishing unwanted texts in certificate
         String hashedAppId = applicationIdentifier;
-        try{
+        try {
             StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
             Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
-            hashedAppId = Base64.encode(hashFunction.apply(sm.getElement(applicationIdentifier)).getByteArray().getAll());
-        }catch (Exception e){
+            //TODO why does this not work on the server ??
+            //byte[] hashed = hashFunction.apply(sm.getElement(applicationIdentifier)).getByteArray().getAll();
+            logger.log(Level.INFO, "Application identifier hashed. Encoding Base 64");
+            hashedAppId = new String(Base64.encodeBase64(applicationIdentifier.getBytes()));
+        } catch (Exception e) {
             logger.log(Level.WARNING, "Problem while hashing application identifier: {0}", e.getMessage());
         }
+
+        logger.log(Level.INFO, "Required info processed, creating certificate.");
         
         Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
         Certificate cert = createClientCertificate(
@@ -187,14 +211,34 @@ public class RegistrationBean implements Registration {
                 expiry,
                 hashedAppId,
                 role);
+
+        logger.log(Level.INFO, "Posting certificate on the UniBoard");
         
-        //TODO post on UniBoard
-        String section = "";
-        String group = "";
-        cert.toJSON();
+        String endpointUrl = getUniBoardServiceURL();
+        UniBoardService board;
+        try {
+            URL wsdlLocation = new URL(endpointUrl); // Decision: expect endpoint URL having "?wsdl" appended
+            QName qname = new QName("http://uniboard.bfh.ch/", "UniBoardService");
+            UniBoardService_Service mixingService = new UniBoardService_Service(wsdlLocation, qname);
+            board = mixingService.getUniBoardServicePort();
+            BindingProvider bp = (BindingProvider) board;
+            bp.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
+        } catch (MalformedURLException ex) {
+            logger.log(Level.SEVERE, "Malformed URL for UniBoard  service: {0}, exception: {1}", new Object[]{endpointUrl, ex});
+            throw new RuntimeException(ex);
+        }
+
+        List<AttributeDTO> attributes = new ArrayList();
+        attributes.add(new AttributeDTO("section", new StringValueDTO("certificates")));
+        AttributesDTO alpha = new AttributesDTO(attributes);
+        
+        
+        board.post(cert.toJSON().getBytes(), alpha);
+        
+        logger.log(Level.INFO, "Certificate posted on UniBoard");
         
         return cert;
-        
+
     }
 
     /**
@@ -219,10 +263,11 @@ public class RegistrationBean implements Registration {
 
     /**
      * Creates an RSA public key of the requestor
+     *
      * @param publicKey the value of the public key
      * @param n the modulus
      * @return the object representing an RSA public key
-     * @throws CertificateCreationException  if there is an error
+     * @throws CertificateCreationException if there is an error
      */
     private RSAPublicKey createRSAPublicKey(BigInteger publicKey, BigInteger n) throws CertificateCreationException {
         RSAPublicKey rpk;
@@ -237,13 +282,16 @@ public class RegistrationBean implements Registration {
     }
 
     /**
-     * Returns the calendar representing the expiration date.
-     * By default, 2 years after now is set
+     * Returns the calendar representing the expiration date. By default, 2
+     * years after now is set
+     *
      * @return a calendar
      */
     private Calendar getExpiryDate(Integer validityInYears) {
         //Default is 2
-        if(validityInYears==null) validityInYears=2;
+        if (validityInYears == null) {
+            validityInYears = 2;
+        }
         Calendar expiry = Calendar.getInstance();
         expiry.add(Calendar.YEAR, validityInYears);
         return expiry;
@@ -268,6 +316,15 @@ public class RegistrationBean implements Registration {
         return getConfigurationHelper().getPrivateRSAKey();
     }
 
+    /**
+     * Retrieves the URL of UniBoard
+     *
+     * @return an url
+     */
+    private String getUniBoardServiceURL() {
+        return getConfigurationHelper().getUniBoardServiceURL();
+    }
+    
     /**
      * Given a private RSA key creates an object containing all relevant cipher
      * parameters.
@@ -294,12 +351,14 @@ public class RegistrationBean implements Registration {
 
     /**
      * Actually creates the requestor certificate.
+     *
      * @param id requestor identity data
      * @param caCert certificate of the certification authority
      * @param cipherParams issuer private key parameters used for signing
      * @param pk public key of the requestor to certify
      * @param expiry the expiry date
-     * @param applicationIdentifier the application identifier for which te certificate is issued 
+     * @param applicationIdentifier the application identifier for which te
+     * certificate is issued
      * @param role role for which the certificate is issued
      * @return the certificate object containing the X509 certificate
      * @throws CertificateCreationException if an error occurs
@@ -319,7 +378,7 @@ public class RegistrationBean implements Registration {
         Hashtable extension = new Hashtable();
 
         extension.put(new DERObjectIdentifier(ExtensionOID.APPLICATION_IDENTIFIER.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(applicationIdentifier)));
-        extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(""+role)));
+        extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER("" + role)));
         extension.put(new DERObjectIdentifier(ExtensionOID.IDENTITY_PROVIDER.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(id.getIdentityProvider())));
 
         Map<String, String> extensionMap = new HashMap();

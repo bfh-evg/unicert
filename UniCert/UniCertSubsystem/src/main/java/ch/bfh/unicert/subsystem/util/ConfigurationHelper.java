@@ -42,4 +42,11 @@ public interface ConfigurationHelper {
      * @return number of years
      */
     public Integer getValidityYears();
+    
+    /**
+     * Returns the URL of UniBoard Webservice instance
+     * 
+     * @return a string representation of the url
+     */
+    public String getUniBoardServiceURL();
 }
