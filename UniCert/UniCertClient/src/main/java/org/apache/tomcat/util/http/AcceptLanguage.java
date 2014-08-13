@@ -103,7 +103,6 @@ public class AcceptLanguage {
                 }
             }
 
-            // XXX
             // may need to handle "*" at some point in time
 
             if (! language.equals("*")) {
@@ -123,7 +122,6 @@ public class AcceptLanguage {
 
     private static void extractLocales(Hashtable languages, Vector q,Vector l)
     {
-        // XXX We will need to order by q value Vector in the Future ?
         Enumeration e = q.elements();
         while (e.hasMoreElements()) {
             Vector v =

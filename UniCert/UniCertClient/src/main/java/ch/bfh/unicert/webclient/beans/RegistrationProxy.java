@@ -22,6 +22,7 @@ import ch.bfh.unicert.webclient.identityfunction.AnonymizedSwitchAAIIdentityFunc
 import ch.bfh.unicert.webclient.identityfunction.IdentityFunctionNotApplicableException;
 import ch.bfh.unicert.webclient.identityfunction.StandardSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.ZurichSwitchAAIIdentityFunction;
+import ch.bfh.unicert.webclient.userdata.IdentityProvider;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -98,16 +99,18 @@ public class RegistrationProxy extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        /*
+        *************** IDENTIFICATION MANAGEMENT ***************
+        */
+        
+        //Redirection to IDP
         if (request.getParameter("idp") != null) {
-            switch (request.getParameter("idp")) {
-                case "switchaai":
-                    response.sendRedirect("switchaai.xhtml");
-                    break;
-                case "facebook":
-                    response.sendRedirect("registration.xhtml");
-                    break;
-                case "google":
-                    response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
+            logger.log(Level.INFO, "Redirect to IDP");
+            
+            if (request.getParameter("idp").equals(IdentityProvider.SWITCH_AAI.getKey())) {
+                response.sendRedirect("switchaai.xhtml");
+            } else if (request.getParameter("idp").equals(IdentityProvider.GOOGLE.getKey())){
+                response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
                             + " client_id=424911365001.apps.googleusercontent.com&\n"
                             + " response_type=code&\n"
                             + " scope=openid%20email&\n"
@@ -116,11 +119,29 @@ public class RegistrationProxy extends HttpServlet {
                             + " login_hint=jsmith@example.com&\n"
                             + " openid.realm=example.com&\n"
                             + " hd=example.com");
-                    break;
+            } else if(request.getParameter("idp").equals(IdentityProvider.FACEBOOK.getKey())){
+                response.sendRedirect("registration.xhtml");
+            } else {
+                logger.log(Level.SEVERE, "Unknown Identity provider selected");
+                internalServerErrorHandler(response, "102 Unknown Identity provider selected");
             }
             return;
         }
+        
+        //Redirect after SwitchAAI login success
+//        if(request.getRequestURI().contains("switchaai.xhtml")){
+//                response.sendRedirect("registration.xhtml");
+//                return;
+//        }
+        
+        
+        /*
+        *************** CERTIFICATE GENERATION ***************
+        */
+        
+        logger.log(Level.INFO, "Certificate requested");
 
+                
         Registration registration;
         try {
             registration = getRegistration();
@@ -137,6 +158,8 @@ public class RegistrationProxy extends HttpServlet {
             logger.log(Level.INFO, "Got request without SWITCHaai security context");
             return;
         }
+        
+        logger.log(Level.INFO, "User data initialized");
 
         // Set character encoding of the response.
         response.setCharacterEncoding("UTF-8");
@@ -188,6 +211,8 @@ public class RegistrationProxy extends HttpServlet {
                     return;
             }
 
+            logger.log(Level.INFO, "Crypto setup initialized");
+                    
             //Get the selected Identity Function
             int functionId = Integer.parseInt(request.getParameter(IDENTITY_FUNCTION));
             messageForSignature += functionId + SEPARATOR;
@@ -210,6 +235,8 @@ public class RegistrationProxy extends HttpServlet {
                     return;
             }
 
+            logger.log(Level.INFO, "Identity function applied");
+            
             //Get the application identifier
             String applicationIdentifier = request.getParameter(APP_IDENTIFIER);
             messageForSignature += applicationIdentifier + SEPARATOR;
@@ -221,10 +248,13 @@ public class RegistrationProxy extends HttpServlet {
             //Set whole signed data in order to be able to verify the signature/proof
             cs.setSignatureOtherInput(messageForSignature);
 
+            logger.log(Level.INFO, "Asking to generate certificate");
+            
             //Create the certificate
             Certificate cert = registration.createCertificate(cs, idData, applicationIdentifier, role);
 
             try (PrintWriter out = response.getWriter()) {
+                logger.log(Level.INFO, "Returning certificate");
                 response.getWriter().printf(cert.toJSON());
             }
 

@@ -359,12 +359,11 @@ Math.seedrandom();
 })();
 
 
-// Univote Server:
+// Unicert Server:
 $.ajax({
 	type: "GET",
 	url: "getRandom.jsp",
 	success: function(data, status, xhr) {
-		//alert("univote: " + data);
 		Math.seedrandom(data, true);
 	}
 });
@@ -375,7 +374,6 @@ $.ajax({
 	type: "GET",
 	url: "http://www.random.org/integers/?num=256&min=0&max=1&col=1&base=2&format=plain&rnd=new",
 	success: function(data, status, xhr) {
-		//alert("random.org: " + data);
 		Math.seedrandom(data, true);
 	},
 	error: function() {
@@ -386,7 +384,6 @@ $.ajax({
 
 // Appspot.com
 function appspotCallback(data) {
-	//alert("appspot.com: " + data['urandom']);
 	Math.seedrandom(data['urandom'], true);
 }
 

@@ -32,7 +32,7 @@
 			var body = document.getElementsByTagName('body')[0];
 			var errorDiv = document.createElement('div');
 			errorDiv.setAttribute('style', 'background-color:red; z-index:1000; position:absolute; top:0; left: 0; width: 100%; height:50px; text-align:center; font-weight:bold; padding-top: 20px;');
-			errorDiv.innerHTML = "<p>ERROR: Missing JS library! UNI-Vote won't be running as either leemon or seedrandom is missing.</p>";
+			errorDiv.innerHTML = "<p>ERROR: Missing JS library! UniCert won't be running as either leemon or seedrandom is missing.</p>";
 			body.appendChild(errorDiv);
 		}
 		return;
@@ -161,7 +161,6 @@
 		 **/
 		this.NIZKPAsync = function(p, q, g, secretInput, publicInput, otherInput, doneCb, updateCb) {
                         
-                        //TODO adapt
 			// step 2
 			var step2 = function(_t) {
 				var t = _t;

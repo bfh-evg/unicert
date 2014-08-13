@@ -15,6 +15,8 @@ import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.faces.bean.ManagedBean;
@@ -61,9 +63,12 @@ public class UserDataBean implements Serializable {
 
         ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
         Map<String, Object> requestMap = externalContext.getRequestMap();
+        
+        logRequestMap(requestMap);
+        logger.log(Level.INFO, "Initialization of user data");
 
         // Determine the identity provider and fill the corresponding userData object
-        if (requestMap.containsKey("switch")) {
+        if (requestMap.containsKey("Shib-SwissEP-UniqueID")) {
             if (Boolean.parseBoolean(externalContext.getInitParameter("dev-mode"))) {
                 //Developper mode data
                 ud = new SwitchAAIUserData("1-2-3-4", null, null, null, "11-222-333", null, "Test name",
@@ -75,13 +80,15 @@ public class UserDataBean implements Serializable {
                 ud = new SwitchAAIUserData(requestMap);                    
             }
 
-        } else {
-            //For test only
-            ud = new SwitchAAIUserData("1-2-3-4", null, null, null, "11-222-333", null, "Test name",
-                        "test surname", "test@bfh.ch", "Law", "Master", null,
-                        "Uni Bern", null, null, null);
+        } 
+        
+        
+//            //For test only
+//            ud = new SwitchAAIUserData("1-2-3-4", null, null, null, "11-222-333", null, "Test name",
+//                        "test surname", "test@bfh.ch", "Law", "Master", null,
+//                        "Uni Bern", null, null, null);
 
-        }
+        
     }
 
     
@@ -91,7 +98,9 @@ public class UserDataBean implements Serializable {
      * @return the unique identifier
      */
     public String getUniqueIdentifier() {
-        return this.ud.getUniqueIdentifier();
+        if(ud!=null)
+            return this.ud.getUniqueIdentifier();
+        return null;
     }
 
     /**
@@ -100,7 +109,9 @@ public class UserDataBean implements Serializable {
      * @return 
      */
     public String getEmail() {
-        return this.ud.getMail();
+        if(ud!=null)
+            return this.ud.getMail();
+        return null;
     }
     
     /**
@@ -110,6 +121,21 @@ public class UserDataBean implements Serializable {
      */
     public UserData getUserData(){
         return this.ud;
+    }
+    
+    /**
+     * Helper method for debugging purposes logging.
+     *
+     * @param requestMap a map of name/value pairs provided by the HTTP request
+     * object
+     */
+    private void logRequestMap(Map<String, Object> requestMap) {
+
+        Set<Entry<String, Object>> values = requestMap.entrySet();
+        for (Entry<String, Object> value : values) {
+            
+            logger.log(Level.INFO, "Value for {0}: {1}", new Object[]{value.getKey(), value.getValue()});
+        }
     }
 
 }

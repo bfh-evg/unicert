@@ -233,7 +233,7 @@ function jquery_generate( options ){
 	////////////////////////////////////////////////////////////////////////////
 
 
-	//TODO Handle noList -> remove some parts of the GUI
+	// Handle noList -> remove some parts of the GUI
 	$( "div.tabs" ).tabs();
 
 	$("#result").addClass("ui-widget ui-widget-content ui-corner-all ");

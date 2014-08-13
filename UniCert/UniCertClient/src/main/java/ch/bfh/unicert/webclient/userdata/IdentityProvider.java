@@ -16,11 +16,19 @@ package ch.bfh.unicert.webclient.userdata;
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public enum IdentityProvider {
+    
+    SWITCH_AAI("switchaai"),
+    GOOGLE("google"),
+    FACEBOOK("facebook");
+    
+    private final String key;
+    
+    private IdentityProvider(String key){
+        this.key = key;
+    }
 
-    SWITCH_AAI;
-
-    public String toString() {
-        return super.toString().toLowerCase();
+    public String getKey() {
+        return this.key;
     }
 
 }
