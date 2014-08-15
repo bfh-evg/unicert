@@ -85,7 +85,7 @@ public class RegistrationProxy extends HttpServlet {
      */
     private static final Logger logger = Logger.getLogger(RegistrationProxy.class.getName());
 
-    private static final String SEPARATOR = "||";
+    private static final String SEPARATOR = "|";
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -99,6 +99,9 @@ public class RegistrationProxy extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        // Set character encoding of the response.
+        response.setCharacterEncoding("UTF-8");
+        
         /*
         *************** IDENTIFICATION MANAGEMENT ***************
         */
@@ -128,13 +131,6 @@ public class RegistrationProxy extends HttpServlet {
             return;
         }
         
-        //Redirect after SwitchAAI login success
-//        if(request.getRequestURI().contains("switchaai.xhtml")){
-//                response.sendRedirect("registration.xhtml");
-//                return;
-//        }
-        
-        
         /*
         *************** CERTIFICATE GENERATION ***************
         */
@@ -161,12 +157,11 @@ public class RegistrationProxy extends HttpServlet {
         
         logger.log(Level.INFO, "User data initialized");
 
-        // Set character encoding of the response.
-        response.setCharacterEncoding("UTF-8");
-
+        String messageForSignature = ud.getIdentityProvider() + SEPARATOR + ud.getMail() + SEPARATOR
+                + ud.getUniqueIdentifier() + SEPARATOR;
+        
         try {
-            String messageForSignature = "";
-
+            
             //Get the cryptographic setup
             String csType = request.getParameter(CRYPTO_SETUP_TYPE);
             int csSize = Integer.parseInt(request.getParameter(CRYPTO_SETUP_SIZE));
@@ -203,7 +198,7 @@ public class RegistrationProxy extends HttpServlet {
                     String proofS = request.getParameter(DLOG_PROOF_RESPONSE);
                     BigInteger proofResponse = new BigInteger(proofS, 10);
                     cs = new DiscreteLogSetup(csSize, g, p, q, pk, proofCommitment, proofChallenge, proofResponse);
-                    messageForSignature += primeP + SEPARATOR + primeP + SEPARATOR + generator + SEPARATOR;
+                    messageForSignature += primeP + SEPARATOR + primeQ + SEPARATOR + generator + SEPARATOR;
                     break;
                 default:
                     internalServerErrorHandler(response, "131 Unknown cryptographic setup");
@@ -243,7 +238,7 @@ public class RegistrationProxy extends HttpServlet {
 
             //Get the role
             int role = Integer.parseInt(request.getParameter(ROLE));
-            messageForSignature += role + SEPARATOR;
+            messageForSignature += role;
 
             //Set whole signed data in order to be able to verify the signature/proof
             cs.setSignatureOtherInput(messageForSignature);
@@ -253,10 +248,10 @@ public class RegistrationProxy extends HttpServlet {
             //Create the certificate
             Certificate cert = registration.createCertificate(cs, idData, applicationIdentifier, role);
 
-            try (PrintWriter out = response.getWriter()) {
+            //try (PrintWriter out = response.getWriter()) {
                 logger.log(Level.INFO, "Returning certificate");
                 response.getWriter().printf(cert.toJSON());
-            }
+//            }
 
         } catch (CertificateCreationException ex) {
             logger.log(Level.SEVERE, "Error while creating the certificate.", ex.getMessage());
@@ -270,10 +265,11 @@ public class RegistrationProxy extends HttpServlet {
         } catch (IllegalArgumentException | UnsupportedOperationException ex) {
             internalServerErrorHandler(response, "130 Cryptographic error");
             logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
-        } catch (Exception ex) {
-            internalServerErrorHandler(response, "Undefined error");
-            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
-        }
+        } 
+//        catch (Exception ex) {
+//            internalServerErrorHandler(response, "Undefined error");
+//            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
+//        }
     }
 
     /**

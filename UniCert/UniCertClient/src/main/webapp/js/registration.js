@@ -21,13 +21,15 @@ window.ucConfig = window.ucConfig || {};
  * Home site.
  */
 var HOME_SITE = ucConfig.HOME_SITE || 'index.xhtml';
+var SEPARATOR = ucConfig.CONCAT_SEPARATOR || '|';
+
 //-------------------------------------
 
 
 /**
  * Holds voter data like id, email and whether it is a renewal.
  */
-var voter = {};
+var requester = {};
 
 
 
@@ -51,8 +53,9 @@ var msgName;
 $(document).ready(function() {
 
     // Get voter data
-    voter.id = document.getElementById('voter-id').value;
-    voter.email = document.getElementById('voter-email').value;
+    requester.id = document.getElementById('requester-id').value;
+    requester.email = document.getElementById('requester-email').value;
+    requester.idp = document.getElementById('requester-idp').value;
 
     // Get DOM elements
     elements.step2 = document.getElementById('step_2');
@@ -96,7 +99,7 @@ $(document).ready(function() {
 
 
     // 1. Check if voter.id is available, otherwise user is not authorised
-    if (voter.id == '') {
+    if (requester.id == '') {
         $.blockUI({message: '<p>' + msg.userNotAuthorised + '</p>'});
         setTimeout(function() {
             location.href = HOME_SITE
@@ -323,23 +326,35 @@ function completeRegistration(byMail) {
     // Done callback of verification key proof computation for DLog
     var computeProofDoneCb = function(proof) {
         // (2) Send verification key to CA and get the certificate
+        //TODO also sent cs type here since used in signature
         ucCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
                 elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     }
 
     // Done callback of verification key signature computation for RSA
     var computeSignatureDoneCb = function(signature) {
+        
         // (2) Send verification key to CA and get the certificate
-        ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, signature,
+        //TODO also sent cs type here since used in signature
+        ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, leemon.bigInt2str(signature, 10),
                 elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     }
 
-    // (1) Compute verification key proof
+    // (1) Compute verification key proof / signature
+    var valuesToSign = requester.idp + SEPARATOR + requester.email + SEPARATOR + requester.id;
+    valuesToSign = valuesToSign + SEPARATOR + elements.cryptoSetupType.value + SEPARATOR + elements.cryptoSetupSize.value;
+    valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(publicKey,10);
+    
     $.blockUI({message: '<p id="blockui-processing">' + msg.processing + '...</p>'});
     if (type == "RSA") {
-        ucCrypto.computeSignatureAsync(secretKey, publicKey, modulo, voter.id, computeSignatureDoneCb, computeUpdateCb);
+        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(modulo,10);
+        valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
+        ucCrypto.computeSignatureAsync(secretKey, publicKey, modulo, valuesToSign, computeSignatureDoneCb, computeUpdateCb);
     } else if (type == "DLOG") {
-        ucCrypto.computeVerificationKeyProofAsync(p, q, g, secretKey, publicKey, voter.id, computeProofDoneCb, computeUpdateCb);
+        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(p,10) + SEPARATOR + leemon.bigInt2str(q,10) + SEPARATOR + leemon.bigInt2str(g,10);
+        valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
+        alert(valuesToSign);
+        ucCrypto.computeVerificationKeyProofAsync(p, q, g, secretKey, publicKey, valuesToSign, computeProofDoneCb, computeUpdateCb);
     }
 }
 

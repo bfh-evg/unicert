@@ -47,8 +47,10 @@ public class UserDataBean implements Serializable {
      * The logger this servlet uses.
      */
     private static final Logger logger = Logger.getLogger(UserDataBean.class.getName());
-
+    private static final boolean DEV_MODE = false;
+    
     private UserData ud;
+    
 
     /**
      * Reads the user values passed by the identity provider. This function is triggered on
@@ -67,27 +69,20 @@ public class UserDataBean implements Serializable {
         logRequestMap(requestMap);
         logger.log(Level.INFO, "Initialization of user data");
 
-        // Determine the identity provider and fill the corresponding userData object
-        if (requestMap.containsKey("Shib-SwissEP-UniqueID")) {
-            if (Boolean.parseBoolean(externalContext.getInitParameter("dev-mode"))) {
+        if (Boolean.parseBoolean(externalContext.getInitParameter("dev-mode")) || DEV_MODE) {
                 //Developper mode data
                 ud = new SwitchAAIUserData("1-2-3-4", null, null, null, "11-222-333", null, "Test name",
                         "test surname", "test@bfh.ch", "Law", "Master", null,
                         "Uni Bern", null, null, null);
 
                 logger.log(Level.WARNING, "Initialization in 'dev-mode' done");
-            } else {
+                return;
+        }
+        
+        // Determine the identity provider and fill the corresponding userData object
+        if (requestMap.containsKey("Shib-SwissEP-UniqueID")) {
                 ud = new SwitchAAIUserData(requestMap);                    
-            }
-
         } 
-        
-        
-//            //For test only
-//            ud = new SwitchAAIUserData("1-2-3-4", null, null, null, "11-222-333", null, "Test name",
-//                        "test surname", "test@bfh.ch", "Law", "Master", null,
-//                        "Uni Bern", null, null, null);
-
         
     }
 
@@ -111,6 +106,16 @@ public class UserDataBean implements Serializable {
     public String getEmail() {
         if(ud!=null)
             return this.ud.getMail();
+        return null;
+    }
+    
+    /**
+     * Provides the name of the identity provider used for authentication
+     * @return 
+     */
+    public String getIdentityProvider() {
+        if(ud!=null)
+            return this.ud.getIdentityProvider();
         return null;
     }
     

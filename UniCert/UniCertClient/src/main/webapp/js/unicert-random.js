@@ -372,7 +372,7 @@ $.ajax({
 // Random.org (works not in IE <10 because of cross site forgery):
 $.ajax({
 	type: "GET",
-	url: "http://www.random.org/integers/?num=256&min=0&max=1&col=1&base=2&format=plain&rnd=new",
+	url: "https://www.random.org/integers/?num=256&min=0&max=1&col=1&base=2&format=plain&rnd=new",
 	success: function(data, status, xhr) {
 		Math.seedrandom(data, true);
 	},

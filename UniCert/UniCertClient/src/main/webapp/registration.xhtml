@@ -36,8 +36,9 @@
 		<h2 class="center">#{msg.registration}</h2>
 
 		<form name="properties">
-			<input type="hidden" id="voter-id" value="#{userData.uniqueIdentifier}" />
-			<input type="hidden" id="voter-email" value="#{userData.email}" />
+			<input type="hidden" id="requester-id" value="#{userData.uniqueIdentifier}" />
+			<input type="hidden" id="requester-email" value="#{userData.email}" />
+                        <input type="hidden" id="requester-idp" value="#{userData.identityProvider}" />
 		</form>
 	</ui:define>
 
