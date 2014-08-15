@@ -125,7 +125,7 @@ public class RegistrationBeanTest {
      *
      * @throws Exception if there is an error
      */
-    @Test
+    @Test(expected = CertificateCreationException.class)
     public void testCreateCertificate1() throws Exception {
         String organisation = "University of Bern";
         String uid = "234-5678-90";

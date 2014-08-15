@@ -18,6 +18,7 @@ import ch.bfh.uniboard.UniBoardService_Service;
 import ch.bfh.uniboard.data.AttributesDTO;
 import ch.bfh.uniboard.data.AttributesDTO.AttributeDTO;
 import ch.bfh.uniboard.data.StringValueDTO;
+import ch.bfh.uniboard.service.StringValue;
 import ch.bfh.unicert.subsystem.cryptography.CryptographicSetup;
 import ch.bfh.unicert.subsystem.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.subsystem.cryptography.RsaSetup;
@@ -27,24 +28,31 @@ import ch.bfh.unicert.subsystem.util.ConfigurationHelper;
 import ch.bfh.unicert.subsystem.util.ConfigurationHelperImpl;
 import ch.bfh.unicert.subsystem.util.ExtensionOID;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
+import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
+import ch.bfh.unicrypt.helper.array.ByteArray;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
+import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayElement;
+import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayMonoid;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
+import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
 import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
+import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
 import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
 import ch.bfh.unicrypt.math.function.classes.HashFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
-import org.apache.commons.codec.binary.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
@@ -55,6 +63,7 @@ import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -69,6 +78,7 @@ import javax.ejb.Startup;
 import javax.ejb.Stateless;
 import javax.xml.namespace.QName;
 import javax.xml.ws.BindingProvider;
+import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -148,15 +158,32 @@ public class RegistrationBean implements Registration {
             logger.log(Level.INFO, "Valid RSA setup");
             
             //verify signature
-            //TODO not implemented in UniCrypt
-//            RSASignatureScheme rsa = RSASignatureScheme.getInstance(setup.);
-//            ZMod rsaGroup = ZMod.getInstance(setup.getN());
-//            StringElement message = StringMonoid.getInstance(Alphabet.UNARY).getElement(originalMessage);
-//            if (!rsa.verify(rsaGroup.getElement(publicKey), message, rsaGroup.getElement(signature)).getValue()) {
-//                logger.log(Level.SEVERE, "Signature invalid");
-//                throw new CertificateCreationException("222 Signature invalid");
-//            }
+            RSASignatureScheme rsa = RSASignatureScheme.getInstance(ZMod.getInstance(setup.getN()));
+            ZMod rsaGroup = ZMod.getInstance(setup.getN());
+            Element publicKey = rsaGroup.getElement(setup.getPublicKey());
+            Element signature = rsaGroup.getElement(setup.getSignature());
+          
+            //Hash of message to sign
+            ByteArray messageHashed = null;
+            try {
+                logger.log(Level.INFO, "Hashing message");
+                messageHashed = ByteArray.getInstance(setup.getSignatureOtherInput().getBytes("UTF-8")).getHashValue(HashAlgorithm.SHA256);
+                logger.log(Level.INFO, "Message hashed");
+            } catch (UnsupportedEncodingException ex) {
+                logger.log(Level.SEVERE, "222 Message to sign encoding problem", ex);
+                throw new CertificateCreationException("222 Message to sign encoding problem");
+            }
+            logger.log(Level.INFO, "Getting element");
+            Element message  = rsaGroup.getElementFrom(messageHashed);
+            logger.log(Level.INFO, "Verifiying");
+            if (!rsa.verify(publicKey, message, signature).getValue().booleanValue()) {
+                logger.log(Level.SEVERE, "Signature invalid");
+                throw new CertificateCreationException("222 Signature invalid");
+            }
+            logger.log(Level.INFO, "Signature valid");
+            
             pk = createRSAPublicKey(setup.getPublicKey(), setup.getN());
+            logger.log(Level.INFO, "Key created");
 
         } else if (cs instanceof DiscreteLogSetup) {
             DiscreteLogSetup setup = (DiscreteLogSetup) cs;
@@ -191,13 +218,15 @@ public class RegistrationBean implements Registration {
         String hashedAppId = applicationIdentifier;
         try {
             StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
-            Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
+            hashedAppId = new String(Base64.encodeBase64(sm.getElement(applicationIdentifier).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getAll()));
+            //Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
             //TODO why does this not work on the server ??
             //byte[] hashed = hashFunction.apply(sm.getElement(applicationIdentifier)).getByteArray().getAll();
             logger.log(Level.INFO, "Application identifier hashed. Encoding Base 64");
-            hashedAppId = new String(Base64.encodeBase64(applicationIdentifier.getBytes()));
+            //hashedAppId = new String(Base64.encodeBase64(applicationIdentifier.getBytes()));
         } catch (Exception e) {
             logger.log(Level.WARNING, "Problem while hashing application identifier: {0}", e.getMessage());
+            throw new CertificateCreationException("230 Problem while hashing application identifier");
         }
 
         logger.log(Level.INFO, "Required info processed, creating certificate.");
@@ -217,28 +246,52 @@ public class RegistrationBean implements Registration {
         String endpointUrl = getUniBoardServiceURL();
         UniBoardService board;
         try {
-            URL wsdlLocation = new URL(endpointUrl); // Decision: expect endpoint URL having "?wsdl" appended
+            URL wsdlLocation = new URL(endpointUrl); 
             QName qname = new QName("http://uniboard.bfh.ch/", "UniBoardService");
             UniBoardService_Service mixingService = new UniBoardService_Service(wsdlLocation, qname);
             board = mixingService.getUniBoardServicePort();
             BindingProvider bp = (BindingProvider) board;
             bp.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
-        } catch (MalformedURLException ex) {
-            logger.log(Level.SEVERE, "Malformed URL for UniBoard  service: {0}, exception: {1}", new Object[]{endpointUrl, ex});
-            throw new RuntimeException(ex);
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Unable to connect to UniBoard  service: {0}, exception: {1}", new Object[]{endpointUrl, ex});
+            throw new CertificateCreationException("230 Unable to connect to UniBoard to publish certificate");
         }
 
         List<AttributeDTO> attributes = new ArrayList();
-        attributes.add(new AttributeDTO("section", new StringValueDTO("certificates")));
+        attributes.add(new AttributeDTO("section", new StringValueDTO("unicert")));
         AttributesDTO alpha = new AttributesDTO(attributes);
         
         
-        board.post(cert.toJSON().getBytes(), alpha);
+        AttributesDTO beta = board.post(cert.toJSON().getBytes(), alpha);
         
+        if(beta.getAttribute().isEmpty()){
+            logger.log(Level.SEVERE, "Error on posting: UniBoard response was empty");
+        } else if(beta.getAttribute().get(0).getKey().equals("rejected") || 
+                beta.getAttribute().get(0).getKey().equals("error")){
+            logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{beta.getAttribute().get(0).getKey(),
+                ((StringValueDTO)beta.getAttribute().get(0).getValue()).getValue()});
+            throw new CertificateCreationException("230 UniBoard rejected post");
+        }
+                
         logger.log(Level.INFO, "Certificate posted on UniBoard");
         
         return cert;
 
+    }
+    
+     private String getHexValue(byte[] array) {
+        char[] symbols = "0123456789ABCDEF".toCharArray();
+        char[] hexValue = new char[array.length * 2];
+
+        for (int i = 0; i < array.length; i++) {
+            //convert the byte to an int
+            int current = array[i] & 0xff;
+            //determine the Hex symbol for the last 4 bits
+            hexValue[i * 2 + 1] = symbols[current & 0x0f];
+            //determine the Hex symbol for the first 4 bits
+            hexValue[i * 2] = symbols[current >> 4];
+        }
+        return String.valueOf(hexValue);
     }
 
     /**
