@@ -353,7 +353,6 @@ function completeRegistration(byMail) {
     } else if (type == "DLOG") {
         valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(p,10) + SEPARATOR + leemon.bigInt2str(q,10) + SEPARATOR + leemon.bigInt2str(g,10);
         valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
-        alert(valuesToSign);
         ucCrypto.computeVerificationKeyProofAsync(p, q, g, secretKey, publicKey, valuesToSign, computeProofDoneCb, computeUpdateCb);
     }
 }

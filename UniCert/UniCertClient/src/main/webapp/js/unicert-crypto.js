@@ -23,6 +23,8 @@
  *
  */
 
+
+
 (function(window) {
 
     // Check for leemon and seedrandom library. If the libraries aren't loaded,
@@ -70,52 +72,6 @@
         // Base refers only to the bigInt representation of Schnorr, Elgamal and RSA parameters.
         var base = ucConfig.BASE || 10;
 
-//		// Schnorr
-//		ucConfig.SCHNORR = ucConfig.SCHNORR || {};
-//		var schnorr = {};
-//		schnorr.pStr = ucConfig.SCHNORR.P || "161931481198080639220214033595931441094586304918402813506510547237223787775475425991443924977419330663170224569788019900180050114468430413908687329871251101280878786588515668012772798298511621634145464600626619548823238185390034868354933050128115662663653841842699535282987363300852550784188180264807606304297";
-//		schnorr.qStr = ucConfig.SCHNORR.Q || "65133683824381501983523684796057614145070427752690897588060462960319251776021";
-//		schnorr.gStr = ucConfig.SCHNORR.G || "109291242937709414881219423205417309207119127359359243049468707782004862682441897432780127734395596275377218236442035534825283725782836026439537687695084410797228793004739671835061419040912157583607422965551428749149162882960112513332411954585778903685207256083057895070357159920203407651236651002676481874709";
-//
-//		schnorr.p = leemon.str2bigInt(schnorr.pStr, base, 1);
-//		schnorr.q = leemon.str2bigInt(schnorr.qStr, base, 1);
-//		schnorr.g = leemon.str2bigInt(schnorr.gStr, base, 1);
-//
-//		// Elgamal
-//		ucConfig.ELGAMAL = ucConfig.ELGAMAL || {};
-//		var elgamal = {};
-//		elgamal.pStr = ucConfig.ELGAMAL.P || "127557310857026250526155290716175721659501699151591799276600227376716505297573619294610035498965642711634086243287869889860211239877645998908773071410481719856828493012051757158513651215977686324747806475706581177754781891491034188437985448668758765692160128854525678725065063346126289455727622203325341952627";
-//		elgamal.qStr = ucConfig.ELGAMAL.Q || "63778655428513125263077645358087860829750849575795899638300113688358252648786809647305017749482821355817043121643934944930105619938822999454386535705240859928414246506025878579256825607988843162373903237853290588877390945745517094218992724334379382846080064427262839362532531673063144727863811101662670976313";
-//		elgamal.gStr = ucConfig.ELGAMAL.G || "4";
-//
-//		elgamal.p = leemon.str2bigInt(elgamal.pStr, base, 1);
-//		elgamal.q = leemon.str2bigInt(elgamal.qStr, base, 1);
-//		elgamal.g = leemon.str2bigInt(elgamal.gStr, base, 1);
-//
-//		// RSA
-//		ucConfig.RSA = ucConfig.RSA || {};
-//		var rsa = {};
-//		rsa.nStr = ucConfig.RSA.N || "143";
-//		rsa.pkStr = ucConfig.RSA.PK || "23";
-//
-//		rsa.n = leemon.str2bigInt(rsa.nStr, base, 1);
-//		rsa.pk = leemon.str2bigInt(rsa.pkStr, base, 1);
-//
-//
-//		/**
-//		 * Sets the Elgamal parameters at runtime.
-//		 *
-//		 * @param pStr - P as string.
-//		 * @param qStr - Q as string.
-//		 * @param gStr - Generator as string.
-//		 * @param base - The base P, Q and G are represented in.
-//		 */
-//		this.setElgamalParameters = function(pStr, qStr, gStr, base) {
-//			elgamal.p = leemon.str2bigInt(pStr, base, 1);
-//			elgamal.q = leemon.str2bigInt(qStr, base, 1);
-//			elgamal.g = leemon.str2bigInt(gStr, base, 1);
-//		}
-
 
         ////////////////////////////////////////////////////////////////////////
         // Non-interactive zero-knowledge proof
@@ -137,8 +93,7 @@
             //2. Compute t = g^omega mod p
             var t = leemon.powMod(g, omega, p);
 
-            //3. Compute c = H(publicInput||t||otherInput) mod q
-            //TODO adapt
+            //3. Compute c = H(publicInput||t||otherInput)
             var m = [];
             m.push(leemon.bigInt2str(publicInput, 10), CONCAT_SEPARATOR);
             m.push(leemon.bigInt2str(t, 10));
@@ -147,7 +102,7 @@
                 m.push(otherInput instanceof Array ? leemon.bigInt2str(otherInput, 10) : otherInput);
             }
             var cStr = SHA256(m.join(''));
-            var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), q);
+            var c = leemon.str2bigInt(cStr, 16, 1);
 
             //4. Compute s = omega+c*secretInput mod q
             var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
@@ -164,17 +119,21 @@
             // step 2
             var step2 = function(_t) {
                 var t = _t;
-                //3. Compute c = H(publicInput||t||otherInput) mod q
-                //TODO adapt
+                //3. Compute c = H(publicInput||t||otherInput)
                 var m = [];
-                m.push(leemon.bigInt2str(publicInput, 10), CONCAT_SEPARATOR);
-                m.push(leemon.bigInt2str(t, 10));
-                if (otherInput) {
-                    m.push(CONCAT_SEPARATOR);
-                    m.push(otherInput instanceof Array ? leemon.bigInt2str(otherInput, 10) : otherInput);
-                }
-                var cStr = SHA256(m.join(''));
-                var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), q);
+
+                console.log("pi bytes hex " + leemon.bigInt2str(publicInput, 16));
+                var hashPI = sha256HexStr(leemon.bigInt2str(publicInput, 16));
+                console.log("hash pi hex " + hashPI);
+                var hashCommitment = sha256HexStr(leemon.bigInt2str(t, 16));
+                var hashOtherInput = sha256String(otherInput);
+                m.push(hashPI);
+                m.push(hashCommitment);
+                m.push(hashOtherInput);
+                var joined = m.join(''); //byte[] in hex concatenated
+                var c = sha256HexStr(joined);
+                //console.log("hashed " + cStr)
+                //var c = leemon.str2bigInt(cStr, 16, 1);
 
                 //4. Compute s = omega+c*secretInput mod q
                 var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
@@ -210,7 +169,7 @@
         }
 
         /**
-         * Generates a RSA key pair. 
+         * Generates a RSA key pair.
          *
          * @return Secret key as bigInt.
          */
@@ -296,9 +255,16 @@
 
             // done
             var nizkpDoneCb = function(proof) {
+                console.log("left " + leemon.bigInt2str(leemon.powMod(g, proof.s, p), 10))
+                var yc = leemon.powMod(vk, proof.c, p)
+                console.log("right " + leemon.bigInt2str(leemon.multMod(proof.t, yc, p), 10))
                 proof.t = leemon.bigInt2str(proof.t, 10);
                 proof.c = leemon.bigInt2str(proof.c, 10);
                 proof.s = leemon.bigInt2str(proof.s, 10);
+                console.log(proof.t)
+                console.log("challenge " + proof.c)
+                console.log(proof.s)
+
                 doneCb(proof);
             };
 
@@ -314,44 +280,10 @@
             var messageBigInt = leemon.str2bigInt(hashedMessage, 16);
             //Computes the new BigInt modulo n since RSA message space in between 0 and n-1
             var messageBigIntMod = leemon.mod(messageBigInt, modulo);
-            
+
             leemon.powModAsync(messageBigIntMod, sk, modulo, updateCb, doneCb);
 
         }
-
-//		/**
-//		 * Blind the randomization (r) used during ballot-encryption by blinding it with the secret key (sk)
-//		 * 
-//		 * @param  r - The randomization used during ballot-encryption as BigInt
-//		 * @param  sk - The private key part of the verification key as BigInt
-//		 * @returns Blinded randomization as BigInt
-//		 */
-//		this.blindRandomization = function(r, sk) {
-//
-//			//1. map randomization into g_q
-//			var rGq = this.mapZq2Gq(r);
-//			//2. blind the mapped randomization with sk. This can be unblinded by rB^{-sk} = r^{sk/sk} = r
-//			var rB = leemon.powMod(rGq, sk, elgamal.p);
-//			//3. return the blinded
-//			return rB;
-//		}
-//
-//		/**
-//		 * Asynchronous version of blindRandomization.
-//		 */
-//		this.blindRandomizationAsync = function(r, sk, doneCb, updateCb) {
-//
-//			var step2 = function(_rGq) {
-//				//2. blind the mapped randomization with sk. This can be unblinded by rB^{-sk} = r^{sk/sk} = r
-//				leemon.powModAsync(_rGq, sk, elgamal.p, updateCb, doneCb);
-//			}
-//			var errorCb = function( message ) {
-//				//Schould never happen! 
-//				doneCb(leemon.str2bigInt("0", 10, 1));
-//			}
-//			//1. map randomization into g_q
-//			this.mapZq2GqAsync(r, step2, updateCb, errorCb);
-//		}
 
         ////////////////////////////////////////////////////////////////////////
         // Secret key enc- and decryption
@@ -361,8 +293,8 @@
          * The one-time-pad is a random number using the password as seed.
          * Finally, the encrypted key (represented as string in leemon's base 64) is
          * padded with ENC_PRIVATE_KEY_PREFIX/-POSTFIX.
-         * 
-         * IMPORTANT: Step 3 and 4 MUST be synchronized (mutex lock). As univote-random 
+         *
+         * IMPORTANT: Step 3 and 4 MUST be synchronized (mutex lock). As univote-random
          * is collecting data all the time in the background and may seed rng. Currently,
          * as long as JS is single threaded, the synchronization is implicitly given.
          *
@@ -376,7 +308,7 @@
             var key = PRIVATE_KEY_PREFIX + sk + PRIVATE_KEY_POSTFIX;
             // 2. Convert key into bigInt
             key = leemon.str2bigInt(key, 64, 0);
-            // 3. Seed rng with password (save current RNG temporary to not 
+            // 3. Seed rng with password (save current RNG temporary to not
             // lose accumulated data for future randomness)
             var cRNG = Math.random;
             Math.seedrandom(password);
@@ -397,8 +329,8 @@
          * Decrypts an encrypted secret key (counterpart to encryptSecretKey).
          * If the key is not properly padded or the password is wrong then
          * the error callback is called with a string denoting the error.
-         * 
-         * IMPORTANT: The complete step 2 MUST be synchronized (mutex lock). As univote-random 
+         *
+         * IMPORTANT: The complete step 2 MUST be synchronized (mutex lock). As univote-random
          * is collecting data all the time in the background and may seed rng. Currently,
          * as long as JS is single threaded, the synchronization is implicitly given.
          *
@@ -459,624 +391,402 @@
         function trim(str) {
             return str.replace(/^[\s\n\r]+|[\s\n\r]+$/g, '');
         }
+        
+        
+        
 
+//        function Utf8Encode(string) {
+//            string = string.replace(/\r\n/g, "\n");
+//            var utftext = "";
+//
+//            for (var n = 0; n < string.length; n++) {
+//
+//                var c = string.charCodeAt(n);
+//
+//                if (c < 128) {
+//                    utftext += String.fromCharCode(c);
+//                }
+//                else if ((c > 127) && (c < 2048)) {
+//                    utftext += String.fromCharCode((c >> 6) | 192);
+//                    utftext += String.fromCharCode((c & 63) | 128);
+//                }
+//                else {
+//                    utftext += String.fromCharCode((c >> 12) | 224);
+//                    utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+//                    utftext += String.fromCharCode((c & 63) | 128);
+//                }
+//
+//            }
+//
+//            var bin = Array();
+//            var chrsz = 8;
+//            var mask = (1 << chrsz) - 1;
+//            for (var i = 0; i < utftext.length * chrsz; i += chrsz) {
+//                bin[i >> 5] |= (utftext.charCodeAt(i / chrsz) & mask) << (24 - i % 32);
+//            }
+//            return bin;
+//        }
+//
+////        function binb2hex(binarray, hexcase) {
+////            var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
+////            var str = "";
+////            for (var i = 0; i < binarray.length * 4; i++) {
+////                str += hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8 + 4)) & 0xF) +
+////                        hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8)) & 0xF);
+////            }
+////            while(str.charAt(str.length-1)=='0' && str.charAt(str.length-2)=='0'){
+////            	str = str.substr(0, str.length-2)
+////            }
+////            return str;
+////        }
+//
+//        function hex2binb(a) {
+//            var b = [],
+//                    length = a.length,
+//                    i, num;
+//            for (i = 0; i < length; i += 2) {
+//                num = parseInt(a.substr(i, 2), 16);
+//                if (!isNaN(num)) {
+//                    b[i >> 3] |= num << (24 - (4 * (i % 8)))
+//                } else {
+//                    return "INVALID HEX STRING"
+//                }
+//            }
+//            return b;
+//        }
+//
+//        function parseHexString(str) {
+//            var result = [];
+//            while (str.length >= 8) {
+//                result.push(parseInt(str.substring(0, 8), 16));
+//
+//                str = str.substring(8, str.length);
+//            }
+//
+//            return result;
+//        }
+//
+//
+//
+////        //from http://ats.oka.nu/titaniumcore/js/tools/binary.js
+////        function hex2binb(hexstring) {
+////            var ca = [];
+////            for (var i = 0, j = 0; i < hexstring.length; i++) {
+////                var c = hexstring.charAt(i);
+////                if (c == "\s") {
+////                    continue;
+////                } else {
+////                    ca[j++] = c;
+////                }
+////            }
+////            if (ca.length % 2 != 0) {
+////                throw "data must be a multiple of two.";
+////            }
+////
+////            var result = new Array(ca.length >> 1);
+////            for (var i = 0; i < ca.length; i += 2) {
+////                var v = 0xff & ((get_amap(ca[i]) << 4) | (get_amap(ca[i + 1])));
+////                result[i >> 1] = v;
+////                // trace(  get_amap( ca[i+1] ) )
+////                // result[i>>1] =  get_amap( ca[i+1] );
+////            }
+////            return result;
+////        }
+//
+//        var amap = {};
+//        amap['0'] = 0;
+//        amap['1'] = 1;
+//        amap['2'] = 2;
+//        amap['3'] = 3;
+//        amap['4'] = 4;
+//        amap['5'] = 5;
+//        amap['6'] = 6;
+//        amap['7'] = 7;
+//        amap['8'] = 8;
+//        amap['9'] = 9;
+//        amap['A'] = 10;
+//        amap['B'] = 11;
+//        amap['C'] = 12;
+//        amap['D'] = 13;
+//        amap['E'] = 14;
+//        amap['F'] = 15;
+//        amap['a'] = 10;
+//        amap['b'] = 11;
+//        amap['c'] = 12;
+//        amap['d'] = 13;
+//        amap['e'] = 14;
+//        amap['f'] = 15;
+//
+//        function get_amap(c) {
+//            var cc = amap[c];
+//            //trace(c + "=>" + cc );
+//            if (cc == null)
+//                throw "found an invalid character.";
+//            return cc;
+//        }
+//
+//        //Useful Functions
+//        function checkBin(n) {
+//            return/^[01]{1,64}$/.test(n)
+//        }
+//        function checkDec(n) {
+//            return/^[0-9]{1,64}$/.test(n)
+//        }
+//        function checkHex(n) {
+//            return/^[0-9A-Fa-f]{1,64}$/.test(n)
+//        }
+//        function pad(s, z) {
+//            s = "" + s;
+//            return s.length < z ? pad("0" + s, z) : s
+//        }
+//        function unpad(s) {
+//            s = "" + s;
+//            return s.replace(/^0+/, '')
+//        }
+//
+////Decimal operations
+//        function Dec2Bin(n) {
+//            if (!checkDec(n) || n < 0)
+//                return 0;
+//            return n.toString(2)
+//        }
+//        function Dec2Hex(n) {
+//            if (!checkDec(n) || n < 0)
+//                return 0;
+//            return n.toString(16)
+//        }
+//
+////Binary Operations
+//        function Bin2Dec(n) {
+//            if (!checkBin(n))
+//                return 0;
+//            return parseInt(n, 2).toString(10)
+//        }
+//        function Bin2Hex(n) {
+//            if (!checkBin(n))
+//                return 0;
+//            return parseInt(n, 2).toString(16)
+//        }
+//
+////Hexadecimal Operations
+//        function Hex2Bin(n) {
+//            if (!checkHex(n))
+//                return 0;
+//            return parseInt(n, 16).toString(2)
+//        }
+//        function Hex2Dec(n) {
+//            if (!checkHex(n))
+//                return 0;
+//            return parseInt(n, 16).toString(10)
+//        }
+//
+//        function hex2bin(hex)
+//        {
+//            var bytes = [];
+//
+//            for (var i = 0; i < hex.length - 1; i += 2)
+//                bytes.push(parseInt(hex.substr(i, 2), 16));
+//
+//            return bytes;
+//        }
+//
+////        console.log(Bin2Hex(Hex2Bin("FD67F10ABC41")))
+////        console.log(Hex2Bin("FD67F10ABC41"))
+////        console.log(binb2hex(hex2binb("FD67F10ABC41"), 1))
+////        console.log(hex2binb("FD67F10ABC41"))
+//
+//        function str2binb(str) {
+//            var bin = Array();
+//            var mask = (1 << 8) - 1;
+//            for (var i = 0; i < str.length * 8; i += 8) {
+//                bin[i >> 5] |= (str.charCodeAt(i / 8) & mask) << (24 - i % 32);
+//            }
+//            return bin;
+//        }
+//    }
+//
+//
+//
+//    /**
+//     *
+//     *  Secure Hash Algorithm (SHA256)
+//     *  http://www.webtoolkit.info/
+//     *
+//     *  Original code by Angel Marin, Paul Johnston.
+//     *
+//     */
+//    function SHA256(s) {
+//
+//        var chrsz = 8;
+//        var hexcase = 1;
+//
+//        function safe_add(x, y) {
+//            var lsw = (x & 0xFFFF) + (y & 0xFFFF);
+//            var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+//            return (msw << 16) | (lsw & 0xFFFF);
+//        }
+//
+//        function S(X, n) {
+//            return (X >>> n) | (X << (32 - n));
+//        }
+//        function R(X, n) {
+//            return (X >>> n);
+//        }
+//        function Ch(x, y, z) {
+//            return ((x & y) ^ ((~x) & z));
+//        }
+//        function Maj(x, y, z) {
+//            return ((x & y) ^ (x & z) ^ (y & z));
+//        }
+//        function Sigma0256(x) {
+//            return (S(x, 2) ^ S(x, 13) ^ S(x, 22));
+//        }
+//        function Sigma1256(x) {
+//            return (S(x, 6) ^ S(x, 11) ^ S(x, 25));
+//        }
+//        function Gamma0256(x) {
+//            return (S(x, 7) ^ S(x, 18) ^ R(x, 3));
+//        }
+//        function Gamma1256(x) {
+//            return (S(x, 17) ^ S(x, 19) ^ R(x, 10));
+//        }
+//
+//        function core_sha256(m, l) {
+//            var K = new Array(0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5, 0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3, 0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174, 0xE49B69C1, 0xEFBE4786, 0xFC19DC6, 0x240CA1CC, 0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA, 0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7, 0xC6E00BF3, 0xD5A79147, 0x6CA6351, 0x14292967, 0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13, 0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85, 0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3, 0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070, 0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3, 0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208, 0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2);
+//            var HASH = new Array(0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19);
+//            var W = new Array(64);
+//            var a, b, c, d, e, f, g, h, i, j;
+//            var T1, T2;
+//
+//            m[l >> 5] |= 0x80 << (24 - l % 32);
+//            m[((l + 64 >> 9) << 4) + 15] = l;
+//
+//            for (var i = 0; i < m.length; i += 16) {
+//                a = HASH[0];
+//                b = HASH[1];
+//                c = HASH[2];
+//                d = HASH[3];
+//                e = HASH[4];
+//                f = HASH[5];
+//                g = HASH[6];
+//                h = HASH[7];
+//
+//                for (var j = 0; j < 64; j++) {
+//                    if (j < 16)
+//                        W[j] = m[j + i];
+//                    else
+//                        W[j] = safe_add(safe_add(safe_add(Gamma1256(W[j - 2]), W[j - 7]), Gamma0256(W[j - 15])), W[j - 16]);
+//
+//                    T1 = safe_add(safe_add(safe_add(safe_add(h, Sigma1256(e)), Ch(e, f, g)), K[j]), W[j]);
+//                    T2 = safe_add(Sigma0256(a), Maj(a, b, c));
+//
+//                    h = g;
+//                    g = f;
+//                    f = e;
+//                    e = safe_add(d, T1);
+//                    d = c;
+//                    c = b;
+//                    b = a;
+//                    a = safe_add(T1, T2);
+//                }
+//
+//                HASH[0] = safe_add(a, HASH[0]);
+//                HASH[1] = safe_add(b, HASH[1]);
+//                HASH[2] = safe_add(c, HASH[2]);
+//                HASH[3] = safe_add(d, HASH[3]);
+//                HASH[4] = safe_add(e, HASH[4]);
+//                HASH[5] = safe_add(f, HASH[5]);
+//                HASH[6] = safe_add(g, HASH[6]);
+//                HASH[7] = safe_add(h, HASH[7]);
+//            }
+//            return HASH;
+//        }
+//
+//        function parseHexString(str) {
+//            var result = [];
+//            while (str.length >= 8) {
+//                result.push(parseInt(str.substring(0, 8), 16));
+//
+//                str = str.substring(8, str.length);
+//            }
+//
+//            return result;
+//        }
+//
+//        function createHexString(arr) {
+//            var result = "";
+//            var z;
+//
+//            for (var i = 0; i < arr.length; i++) {
+//                var str = arr[i].toString(16);
+//
+//                z = 8 - str.length + 1;
+//                str = Array(z).join("0") + str;
+//
+//                result += str;
+//            }
+//
+//            return result;
+//        }
+//
+////        function str2binb(str) {
+////            var bin = Array();
+////            var mask = (1 << chrsz) - 1;
+////            for (var i = 0; i < str.length * chrsz; i += chrsz) {
+////                bin[i >> 5] |= (str.charCodeAt(i / chrsz) & mask) << (24 - i % 32);
+////            }
+////            return bin;
+////        }
+////
+////
+////        function Utf8Encode(string) {
+////            string = string.replace(/\r\n/g, "\n");
+////            var utftext = "";
+////
+////            for (var n = 0; n < string.length; n++) {
+////
+////                var c = string.charCodeAt(n);
+////
+////                if (c < 128) {
+////                    utftext += String.fromCharCode(c);
+////                }
+////                else if ((c > 127) && (c < 2048)) {
+////                    utftext += String.fromCharCode((c >> 6) | 192);
+////                    utftext += String.fromCharCode((c & 63) | 128);
+////                }
+////                else {
+////                    utftext += String.fromCharCode((c >> 12) | 224);
+////                    utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+////                    utftext += String.fromCharCode((c & 63) | 128);
+////                }
+////
+////            }
+////
+////            return utftext;
+////        }
+//
+//        function binb2hex(binarray) {
+//            var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
+//            var str = "";
+//            for (var i = 0; i < binarray.length * 4; i++) {
+//                str += hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8 + 4)) & 0xF) +
+//                        hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8)) & 0xF);
+//            }
+////            while(str.charAt(str.length-1)=='0' && str.charAt(str.length-2)=='0'){
+////            	str = str.substr(0, str.length-2)
+////            }
+//            return str;
+//        }
+//
+//        //var x = parseHexString(s);
+//
+//        //s = Utf8Encode(s);
+//        //return binb2hex(core_sha256(str2binb(s), s.length * chrsz));
+//        return binb2hex(core_sha256(s, s.length * chrsz));
+//
+//    } // End SHA256
 
-
-
-//		////////////////////////////////////////////////////////////////////////
-//		// Vote and ballot cryptography
-//
-//		/**
-//		 * Encodes a vote.
-//		 *
-//		 *     ... 001 00 0010
-//		 *     ... --- -- ----
-//		 *     ... c3  c2  c1
-//		 *
-//		 * The number of bits per choice is based on the allowd maximum defined
-//		 * in the for-all-rules.
-//		 *
-//		 * @param resultMap - A map representing the vote (choiceId => V(choice)).
-//		 * @param choicesIds - An array with all possible choice ids.
-//		 * @param forAllRules -  An array with all for-all-rules.
-//		 * @return The encoded vote as bigInt.
-//		 */
-//		this.encodeVote = function(resultMap, choicesIds, forAllRules) {
-//
-//			// Helper to figure out wheter an element is in array or not.
-//			var isInArray = function(element, array) {
-//				for (var i = 0; i < array.length; i++) {
-//					if (array[i] == element) {
-//						return true
-//					}
-//				}
-//				return false;
-//			}
-//
-//			// The encoded vote as binary string
-//			var bitstring = "";
-//
-//			// Make sure, the choices are sorted based on the id
-//			choicesIds.sort(function(a, b) {
-//				return a - b
-//			});
-//
-//			// Loop through all choices and add the according bits to bitstring
-//			for (var i = 0; i < choicesIds.length; i++) {
-//
-//				var actualId = choicesIds[i];
-//				if (actualId != undefined && actualId >= 0) {
-//
-//					// Get maximal allowed voices for current choice. If (what shouldn't be
-//					// the case!) more than one forall-rule exists for a choice, then the
-//					// lowest max must be taken.
-//					var nbrVoicesPerCandidate = 0;
-//					for (var j = 0; j < forAllRules.length; j++) {
-//						var ruleIds = forAllRules[j].getChoiceId();
-//						if (isInArray(actualId, ruleIds)) {
-//							var upperBound = forAllRules[j].getUpperBound();
-//							if (nbrVoicesPerCandidate == 0 || upperBound < nbrVoicesPerCandidate) {
-//								nbrVoicesPerCandidate = upperBound;
-//							}
-//						}
-//					}
-//
-//					// Throw an error if the choice couldn't be found in any rule
-//					if (nbrVoicesPerCandidate == 0) {
-//						throw new Error("Encoding error: choice not found in any rule.");
-//					}
-//					// Compute the number of bits needed to encode the actual choice
-//					var nbrBitsPerCandidate = Math.floor((Math.log(nbrVoicesPerCandidate)) / (Math.log(2))) + 1;
-//
-//					// Get the occurences of actual id in vote
-//					var votesForActualChoice = resultMap.get(actualId.toString());
-//					if (votesForActualChoice === undefined) {
-//						votesForActualChoice = 0;
-//					}
-//
-//					// Represent the number in binary number
-//					var votesForActualChoiceBin = votesForActualChoice.toString(2);
-//					// Check what never should be the case! (If it were true, than the
-//					// ruleControle in uc-util would have a bug!)
-//					if (votesForActualChoiceBin.length > nbrBitsPerCandidate) {
-//						throw new Error("Encoding error: Too many voices for candidate!");
-//					}
-//					// Add front padding to binary representation
-//					while (votesForActualChoiceBin.length < nbrBitsPerCandidate) {
-//						votesForActualChoiceBin = "0" + votesForActualChoiceBin;
-//					}
-//
-//					// Construct the bit string
-//					// -> actual choice is added at the left of precedent choices
-//					bitstring = votesForActualChoiceBin + bitstring;
-//				}
-//			}
-//
-//			// Return the encoded vote as bigInt
-//			return leemon.str2bigInt(bitstring, 2, 1);
-//		}
-//
-//
-//		/*
-//		 * Represents a bigInt for Zq in Gq
-//		 *                 -
-//		 *                / m' + 1      if (m'+1)^q = 1
-//		 *   m = G(m') = <
-//		 *                \ p - (m'+1)  otherwise
-//		 *                 -
-//		 * @param bigIntInZq - The bigInt in Zq (m')
-//		 * @return The bigInt in Gq (m)
-//		 */
-//		this.mapZq2Gq = function(bigIntInZq) {
-//
-//			if (!leemon.greater(elgamal.q, bigIntInZq)) {
-//				throw new Error("Error: value not in Zq.");
-//			}
-//
-//			var one = leemon.str2bigInt("1", 2, 1);
-//			var t1 = leemon.add(bigIntInZq, one);
-//			var t2 = leemon.powMod(t1, elgamal.q, elgamal.p);
-//
-//			if (leemon.equals(t2, one) == 1) {
-//				return t1;
-//			} else {
-//				return leemon.sub(elgamal.p, t1);
-//			}
-//		}
-//
-//		/**
-//		 * Asynchronous version of mapZq2Gq.
-//		 */
-//		this.mapZq2GqAsync = function(bigIntInZq, doneCb, updateCb, errorCb) {
-//
-//			// step 2
-//			var step2 = function(result) {
-//				var ret;
-//				if (leemon.equals(result, one) == 1) {
-//					ret = t1;
-//				} else {
-//					ret = leemon.sub(elgamal.p, t1);
-//				}
-//				doneCb(ret);
-//			};
-//
-//			// start with step 1
-//			if (!leemon.greater(elgamal.q, bigIntInZq)) {
-//				errorCb("Error: value not in Zq.");
-//				return;
-//			}
-//
-//			var one = leemon.str2bigInt("1", 2, 1);
-//			var t1 = leemon.add(bigIntInZq, one);
-//			leemon.powModAsync(t1, elgamal.q, elgamal.p, updateCb, step2);
-//		}
-//
-//		/*
-//		 * Encrypts an encoded vote.
-//		 *
-//		 * @param vote - The vote as bigInt.
-//		 * @param encryptionKey - The encryption key as bigInt.
-//		 * @return An object with the encoded vote (univote_bfh_ch_common_encryptedVote) and
-//		 * the single values (r, a, b) of the encryption as bigInt (for further processing).
-//		 */
-//		this.encryptVote = function(vote, encryptionKey) {
-//			var encVote = new univote_bfh_ch_common_encryptedVote();
-//
-//			var r = leemon.randBigIntInZq(elgamal.q);
-//			var a = leemon.powMod(elgamal.g, r, elgamal.p);
-//			var b = leemon.powMod(encryptionKey, r, elgamal.p);
-//			b = leemon.multMod(b, vote, elgamal.p);
-//
-//			encVote.setFirstValue(leemon.bigInt2str(a, 10));
-//			encVote.setSecondValue(leemon.bigInt2str(b, 10));
-//
-//			return {encVote: encVote, r: r, a: a, b: b};
-//		}
-//
-//		/**
-//		 * Asynchronous version of encryptVote.
-//		 **/
-//		this.encryptVoteAsync = function(vote, encryptionKey, doneCb, updateCb) {
-//
-//			// step 2
-//			var a;
-//			var step2 = function(_a) {
-//				a = _a;
-//				leemon.powModAsync(encryptionKey, r, elgamal.p, updateCb, step3);
-//			};
-//
-//			// step 3
-//			var step3 = function(_b) {
-//				var b = leemon.multMod(_b, vote, elgamal.p);
-//				var encVote = new univote_bfh_ch_common_encryptedVote();
-//				encVote.setFirstValue(leemon.bigInt2str(a, 10));
-//				encVote.setSecondValue(leemon.bigInt2str(b, 10));
-//
-//				doneCb({encVote: encVote, r: r, a: a, b: b});
-//			};
-//
-//			// start with step 1
-//			var r = leemon.randBigIntInZq(elgamal.q);
-//			leemon.powModAsync(elgamal.g, r, elgamal.p, updateCb, step2);
-//		}
-//
-//		/*
-//		 * Computes anonymous election verification key.
-//		 *
-//		 * @param generator - The election generator as bigInt.
-//		 * @param sk - Secret key as bigInt.
-//		 * @return Object with anonymous election verification key as string and bigInt.
-//		 */
-//		this.computeElectionVerificationKey = function(generator, sk) {
-//			var vk = leemon.powMod(generator, sk, schnorr.p);
-//			var vkString = leemon.bigInt2str(vk, 10);
-//			return {vkString: vkString, vk: vk};
-//		}
-//
-//		/**
-//		 * Asynchronous version of computeElectionVerificationKey.
-//		 **/
-//		this.computeElectionVerificationKeyAsync = function(generator, sk, doneCb, updateCb) {
-//
-//			// step 2
-//			var step2 = function(_vk) {
-//				var vkString = leemon.bigInt2str(_vk, 10);
-//				doneCb({vkString: vkString, vk: _vk});
-//			};
-//
-//			// start with step 1
-//			leemon.powModAsync(generator, sk, schnorr.p, updateCb, step2);
-//		}
-//
-//		/*
-//		 * Computes vote proof.
-//		 *
-//		 * @param r - The random value used in vote encryption as bigInt.
-//		 * @param a - The first value (public input) of the vote encryption as bigInt.
-//		 * @param vk - The verification key as bigInt.
-//		 * @return An object with the proof (univote_bfh_ch_common_proof) and the
-//		 * single proof values (t, c, s) as bigInt.
-//		 */
-//		this.computeVoteProof = function(r, a, vk) {
-//
-//			var proof = this.NIZKP(elgamal, r, a, vk);
-//
-//			proof.proof = new univote_bfh_ch_common_proof();
-//			proof.proof.setCommitment([leemon.bigInt2str(proof.t, 10)])
-//			proof.proof.setResponse([leemon.bigInt2str(proof.s, 10)]);
-//
-//			return proof;
-//		}
-//
-//		/**
-//		 * Asynchronous version of computeVoteProof
-//		 **/
-//		this.computeVoteProofAsync = function(r, a, vk, doneCb, updateCb) {
-//
-//			// done
-//			var nizkpDoneCb = function(proof) {
-//				proof.proof = new univote_bfh_ch_common_proof();
-//				proof.proof.setCommitment([leemon.bigInt2str(proof.t, 10)])
-//				proof.proof.setResponse([leemon.bigInt2str(proof.s, 10)]);
-//				doneCb(proof);
-//			};
-//
-//			this.NIZKPAsync(elgamal, r, a, vk, nizkpDoneCb, updateCb);
-//		}
-//
-//		/*
-//		 * Signs a ballot: S = Sign_sk(id||E||pi) using electionGenerator.
-//		 *
-//		 *     Sign_sk(m,r) = (a,r-a*sk),  where a=H(m||g^r)
-//		 *
-//		 * @param ballot - An object holding all ballot data.
-//		 * @param generator - The election generator as bigInt.
-//		 * @param sk - The secret key as bigInt.
-//		 * @return An object with the signature (univote_bfh_ch_common_voterSignature)
-//		 * and the single signature values as bigInt.
-//		 */
-//		this.signBallot = function(ballot, generator, sk) {
-//
-//			// 1. Concat m
-//			var m = signBallotConcatM(ballot);
-//
-//			// 2. Choose r at random from Zq and calculate g^r
-//			var r = leemon.randBigIntInZq(schnorr.q);
-//			var a2 = leemon.powMod(generator, r, schnorr.p);
-//
-//			// 3. Hash and calculate second part of signature
-//			var aStr = SHA256(m + CONCAT_SEPARATOR + leemon.bigInt2str(a2, 10));
-//			var a = leemon.str2bigInt(aStr, 16, 1);
-//			var b = leemon.sub(schnorr.q, leemon.multMod(a, sk, schnorr.q));
-//			b = leemon.mod(leemon.add(r, b), schnorr.q);
-//
-//			// 4. Create return object
-//			var sign = {a: a, b: b};
-//
-//			sign.sign = new univote_bfh_ch_common_voterSignature();
-//			sign.sign.setFirstValue(leemon.bigInt2str(a, 10));
-//			sign.sign.setSecondValue(leemon.bigInt2str(b, 10));
-//
-//			return sign;
-//		}
-//
-//		/**
-//		 * Asynchronous version of signBallot.
-//		 **/
-//		this.signBallotAsync = function(ballot, generator, sk, doneCb, updateCb) {
-//
-//			// step 2
-//			var step2 = function(_a2) {
-//
-//				// 3. Hash and calculate second part of signature
-//				var aStr = SHA256(m + CONCAT_SEPARATOR + leemon.bigInt2str(_a2, 10));
-//				var a = leemon.str2bigInt(aStr, 16, 1);
-//				var b = leemon.sub(schnorr.q, leemon.multMod(a, sk, schnorr.q));
-//				b = leemon.mod(leemon.add(r, b), schnorr.q);
-//
-//				// 4. Create return object
-//				var sign = {a: a, b: b};
-//
-//				sign.sign = new univote_bfh_ch_common_voterSignature();
-//				sign.sign.setFirstValue(leemon.bigInt2str(a, 10));
-//				sign.sign.setSecondValue(leemon.bigInt2str(b, 10));
-//
-//				doneCb(sign);
-//			}
-//
-//			// Start with step 1
-//			// 1. Concat m
-//			var m = signBallotConcatM(ballot);
-//
-//			// 2. Choose r at random from Zq and calculate g^r
-//			var r = leemon.randBigIntInZq(schnorr.q);
-//			leemon.powModAsync(generator, r, schnorr.p, updateCb, step2);
-//		}
-//
-//		/**
-//		 * Helper to concat a ballot for signing (used in signBallot and signBallotAsync).
-//		 *
-//		 * @param ballot - An object holding all ballot data.
-//		 * @return The concatenated ballot.
-//		 */
-//		var signBallotConcatM = function(ballot) {
-//			var m = [];
-//			m.push(CONCAT_DELIMINATOR_L);
-//			m.push(ballot.id, CONCAT_SEPARATOR);
-//			m.push(CONCAT_DELIMINATOR_L);
-//			m.push(ballot.E.getFirstValue(), CONCAT_SEPARATOR, ballot.E.getSecondValue());
-//			m.push(CONCAT_DELIMINATOR_R, CONCAT_SEPARATOR);
-//			m.push(CONCAT_DELIMINATOR_L);
-//			m.push(CONCAT_DELIMINATOR_L, ballot.pi.getCommitment().join(CONCAT_SEPARATOR), CONCAT_DELIMINATOR_R);
-//			m.push(CONCAT_SEPARATOR);
-//			m.push(CONCAT_DELIMINATOR_L, ballot.pi.getResponse().join(CONCAT_SEPARATOR), CONCAT_DELIMINATOR_R);
-//			m.push(CONCAT_DELIMINATOR_R);
-//			m.push(CONCAT_DELIMINATOR_R);
-//			return m.join('');
-//		}
-//
-//
-//
-//		////////////////////////////////////////////////////////////////////////
-//		// Verify Signature of election data
-//
-//		/*
-//		 * Verifies signature of election data asynchronously.
-//		 * (eid|description|(choice1|choice2)|(rule1|rule2)|p|q|g|encryptionKey|electionG)
-//		 *
-//		 * @param electionData - The election data as univote_bfh_ch_common_electionData
-//		 * @param callback - The callback passing true if signature is correct, false otherwise.
-//		 */
-//		this.verifySignatureOfElectionData = function(electionData, callback) {
-//			var i, item;
-//
-//			// Helper to concat localized text.
-//			var concatLocalizedText = function(loc) {
-//				var s = [];
-//				s.push(CONCAT_DELIMINATOR_L);
-//				for (var i = 0; i < loc.length; i++) {
-//					if (i > 0) {
-//						s.push(CONCAT_SEPARATOR);
-//					}
-//					s.push(CONCAT_DELIMINATOR_L);
-//					var t = loc[i];
-//					s.push(t.getLanguage(), CONCAT_SEPARATOR, t.getText());
-//					s.push(CONCAT_DELIMINATOR_R);
-//				}
-//				s.push(CONCAT_DELIMINATOR_R);
-//				return s.join('');
-//			}
-//
-//			// 1. CONCAT
-//			var m = [];
-//			m.push(CONCAT_DELIMINATOR_L);
-//			// 1.1 ElectionID
-//			m.push(electionData.getElectionId(), CONCAT_SEPARATOR);
-//			// 1.2 Title
-//			m.push(electionData.getTitle(), CONCAT_SEPARATOR);
-//			// 1.3 Choices
-//			m.push(CONCAT_DELIMINATOR_L);
-//			var choices = electionData.getChoice();
-//			for (i = 0; i < choices.length; i++) {
-//				if (i > 0) {
-//					m.push(CONCAT_SEPARATOR);
-//				}
-//				item = choices[i];
-//				m.push(CONCAT_DELIMINATOR_L);
-//				m.push(item.getChoiceId(), CONCAT_SEPARATOR);
-//				if (item instanceof univote_bfh_ch_common_politicalList) {
-//					m.push(item.getNumber(), CONCAT_SEPARATOR);
-//					m.push(concatLocalizedText(item.getTitle()), CONCAT_SEPARATOR);
-//					m.push(concatLocalizedText(item.getPartyName()), CONCAT_SEPARATOR);
-//					m.push(concatLocalizedText(item.getPartyShortName()));
-//				} else if (item instanceof univote_bfh_ch_common_candidate) {
-//					m.push(item.getNumber(), CONCAT_SEPARATOR);
-//					m.push(item.getLastName(), CONCAT_SEPARATOR);
-//					m.push(item.getFirstName(), CONCAT_SEPARATOR);
-//					m.push(item.getSex(), CONCAT_SEPARATOR);
-//					m.push(item.getYearOfBirth(), CONCAT_SEPARATOR);
-//					m.push(concatLocalizedText(item.getStudyBranch()), CONCAT_SEPARATOR);
-//					m.push(concatLocalizedText(item.getStudyDegree()), CONCAT_SEPARATOR);
-//					m.push(item.getSemesterCount(), CONCAT_SEPARATOR);
-//					m.push(item.getStatus(), CONCAT_SEPARATOR);
-//					m.push(item.getListId(), CONCAT_SEPARATOR);
-//					m.push(item.getCumulation());
-//				}
-//				m.push(CONCAT_DELIMINATOR_R);
-//			}
-//			m.push(CONCAT_DELIMINATOR_R, CONCAT_SEPARATOR);
-//			// 1.4 Rules
-//			m.push(CONCAT_DELIMINATOR_L);
-//			var rules = electionData.getRule();
-//			for (i = 0; i < rules.length; i++) {
-//				if (i > 0) {
-//					m.push(CONCAT_SEPARATOR);
-//				}
-//				item = rules[i];
-//				m.push(CONCAT_DELIMINATOR_L);
-//				if (item instanceof univote_bfh_ch_common_summationRule) {
-//					m.push('summationRule', CONCAT_SEPARATOR);
-//				} else if (item instanceof univote_bfh_ch_common_forallRule) {
-//					m.push('forallRule', CONCAT_SEPARATOR);
-//				}
-//				m.push(CONCAT_DELIMINATOR_L, item.getChoiceId().join(CONCAT_SEPARATOR), CONCAT_DELIMINATOR_R);
-//				m.push(CONCAT_SEPARATOR);
-//				m.push(item.getLowerBound(), CONCAT_SEPARATOR);
-//				m.push(item.getUpperBound());
-//				m.push(CONCAT_DELIMINATOR_R);
-//			}
-//			m.push(CONCAT_DELIMINATOR_R, CONCAT_SEPARATOR);
-//			// 1.5 p, q, g
-//			m.push(electionData.getPrime(), CONCAT_SEPARATOR);
-//			m.push(electionData.getGroupOrder(), CONCAT_SEPARATOR);
-//			m.push(electionData.getGenerator(), CONCAT_SEPARATOR);
-//			// 1.6 encryptionKey, electionG
-//			m.push(electionData.getEncryptionKey(), CONCAT_SEPARATOR);
-//			m.push(electionData.getElectionGenerator());
-//			m.push(CONCAT_DELIMINATOR_R, CONCAT_SEPARATOR);
-//			m.push(electionData.getSignature().getTimestamp());
-//
-//			// 2. Decrypt signature
-//			var signatureC = electionData.getSignature().getValue();
-//			leemon.powModAsync(leemon.str2bigInt(signatureC, 10, 1), rsa.pk, rsa.n, function() {
-//			}, function(signature) {
-//
-//				// 3. Compare
-//				var x = leemon.mod(leemon.str2bigInt(SHA256(m.join('')), 16, 1), rsa.n);
-//				callback(leemon.equals(x, signature));
-//			});
-//		}
     }
-
-
-
-    /**
-     *
-     *  Secure Hash Algorithm (SHA256)
-     *  http://www.webtoolkit.info/
-     *
-     *  Original code by Angel Marin, Paul Johnston.
-     *
-     */
-    function SHA256(s) {
-
-        var chrsz = 8;
-        var hexcase = 1;
-
-        function safe_add(x, y) {
-            var lsw = (x & 0xFFFF) + (y & 0xFFFF);
-            var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
-            return (msw << 16) | (lsw & 0xFFFF);
-        }
-
-        function S(X, n) {
-            return (X >>> n) | (X << (32 - n));
-        }
-        function R(X, n) {
-            return (X >>> n);
-        }
-        function Ch(x, y, z) {
-            return ((x & y) ^ ((~x) & z));
-        }
-        function Maj(x, y, z) {
-            return ((x & y) ^ (x & z) ^ (y & z));
-        }
-        function Sigma0256(x) {
-            return (S(x, 2) ^ S(x, 13) ^ S(x, 22));
-        }
-        function Sigma1256(x) {
-            return (S(x, 6) ^ S(x, 11) ^ S(x, 25));
-        }
-        function Gamma0256(x) {
-            return (S(x, 7) ^ S(x, 18) ^ R(x, 3));
-        }
-        function Gamma1256(x) {
-            return (S(x, 17) ^ S(x, 19) ^ R(x, 10));
-        }
-
-        function core_sha256(m, l) {
-            var K = new Array(0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5, 0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3, 0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174, 0xE49B69C1, 0xEFBE4786, 0xFC19DC6, 0x240CA1CC, 0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA, 0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7, 0xC6E00BF3, 0xD5A79147, 0x6CA6351, 0x14292967, 0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13, 0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85, 0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3, 0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070, 0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3, 0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208, 0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2);
-            var HASH = new Array(0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19);
-            var W = new Array(64);
-            var a, b, c, d, e, f, g, h, i, j;
-            var T1, T2;
-
-            m[l >> 5] |= 0x80 << (24 - l % 32);
-            m[((l + 64 >> 9) << 4) + 15] = l;
-
-            for (var i = 0; i < m.length; i += 16) {
-                a = HASH[0];
-                b = HASH[1];
-                c = HASH[2];
-                d = HASH[3];
-                e = HASH[4];
-                f = HASH[5];
-                g = HASH[6];
-                h = HASH[7];
-
-                for (var j = 0; j < 64; j++) {
-                    if (j < 16)
-                        W[j] = m[j + i];
-                    else
-                        W[j] = safe_add(safe_add(safe_add(Gamma1256(W[j - 2]), W[j - 7]), Gamma0256(W[j - 15])), W[j - 16]);
-
-                    T1 = safe_add(safe_add(safe_add(safe_add(h, Sigma1256(e)), Ch(e, f, g)), K[j]), W[j]);
-                    T2 = safe_add(Sigma0256(a), Maj(a, b, c));
-
-                    h = g;
-                    g = f;
-                    f = e;
-                    e = safe_add(d, T1);
-                    d = c;
-                    c = b;
-                    b = a;
-                    a = safe_add(T1, T2);
-                }
-
-                HASH[0] = safe_add(a, HASH[0]);
-                HASH[1] = safe_add(b, HASH[1]);
-                HASH[2] = safe_add(c, HASH[2]);
-                HASH[3] = safe_add(d, HASH[3]);
-                HASH[4] = safe_add(e, HASH[4]);
-                HASH[5] = safe_add(f, HASH[5]);
-                HASH[6] = safe_add(g, HASH[6]);
-                HASH[7] = safe_add(h, HASH[7]);
-            }
-            return HASH;
-        }
-
-        function str2binb(str) {
-            var bin = Array();
-            var mask = (1 << chrsz) - 1;
-            for (var i = 0; i < str.length * chrsz; i += chrsz) {
-                bin[i >> 5] |= (str.charCodeAt(i / chrsz) & mask) << (24 - i % 32);
-            }
-            return bin;
-        }
-
-
-        function Utf8Encode(string) {
-            string = string.replace(/\r\n/g, "\n");
-            var utftext = "";
-
-            for (var n = 0; n < string.length; n++) {
-
-                var c = string.charCodeAt(n);
-
-                if (c < 128) {
-                    utftext += String.fromCharCode(c);
-                }
-                else if ((c > 127) && (c < 2048)) {
-                    utftext += String.fromCharCode((c >> 6) | 192);
-                    utftext += String.fromCharCode((c & 63) | 128);
-                }
-                else {
-                    utftext += String.fromCharCode((c >> 12) | 224);
-                    utftext += String.fromCharCode(((c >> 6) & 63) | 128);
-                    utftext += String.fromCharCode((c & 63) | 128);
-                }
-
-            }
-
-            return utftext;
-        }
-
-        function binb2hex(binarray) {
-            var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
-            var str = "";
-            for (var i = 0; i < binarray.length * 4; i++) {
-                str += hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8 + 4)) & 0xF) +
-                        hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8)) & 0xF);
-            }
-            return str;
-        }
-
-        s = Utf8Encode(s);
-        return binb2hex(core_sha256(str2binb(s), s.length * chrsz));
-
-    } // End SHA256
-
-
     window.ucCrypto = new Crypto();
 
 })(window);

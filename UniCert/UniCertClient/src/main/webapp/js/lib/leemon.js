@@ -35,9 +35,9 @@
 // little endian (buff[0] is the least significant word).
 // Negative bigInts are stored two's complement.  Almost all the functions treat
 // bigInts as nonnegative.  The few that view them as two's complement say so
-// in their comments.  Some functions athis.ssume their parameters have at least this.one 
+// in their comments.  Some functions assume their parameters have at least one 
 // leading zero element. Functions with an underscore at the end of the name put
-// their answer into this.one of the arrays pathis.ssed in, and have unpredictable behavior 
+// their answer into one of the arrays passed in, and have unpredictable behavior 
 // in case of overflow, so the caller must make sure the arrays are big enough to 
 // hold the answer.  But the average user should never have to call any of the 
 // underscored functions.  Each important underscored function has a wrapper function 
