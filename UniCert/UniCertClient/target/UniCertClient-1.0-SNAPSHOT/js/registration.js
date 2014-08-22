@@ -303,14 +303,19 @@ function completeRegistration(byMail) {
     var createCertErrorCb = function(request, status, error) {
 
         var message = "";
-        var json = JSON.parse(request.responseText);
-
-        if (json.error != "") {
-            msgName = "msg.error" + json.error;
-            message = eval(window['msgName']);
-        } else {
+        
+        try{
+            var json = JSON.parse(request.responseText);
+            if (json.error != "") {
+                msgName = "msg.error" + json.error;
+                message = eval(window['msgName']);
+            } else {
+                message = msg.errorundefined;
+            }
+        } catch(err){
             message = msg.errorundefined;
         }
+        
         
         $.unblockUI();
         $.blockUI({

@@ -122,18 +122,23 @@
                 //3. Compute c = H(publicInput||t||otherInput)
                 var m = [];
 
-                console.log("pi bytes hex " + leemon.bigInt2str(publicInput, 16));
-                var hashPI = sha256HexStr(leemon.bigInt2str(publicInput, 16));
-                console.log("hash pi hex " + hashPI);
-                var hashCommitment = sha256HexStr(leemon.bigInt2str(t, 16));
+                console.log("public input hex " + leemon.bigInt2str(publicInput, 16));
+                var pubInHex = leemon.bigInt2str(publicInput, 16);
+                var hashPI = sha256HexStr(pubInHex, pubInHex.length/2);
+                console.log("public input hashed: " + hashPI);
+                var commitmentHex = leemon.bigInt2str(t, 16);
+                var hashCommitment = sha256HexStr(commitmentHex, commitmentHex.length/2);
+                console.log("commitment hashed: " + hashCommitment);
+                
                 var hashOtherInput = sha256String(otherInput);
+                console.log("other input hashed: " + hashOtherInput);
                 m.push(hashPI);
                 m.push(hashCommitment);
                 m.push(hashOtherInput);
                 var joined = m.join(''); //byte[] in hex concatenated
-                var c = sha256HexStr(joined);
-                //console.log("hashed " + cStr)
-                //var c = leemon.str2bigInt(cStr, 16, 1);
+                var cStr = sha256HexStr(joined, joined.length/2);
+                console.log("Complete hash: " + cStr);
+                var c = leemon.str2bigInt(cStr, 16, 1);
 
                 //4. Compute s = omega+c*secretInput mod q
                 var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
@@ -255,15 +260,15 @@
 
             // done
             var nizkpDoneCb = function(proof) {
-                console.log("left " + leemon.bigInt2str(leemon.powMod(g, proof.s, p), 10))
+                //console.log("left " + leemon.bigInt2str(leemon.powMod(g, proof.s, p), 10))
                 var yc = leemon.powMod(vk, proof.c, p)
-                console.log("right " + leemon.bigInt2str(leemon.multMod(proof.t, yc, p), 10))
+                //console.log("right " + leemon.bigInt2str(leemon.multMod(proof.t, yc, p), 10))
                 proof.t = leemon.bigInt2str(proof.t, 10);
                 proof.c = leemon.bigInt2str(proof.c, 10);
                 proof.s = leemon.bigInt2str(proof.s, 10);
-                console.log(proof.t)
+                //console.log(proof.t)
                 console.log("challenge " + proof.c)
-                console.log(proof.s)
+                //console.log(proof.s)
 
                 doneCb(proof);
             };

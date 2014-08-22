@@ -1,6 +1,10 @@
 //***********************************************
 //Interface functions
 //***********************************************
+
+var hexcase = 1; //1 if hexadecimal must use capital letters
+var chrsz = 8; //number of bits pro char
+//var numberOfBytes = 0;
 /*
  Hashes a UTF-8 string
  */
@@ -12,28 +16,39 @@ function sha256String(string) {
     /*
      In javascript, the standard value is a 32 bits integer
      thus when asking for the length of 'bytearray', it returns the
-     number of 32 bits integers, so we have to multiply it by 4 in order to
-     have the number of 8 bits bytes.
+     number of 32 bits integers, so we would have to multiply it by 4 in order to
+     have the number of 8 bits bytes. This however, only works if the  string converted to byte array
+     is a multiple of 32 bits. Otherwise, we will hash additional data (bytes containing value 0).
+     To avoid that, we assume each char of s is converted to one byte, so the number of bytes to hash
+     is the length of s.
      */
-    var hash = SHA256(bytearray, bytearray.length * 4);
+    var hash = SHA256(bytearray, s.length*chrsz/*bytearray.length * 4*/);
     //convert the obtained byte array to hex representation
     return binb2hex(hash);
 }
 
 /*
 	Hashes a hexadecimal representation of the big int or other
+	length is the number of bytes from hexStr to hash
 */
-function sha256HexStr(hexStr){
+function sha256HexStr(hexStr, length){
 	/*
 	Each char of the hexadecimal encoded string represents 4 bits.
 	So, the number of byte contained in the hex string is the length of the string
 	divided by 2. 
 	*/
-	if(hexStr.length % 4 != 0){
-		return "Length of hexadecimal string is not a multiple of 4";
-	}
-	var hash = SHA256(hex2binb(hexStr), hexStr.length/2);
-	return binb2hex(hash,1);
+	
+	//var length = hexStr.length/2;
+	if(hexStr.length % 2 != 0){
+		//return "Length of hexadecimal string is not a multiple of 4";
+		hexStr = "0"+hexStr;
+		console.log("not multiple of 2: " + hexStr);
+	} 
+	//alert(numberOfBytes)
+//	alert(hexStr.length);
+
+	var hash = SHA256(hex2binb(hexStr), (hexStr.length)*4);
+	return binb2hex(hash);
 }
 
 //***********************************************
@@ -47,6 +62,7 @@ function hex2binb(a) {
             i, num;
     for (i = 0; i < length; i += 2) {
         num = parseInt(a.substr(i, 2), 16);
+        //alert(num)
         if (!isNaN(num)) {
             b[i >> 3] |= num << (24 - (4 * (i % 8)))
         } else {
@@ -100,7 +116,6 @@ function Utf8Encode(string) {
         }
 
     }
-
     return utftext;
 }
 
@@ -251,6 +266,6 @@ function SHA256(s, length) {
 
     //s = Utf8Encode(s);
     //return binb2hex(core_sha256(str2binb(s), s.length * chrsz));
-    return core_sha256(s, length * chrsz);
+    return core_sha256(s, length);
 
 } // End SHA256
