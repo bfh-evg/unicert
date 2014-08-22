@@ -22,6 +22,7 @@ import ch.bfh.uniboard.service.StringValue;
 import ch.bfh.unicert.subsystem.cryptography.CryptographicSetup;
 import ch.bfh.unicert.subsystem.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.subsystem.cryptography.RsaSetup;
+import ch.bfh.unicert.subsystem.cryptography.SigmaChallengeGenerator;
 import ch.bfh.unicert.subsystem.exceptions.CertificateCreationException;
 import ch.bfh.unicert.subsystem.util.CertificateHelper;
 import ch.bfh.unicert.subsystem.util.ConfigurationHelper;
@@ -174,7 +175,8 @@ public class RegistrationBean implements Registration {
                 throw new CertificateCreationException("222 Message to sign encoding problem");
             }
             logger.log(Level.INFO, "Getting element");
-            Element message  = rsaGroup.getElementFrom(messageHashed);
+            Element message  = rsaGroup.getElement(new BigInteger(1,messageHashed.getAll()));
+            //Element message  = rsaGroup.getElementFrom(messageHashed);
             logger.log(Level.INFO, "Verifiying");
             if (!rsa.verify(publicKey, message, signature).getValue().booleanValue()) {
                 logger.log(Level.SEVERE, "Signature invalid");
@@ -196,17 +198,19 @@ public class RegistrationBean implements Registration {
 
             logger.log(Level.INFO, "Valid DLOG setup");
             
-            StringElement message = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII).getElement(setup.getProofOtherInput());
             Function func = GeneratorFunction.getInstance(setup.getGenerator());
-            PreimageProofSystem pips = PreimageProofSystem.getInstance(func);//, message);
+            
+            SigmaChallengeGenerator scg = SigmaChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(), Z.getInstance(), setup.getProofOtherInput());
+            PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
 
             //verify proof
-            //TODO make compatible proof
-            Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), Z.getInstance().getElementFrom(setup.getProofChallenge()), setup.getZ_q().getElementFrom(setup.getProofResponse()));
-//            if (!pips.verify(proof, setup.getPublicKey())) {
-//                logger.log(Level.SEVERE, "Proof incorrect");
-//                throw new CertificateCreationException("223 Proof incorrect");
-//            }
+            Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), Z.getInstance().getElement(setup.getProofChallenge()), setup.getZ_q().getElement(setup.getProofResponse()));
+            if (!pips.verify(proof, setup.getPublicKey())) {
+                logger.log(Level.SEVERE, "Proof incorrect");
+                throw new CertificateCreationException("223 Proof incorrect");
+            }
+            
+            logger.log(Level.INFO, "Proof correct");
 
             pk = createDSAPublicKey(setup.getPublicKey().getBigInteger(), setup.getP().getValue(), setup.getZ_q().getOrder(), setup.getGenerator().getBigInteger());
 
@@ -259,13 +263,14 @@ public class RegistrationBean implements Registration {
 
         List<AttributeDTO> attributes = new ArrayList();
         attributes.add(new AttributeDTO("section", new StringValueDTO("unicert")));
+        attributes.add(new AttributeDTO("group", new StringValueDTO("certificate")));
         AttributesDTO alpha = new AttributesDTO(attributes);
         
-        
+        logger.log(Level.SEVERE, "base64 "+ new String(Base64.encodeBase64(cert.toJSON().getBytes())));
         AttributesDTO beta = board.post(cert.toJSON().getBytes(), alpha);
         
         if(beta.getAttribute().isEmpty()){
-            logger.log(Level.SEVERE, "Error on posting: UniBoard response was empty");
+            logger.log(Level.WARNING, "UniBoard response was empty");
         } else if(beta.getAttribute().get(0).getKey().equals("rejected") || 
                 beta.getAttribute().get(0).getKey().equals("error")){
             logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{beta.getAttribute().get(0).getKey(),

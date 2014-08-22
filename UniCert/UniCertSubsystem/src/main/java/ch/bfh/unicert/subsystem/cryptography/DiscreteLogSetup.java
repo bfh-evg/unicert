@@ -77,7 +77,7 @@ public class DiscreteLogSetup implements CryptographicSetup{
         this.p = Prime.getInstance(p);
         this.q = Prime.getInstance(q);
 
-        this.G_q = GStarModSafePrime.getInstance(p, q);
+        this.G_q = GStarModPrime.getInstance(p, q);
 	this.Z_q = G_q.getZModOrder();
         this.generator = G_q.getElement(g);
         

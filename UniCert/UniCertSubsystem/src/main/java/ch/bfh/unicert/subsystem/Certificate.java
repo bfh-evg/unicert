@@ -261,7 +261,7 @@ public class Certificate {
             json += "surname: \"" + this.surname + "\", ";
         }
         if (this.givenName != null) {
-            json += "\"commonName\": \"" + this.givenName + "\", ";
+            json += "\"givenName\": \"" + this.givenName + "\", ";
         }
         if (this.issuer != null) {
             json += "\"issuer\": \"" + this.issuer + "\", ";
@@ -275,7 +275,7 @@ public class Certificate {
         if (this.validUntil != null) {
             json += "\"validUntil\": \"" + formatDate(this.validUntil) + "\", ";
         }
-        if (this.validUntil != null) {
+        if (this.extension != null) {
             for (Entry<String, String> e : this.extension.entrySet()) {
                 json += "\"" + e.getKey() + "\": \"" + e.getValue() + "\", ";
             }
