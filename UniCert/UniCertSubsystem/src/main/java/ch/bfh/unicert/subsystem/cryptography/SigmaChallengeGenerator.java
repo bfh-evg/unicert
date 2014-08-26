@@ -9,6 +9,7 @@ import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.abstracts.AbstractS
 import ch.bfh.unicrypt.helper.array.ByteArray;
 import ch.bfh.unicrypt.helper.converter.BigIntegerConverter;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
+import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayMonoid;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
@@ -29,48 +30,38 @@ import java.nio.ByteOrder;
  */
 public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
 
-    private final String proverId;
-    private final HashAlgorithm hashAlgorithm;
+    private final String otherInput;
+    private final HashMethod hashMethod;
     private final String stringCharset;
-    private final String concatenationSeparator;
-    private final int elementEncodingBase;
-    private final BigIntegerConverter converter;
 
     protected SigmaChallengeGenerator(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, 
-            String proverId, HashAlgorithm hashAlgorithm, String stringCharset, int elementEncodingBase, BigIntegerConverter bigIntegerConverter, String concatenationSeparator) {
+            String otherInput, HashMethod hashMethod, String stringCharset) {
         super(publicInputSpace, commitmentSpace, challengeSpace);
-        this.proverId = proverId;
-        this.hashAlgorithm = hashAlgorithm;
+        this.otherInput = otherInput;
+        this.hashMethod = hashMethod;
         this.stringCharset = stringCharset;
-        this.concatenationSeparator = concatenationSeparator;
-        this.elementEncodingBase = elementEncodingBase;
-        this.converter = bigIntegerConverter;
     }
 
     @Override
     protected ZElement abstractGenerate(Pair input) {
-        Element element0 = input.getAt(0);
-        Element element1 = input.getAt(1);
+//        Element element0 = input.getAt(0);
+//        Element element1 = input.getAt(1);
 
-        String element0Str = element0.getBigInteger().toString(elementEncodingBase);
-        String element1Str = element1.getBigInteger().toString(elementEncodingBase);
-
-        //String completeString = element0Str + this.concatenationSeparator + element1Str + this.concatenationSeparator + this.proverId;
         
                 
         ByteArray messageHashed = null;
         try {
 //            System.out.println("pub in dec: "+ element0.getBigInteger().toString(10));
-            System.out.println("public input hex: "+ getHexValue(element0.getByteArray().getAll()));
+//            System.out.println("public input hex: "+ getHexValue(element0.getByteArray().getAll()));
 //            System.out.println("pub in hashed bytes: "+ getHexValue(element0.getByteArray().getHashValue().getAll()));
-            System.out.println("public input hashed: "+ getHexValue(element0.getHashValue().getAll()));
-            System.out.println("commitment hashed: "+ getHexValue(element1.getHashValue().getAll()));
-            ByteArrayElement b = ByteArrayMonoid.getInstance().getElementFrom(ByteArray.getInstance(proverId.getBytes(this.stringCharset)));
+//            System.out.println("public input hashed: "+ getHexValue(element0.getHashValue(hashMethod).getAll()));
+//            System.out.println("commitment hashed: "+ getHexValue(element1.getHashValue(hashMethod).getAll()));
+            ByteArrayElement b = ByteArrayMonoid.getInstance().getElementFrom(ByteArray.getInstance(otherInput.getBytes(this.stringCharset)));
             //ByteArray b = ByteArray.getInstance(completeString.getBytes(this.stringCharset));
-            System.out.println("other input: "+proverId);
-            System.out.println("other input hashed: "+ getHexValue(b.getHashValue().getAll()));
-            messageHashed = Triple.getInstance(element0, element1, b).getHashValue();
-            System.out.println("Complete hash: "+ getHexValue(messageHashed.getAll()));
+//            System.out.println("other input: "+proverId);
+//            System.out.println("other input hashed: "+ getHexValue(b.getHashValue(hashMethod).getAll()));
+            messageHashed = Triple.getInstance(input.getAt(0), input.getAt(1), b).getHashValue(hashMethod);
+//            System.out.println("Complete hash: "+ getHexValue(messageHashed.getAll()));
             //messageHashed = ByteArray.getInstance(completeString.getBytes(this.stringEncoding)).getHashValue(this.hashAlgorithm);
         } catch (UnsupportedEncodingException ex) {
             throw new IllegalArgumentException("String encoding not supported: "+this.stringCharset);
@@ -80,7 +71,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
         //Makes a positive big integer with the result of the hash function, and return the corresponding element in the
         //challenge space
         ZElement challenge = this.getChallengeSpace().getElement(new BigInteger(1,messageHashed.getAll()));
-        System.out.println("Generated challenge: " + challenge);
+//        System.out.println("Generated challenge: " + challenge);
         return challenge;
   
     }
@@ -103,40 +94,47 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
     /**
      * Creates a SigmaChallenge generator using a hash function to generate the challenge
      * 
-     * The generated challenge depends on the public input, the commitment and the prover id. These values are
-     * encoded as string and concatenated together using the given concatenation separator. Elements are first converted
-     * to BigIntegers and then to string using the given base. The resulting string is then converted to a byte array using
-     * the given encoding. This byte array is then hashed using the given hash function. The result is intepreted as 
-     * BigInteger and its corresponding value in the challenge space is returned.
+     * The generated challenge depends on the public input, the commitment and the other input. These values are
+     * combined into a triple and hashed together using the given HashMethod. The string called otherInput is 
+     * converted to a byte array element using the given encoding previous to construct the triple. The result
+     * is intepreted as a positive BigInteger and its corresponding value in the challenge space is returned.
      * 
-     * This default factory method uses SHA256 as Hash function, UTF-8 as string encoding (proved id), base 10 as BigInteger
-     * encoding and "|" as concatenation separator.
+     * This default factory method uses SHA256 as Hash function, big endian as BigIntegerConverter, 
+     * ByteTree as hash mode, and UTF-8 as string encoding (other input).
      * 
      * @param publicInputSpace space containing the public input
      * @param commitmentSpace space containing the commitment
      * @param challengeSpace space containing the challenge
-     * @param proverId string included in the challenge generation to link the proof to an entity
+     * @param otherInput other stuff that must be hash with the public input and the commitment to obtain the challenge
      * @return a challenge generator
      */
-    public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, String proverId){
-        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, proverId,
-            HashAlgorithm.SHA256, "UTF-8", 10, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0),  "|");
+    public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, String otherInput){
+        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput,
+            HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), "UTF-8");
     }
 
     /**
      * 
-     * @param publicInputSpace
-     * @param commitmentSpace
-     * @param challengeSpace
-     * @param proverId
-     * @param hashAlgorithm
-     * @param stringCharset
-     * @param elementEncodingBase
-     * @param concatenationSeparator
-     * @return 
+     * Creates a SigmaChallenge generator using a hash function to generate the challenge
+     * 
+     * The generated challenge depends on the public input, the commitment and the other input. These values are
+     * combined into a triple and hashed together using the given HashMethod. The string called otherInput is 
+     * converted to a byte array element using the given encoding previous to construct the triple. The result
+     * is intepreted as a positive BigInteger and its corresponding value in the challenge space is returned.
+     * 
+     * This default factory method uses SHA256 as Hash function, big endian as BigIntegerConverter, 
+     * ByteTree as hash mode, and UTF-8 as string encoding (other input).
+     * 
+     * @param publicInputSpace space containing the public input
+     * @param commitmentSpace space containing the commitment
+     * @param challengeSpace space containing the challenge
+     * @param otherInput other stuff that must be hash with the public input and the commitment to obtain the challenge
+     * @param hashMethod Hash method to use to generate the challenge
+     * @param stringCharset Charset used to convert other input string into a byte array
+     * @return a challenge generator
      */
     public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, 
-            Z challengeSpace, String proverId, HashAlgorithm hashAlgorithm, String stringCharset, BigIntegerConverter bigIntegerConverter, int elementEncodingBase, String concatenationSeparator){
-        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, proverId, hashAlgorithm, stringCharset, elementEncodingBase, bigIntegerConverter, concatenationSeparator);
+            Z challengeSpace, String otherInput, HashMethod hashMethod, String stringCharset){
+        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput, hashMethod, stringCharset );
     }
 }

@@ -50,6 +50,9 @@ public class Certificate {
     private String pem;
     
     private X509Certificate cert;
+    private final String applicationIdentifier;
+    private final int role;
+    private final String identityProvider;
 
     /**
      * Create an object representing a X509 certificate with redundant information
@@ -63,12 +66,15 @@ public class Certificate {
      * @param locality the locality appearing in the given certificate
      * @param surname the surname appearing in the given certificate
      * @param givenName the given name appearing in the given certificate
+     * @param applicationIdentifier the identifier of the application the certificate is issued for
+     * @param role the role the certificate is issued certificate
+     * @param identityProvider the identity provider used to authenticate the requester of the certificate
      * @param extension the extension appearing in the given certificate
      * 
      * If some information does not appear in the certificate, null can be passed
      */
     public Certificate(X509Certificate cert, String commonName, String uniqueId, String organisation, String organisationUnit,
-            String countryName, String state, String locality, String surname, String givenName, Map extension) {
+            String countryName, String state, String locality, String surname, String givenName, String applicationIdentifier, int role, String identityProvider, Map extension) {
 
         this.commonName = commonName;
         this.uniqueIdentifier = uniqueId;
@@ -84,6 +90,9 @@ public class Certificate {
         this.serialNumber = cert.getSerialNumber();
         this.validFrom = cert.getNotBefore();
         this.validUntil = cert.getNotAfter();
+        this.applicationIdentifier = applicationIdentifier;
+        this.role = role;
+        this.identityProvider = identityProvider;
         this.extension = extension;
         try {
             this.pem = CertificateHelper.x509ToBase64PEMString(cert);
@@ -203,6 +212,30 @@ public class Certificate {
     }
 
     /**
+     * Return the identifier of the application the certificate was issued for
+     * @return the base 64 encoded SHA256 hash of the name of the application
+     */
+    public String getApplicationIdentifier() {
+        return applicationIdentifier;
+    }
+
+    /**
+     * The role the certificate can be used for
+     * @return the integer representing the role
+     */
+    public int getRole() {
+        return role;
+    }
+
+    /**
+     * The identity provider used to authenticate the requeste of the certificate
+     * @return the name of the identity provider
+     */
+    public String getIdentityProvider() {
+        return identityProvider;
+    }
+
+    /**
      * Returns the extension including application identifier, role and identity
      * provider
      *
@@ -274,6 +307,15 @@ public class Certificate {
         }
         if (this.validUntil != null) {
             json += "\"validUntil\": \"" + formatDate(this.validUntil) + "\", ";
+        }
+        if (this.applicationIdentifier != null) {
+            json += "\"applicationIdentifier\": \"" + this.applicationIdentifier + "\", ";
+        }
+        if (this.role >= 0) {
+            json += "\"role\": " + this.role + ", ";
+        }
+        if (this.identityProvider != null) {
+            json += "\"identityProvider\": \"" + this.identityProvider + "\", ";
         }
         if (this.extension != null) {
             for (Entry<String, String> e : this.extension.entrySet()) {

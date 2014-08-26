@@ -24,6 +24,8 @@ package ch.bfh.unicert.subsystem.util;
  */
 public enum ExtensionOID {
     
+    //2.16.840.1.113730.1.13 is a free text OID from Netscape http://www.alvestrand.no/objectid/2.16.840.1.113730.1.13.html
+    
     /**
      * The OID representing the extension storing the identity provider used to
      * identify the owner of the certificate

@@ -32,6 +32,7 @@ import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
 import ch.bfh.unicrypt.helper.array.ByteArray;
+import ch.bfh.unicrypt.helper.converter.BigIntegerConverter;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayElement;
@@ -52,6 +53,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -200,7 +202,8 @@ public class RegistrationBean implements Registration {
             
             Function func = GeneratorFunction.getInstance(setup.getGenerator());
             
-            SigmaChallengeGenerator scg = SigmaChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(), Z.getInstance(), setup.getProofOtherInput());
+            SigmaChallengeGenerator scg = SigmaChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(), Z.getInstance(), setup.getProofOtherInput(),
+                    HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), "UTF-8");
             PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
 
             //verify proof
@@ -266,7 +269,7 @@ public class RegistrationBean implements Registration {
         attributes.add(new AttributeDTO("group", new StringValueDTO("certificate")));
         AttributesDTO alpha = new AttributesDTO(attributes);
         
-        logger.log(Level.SEVERE, "base64 "+ new String(Base64.encodeBase64(cert.toJSON().getBytes())));
+        //logger.log(Level.SEVERE, "base64 "+ new String(Base64.encodeBase64(cert.toJSON().getBytes())));
         AttributesDTO beta = board.post(cert.toJSON().getBytes(), alpha);
         
         if(beta.getAttribute().isEmpty()){
@@ -527,7 +530,7 @@ public class RegistrationBean implements Registration {
         }
 
         return new Certificate(clientCert, id.getCommonName(), id.getUniqueIdentifier(), id.getOrganisation(), id.getOrganisationUnit(), id.getCountryName(),
-                id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), extensionMap);
+                id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), applicationIdentifier, role, id.getIdentityProvider(), extensionMap);
 
     }
 
