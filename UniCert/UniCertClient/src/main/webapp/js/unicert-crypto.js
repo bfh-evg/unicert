@@ -94,15 +94,23 @@
             var t = leemon.powMod(g, omega, p);
 
             //3. Compute c = H(publicInput||t||otherInput)
-            var m = [];
-            m.push(leemon.bigInt2str(publicInput, 10), CONCAT_SEPARATOR);
-            m.push(leemon.bigInt2str(t, 10));
-            if (otherInput) {
-                m.push(CONCAT_SEPARATOR);
-                m.push(otherInput instanceof Array ? leemon.bigInt2str(otherInput, 10) : otherInput);
-            }
-            var cStr = SHA256(m.join(''));
+            var hashPI = sha256HexStr(leemon.bigInt2str(publicInput, 16));
+            //3.2 Hash of commitment
+            var hashCommitment = sha256HexStr(leemon.bigInt2str(t, 16));
+            //3.3 Hash of other input
+            var hashOtherInput = sha256String(otherInput);
+            //3.4 Hash of all three hashes concatenated
+            var cStr = sha256HexStr(hashPI + hashCommitment + hashOtherInput);
             var c = leemon.str2bigInt(cStr, 16, 1);
+//            var m = [];
+//            m.push(leemon.bigInt2str(publicInput, 10), CONCAT_SEPARATOR);
+//            m.push(leemon.bigInt2str(t, 10));
+//            if (otherInput) {
+//                m.push(CONCAT_SEPARATOR);
+//                m.push(otherInput instanceof Array ? leemon.bigInt2str(otherInput, 10) : otherInput);
+//            }
+//            var cStr = SHA256(m.join(''));
+//            var c = leemon.str2bigInt(cStr, 16, 1);
 
             //4. Compute s = omega+c*secretInput mod q
             var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
@@ -122,22 +130,20 @@
                 //3. Compute c = H(publicInput||t||otherInput)
                 var m = [];
 
-                console.log("public input hex " + leemon.bigInt2str(publicInput, 16));
-                var pubInHex = leemon.bigInt2str(publicInput, 16);
-                var hashPI = sha256HexStr(pubInHex, pubInHex.length/2);
-                console.log("public input hashed: " + hashPI);
-                var commitmentHex = leemon.bigInt2str(t, 16);
-                var hashCommitment = sha256HexStr(commitmentHex, commitmentHex.length/2);
-                console.log("commitment hashed: " + hashCommitment);
-                
+                //3.1 Hash of public input
+//                console.log("public input hex " + leemon.bigInt2str(publicInput, 16));
+                var hashPI = sha256HexStr(leemon.bigInt2str(publicInput, 16));
+//                console.log("public input hashed: " + hashPI);
+                //3.2 Hash of commitment
+                var hashCommitment = sha256HexStr(leemon.bigInt2str(t, 16));
+//                console.log("commitment hashed: " + hashCommitment);
+
+                //3.3 Hash of other input
                 var hashOtherInput = sha256String(otherInput);
-                console.log("other input hashed: " + hashOtherInput);
-                m.push(hashPI);
-                m.push(hashCommitment);
-                m.push(hashOtherInput);
-                var joined = m.join(''); //byte[] in hex concatenated
-                var cStr = sha256HexStr(joined, joined.length/2);
-                console.log("Complete hash: " + cStr);
+//                console.log("other input hashed: " + hashOtherInput);
+                //3.4 Hash of all three hashes concatenated
+                var cStr = sha256HexStr(hashPI + hashCommitment + hashOtherInput);
+//                console.log("Complete hash: " + cStr);
                 var c = leemon.str2bigInt(cStr, 16, 1);
 
                 //4. Compute s = omega+c*secretInput mod q
@@ -261,14 +267,12 @@
             // done
             var nizkpDoneCb = function(proof) {
                 //console.log("left " + leemon.bigInt2str(leemon.powMod(g, proof.s, p), 10))
-                var yc = leemon.powMod(vk, proof.c, p)
+                //var yc = leemon.powMod(vk, proof.c, p)
                 //console.log("right " + leemon.bigInt2str(leemon.multMod(proof.t, yc, p), 10))
                 proof.t = leemon.bigInt2str(proof.t, 10);
                 proof.c = leemon.bigInt2str(proof.c, 10);
                 proof.s = leemon.bigInt2str(proof.s, 10);
-                //console.log(proof.t)
                 console.log("challenge " + proof.c)
-                //console.log(proof.s)
 
                 doneCb(proof);
             };
@@ -280,7 +284,7 @@
         this.computeSignatureAsync = function(sk, vk, modulo, message, doneCb, updateCb) {
 
             //hash the message
-            var hashedMessage = SHA256(message); //base 16 encoded string
+            var hashedMessage = sha256String(message); //base 16 encoded string
             //Create a BigInteger with the hashedMessage
             var messageBigInt = leemon.str2bigInt(hashedMessage, 16);
             //Computes the new BigInt modulo n since RSA message space in between 0 and n-1
@@ -396,9 +400,9 @@
         function trim(str) {
             return str.replace(/^[\s\n\r]+|[\s\n\r]+$/g, '');
         }
-        
-        
-        
+
+
+
 
 //        function Utf8Encode(string) {
 //            string = string.replace(/\r\n/g, "\n");

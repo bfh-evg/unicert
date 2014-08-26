@@ -4,9 +4,9 @@
 
 var hexcase = 1; //1 if hexadecimal must use capital letters
 var chrsz = 8; //number of bits pro char
-//var numberOfBytes = 0;
+
 /*
- Hashes a UTF-8 string
+ * Hashes a UTF-8 string
  */
 function sha256String(string) {
     //convert given string to UTF-8 string
@@ -14,39 +14,32 @@ function sha256String(string) {
     //Transform the string to a byte array
     var bytearray = str2binb(s);
     /*
-     In javascript, the standard value is a 32 bits integer
-     thus when asking for the length of 'bytearray', it returns the
-     number of 32 bits integers, so we would have to multiply it by 4 in order to
-     have the number of 8 bits bytes. This however, only works if the  string converted to byte array
-     is a multiple of 32 bits. Otherwise, we will hash additional data (bytes containing value 0).
-     To avoid that, we assume each char of s is converted to one byte, so the number of bytes to hash
-     is the length of s.
+     Number of bits to hash is the number of char of the UTF-8 encoded string multiplied by 8
+     We cannot use the length of bytearray since, in javascript, it returs the number of 32 bits integer
      */
-    var hash = SHA256(bytearray, s.length*chrsz/*bytearray.length * 4*/);
+    var hash = SHA256(bytearray, s.length*chrsz);
     //convert the obtained byte array to hex representation
     return binb2hex(hash);
 }
 
 /*
-	Hashes a hexadecimal representation of the big int or other
-	length is the number of bytes from hexStr to hash
-*/
-function sha256HexStr(hexStr, length){
+ *	Hashes a hexadecimal representation of the big int or other
+ *	length is the number of bytes from hexStr to hash
+ */
+function sha256HexStr(hexStr){
 	/*
 	Each char of the hexadecimal encoded string represents 4 bits.
-	So, the number of byte contained in the hex string is the length of the string
-	divided by 2. 
+	So, the number of bits contained in the hex string is the length of the string
+	multiplied by 4. 
 	*/
 	
-	//var length = hexStr.length/2;
+        //If the length of the string is not a multiple of 2, "0" is added at the
+        //beginning of the string
 	if(hexStr.length % 2 != 0){
-		//return "Length of hexadecimal string is not a multiple of 4";
-		hexStr = "0"+hexStr;
-		console.log("not multiple of 2: " + hexStr);
+            hexStr = "0"+hexStr;
+            //console.log("not multiple of 2: " + hexStr);
 	} 
-	//alert(numberOfBytes)
-//	alert(hexStr.length);
-
+	
 	var hash = SHA256(hex2binb(hexStr), (hexStr.length)*4);
 	return binb2hex(hash);
 }
@@ -133,9 +126,7 @@ function Utf8Encode(string) {
  */
 function SHA256(s, length) {
 
-    var chrsz = 8;
-    var hexcase = 1;
-
+    
     function safe_add(x, y) {
         var lsw = (x & 0xFFFF) + (y & 0xFFFF);
         var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
@@ -218,54 +209,6 @@ function SHA256(s, length) {
         return HASH;
     }
 
-    /*function str2binb(str) {
-     var bin = Array();
-     var mask = (1 << chrsz) - 1;
-     for (var i = 0; i < str.length * chrsz; i += chrsz) {
-     bin[i >> 5] |= (str.charCodeAt(i / chrsz) & mask) << (24 - i % 32);
-     }
-     return bin;
-     }
-     
-     
-     function Utf8Encode(string) {
-     string = string.replace(/\r\n/g, "\n");
-     var utftext = "";
-     
-     for (var n = 0; n < string.length; n++) {
-     
-     var c = string.charCodeAt(n);
-     
-     if (c < 128) {
-     utftext += String.fromCharCode(c);
-     }
-     else if ((c > 127) && (c < 2048)) {
-     utftext += String.fromCharCode((c >> 6) | 192);
-     utftext += String.fromCharCode((c & 63) | 128);
-     }
-     else {
-     utftext += String.fromCharCode((c >> 12) | 224);
-     utftext += String.fromCharCode(((c >> 6) & 63) | 128);
-     utftext += String.fromCharCode((c & 63) | 128);
-     }
-     
-     }
-     
-     return utftext;
-     }
-     
-     function binb2hex(binarray) {
-     var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
-     var str = "";
-     for (var i = 0; i < binarray.length * 4; i++) {
-     str += hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8 + 4)) & 0xF) +
-     hex_tab.charAt((binarray[i >> 2] >> ((3 - i % 4) * 8)) & 0xF);
-     }
-     return str;
-     }*/
-
-    //s = Utf8Encode(s);
-    //return binb2hex(core_sha256(str2binb(s), s.length * chrsz));
     return core_sha256(s, length);
 
 } // End SHA256

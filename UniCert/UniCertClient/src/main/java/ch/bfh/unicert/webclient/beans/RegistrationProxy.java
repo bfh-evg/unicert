@@ -54,6 +54,8 @@ public class RegistrationProxy extends HttpServlet {
      */
     @EJB
     private Registration regRef;
+//    @EJB
+//    UserInterfaceBean uiBean;
 
     /**
      * Property name for the development mode.
@@ -105,14 +107,17 @@ public class RegistrationProxy extends HttpServlet {
         /*
         *************** IDENTIFICATION MANAGEMENT ***************
         */
-        
+        logger.log(Level.SEVERE, "params "+request.getParameter("params"));
         //Redirection to IDP
-        if (request.getParameter("idp") != null) {
+        if (request.getParameter("params") != null) {
             logger.log(Level.INFO, "Redirect to IDP");
             
-            if (request.getParameter("idp").equals(IdentityProvider.SWITCH_AAI.getKey())) {
+            UserInterfaceBean uiBean = this.getUIBean(request);
+            uiBean.setParameterSetIdentifier("/unicert/"+request.getParameter("params")+"/");
+            
+            if (uiBean.getIdentityProvider().equals(IdentityProvider.SWITCH_AAI.getKey())) {
                 response.sendRedirect("switchaai.xhtml");
-            } else if (request.getParameter("idp").equals(IdentityProvider.GOOGLE.getKey())){
+            } else if (uiBean.getIdentityProvider().equals(IdentityProvider.GOOGLE.getKey())){
                 response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
                             + " client_id=424911365001.apps.googleusercontent.com&\n"
                             + " response_type=code&\n"
@@ -122,8 +127,6 @@ public class RegistrationProxy extends HttpServlet {
                             + " login_hint=jsmith@example.com&\n"
                             + " openid.realm=example.com&\n"
                             + " hd=example.com");
-            } else if(request.getParameter("idp").equals(IdentityProvider.FACEBOOK.getKey())){
-                response.sendRedirect("registration.xhtml");
             } else {
                 logger.log(Level.SEVERE, "Unknown Identity provider selected");
                 internalServerErrorHandler(response, "102 Unknown Identity provider selected");
@@ -248,10 +251,8 @@ public class RegistrationProxy extends HttpServlet {
             //Create the certificate
             Certificate cert = registration.createCertificate(cs, idData, applicationIdentifier, role);
 
-            //try (PrintWriter out = response.getWriter()) {
-                logger.log(Level.INFO, "Returning certificate");
-                response.getWriter().printf(cert.toJSON());
-//            }
+            logger.log(Level.INFO, "Returning certificate");
+            response.getWriter().printf(cert.toJSON());
 
         } catch (CertificateCreationException ex) {
             logger.log(Level.SEVERE, "Error while creating the certificate.", ex.getMessage());
@@ -266,10 +267,10 @@ public class RegistrationProxy extends HttpServlet {
             internalServerErrorHandler(response, "130 Cryptographic error");
             logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
         } 
-//        catch (Exception ex) {
-//            internalServerErrorHandler(response, "Undefined error");
-//            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
-//        }
+        catch (Exception ex) {
+            internalServerErrorHandler(response, "Undefined error");
+            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
+        }
     }
 
     /**
@@ -351,6 +352,16 @@ public class RegistrationProxy extends HttpServlet {
             ud = null;
         }
         return ud;
+    }
+    
+    private UserInterfaceBean getUIBean(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
+        if(bean==null){
+            bean = new UserInterfaceBean();
+            session.setAttribute("ui", bean);
+        }
+        return bean;
     }
 
     /**
