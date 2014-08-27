@@ -12,165 +12,173 @@
  */
 -->
 <ui:composition template="template.xhtml"
-				xmlns="http://www.w3.org/1999/xhtml"
-				xmlns:f="http://java.sun.com/jsf/core"
-				xmlns:h="http://java.sun.com/jsf/html"
-				xmlns:ui="http://java.sun.com/jsf/facelets"
-				xmlns:c="http://java.sun.com/jsp/jstl/core">
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:c="http://java.sun.com/jsp/jstl/core">
 
-	<ui:define name="page_title">#{msg.title}</ui:define>
+    <ui:define name="page_title">#{msg.title}</ui:define>
 
-	<ui:define name="head_include_js">
-		<script type="text/javascript" src="js/lib/leemon.js"></script>
-                <script type="text/javascript" src="js/lib/sha.js"></script>
-		<script type="text/javascript" src="js/unicert-random.js"></script>
-		<script type="text/javascript" src="js/unicert-ca.js"></script>
-		<script type="text/javascript" src="js/unicert-crypto.js"></script>
-		<script type="text/javascript" src="js/registration.js"></script>
-	</ui:define>
+    <ui:define name="head_include_js">
+        <script type="text/javascript" src="js/lib/leemon.js"></script>
+        <script type="text/javascript" src="js/lib/sha.js"></script>
+        <script type="text/javascript" src="js/unicert-random.js"></script>
+        <script type="text/javascript" src="js/unicert-ca.js"></script>
+        <script type="text/javascript" src="js/unicert-crypto.js"></script>
+        <script type="text/javascript" src="js/registration.js"></script>
+    </ui:define>
 
-	<ui:define name="header">
-		<f:metadata>
-			<f:event type="preRenderView" listener="#{userData.readValues}"/>
-		</f:metadata>
+    <ui:define name="header">
+        <f:metadata>
+            <f:event type="preRenderView" listener="#{userData.readValues}"/>
+        </f:metadata>
 
-		<h2 class="center">#{msg.registration}</h2>
+        <h2 class="center">#{msg.registration}</h2>
 
-		<form name="properties">
-			<input type="hidden" id="requester-id" value="#{userData.uniqueIdentifier}" />
-			<input type="hidden" id="requester-email" value="#{userData.email}" />
-                        <input type="hidden" id="requester-idp" value="#{userData.identityProvider}" />
-		</form>
-	</ui:define>
+        <form name="properties">
+            <input type="hidden" id="requester-id" value="#{userData.uniqueIdentifier}" />
+            <input type="hidden" id="requester-email" value="#{userData.email}" />
+            <input type="hidden" id="requester-idp" value="#{userData.identityProvider}" />
+        </form>
+    </ui:define>
 
-	<ui:define name="content">
+    <ui:define name="content">
 
-		<div class="progress-bar">
-			<div id="step_1" class="step">#{msg.genkeysStep1}</div><img src="img/arrow.png" alt="Arrow" />
-			<div id="step_2" class="step active">#{msg.genkeysStep2}</div><img src="img/arrow.png" alt="Arrow" />
-			<div id="step_3" class="step">#{msg.genkeysStep3}</div>
-		</div>
+        <div class="progress-bar">
+            <div id="step_1" class="step">#{msg.genkeysStep1}</div><img src="img/arrow.png" alt="Arrow" />
+            <div id="step_2" class="step active">#{msg.genkeysStep2}</div><img src="img/arrow.png" alt="Arrow" />
+            <div id="step_3" class="step">#{msg.genkeysStep3}</div>
+        </div>
 
-		<!-- STEP 2: Generation key content -->
-		<div id="step_2_content">
-			<p class="block">#{msg.genkeysStep2Text}</p>
+        <!-- STEP 2: Generation key content -->
+        <div id="step_2_content">
+            <p class="block">#{msg.genkeysStep2Text}</p>
 
-			<div id="substep_2_1" class="substep clearfix"><div class="substep_nr">1</div>
-				<p>#{msg.genkeysSubstep21Text}</p>
-                                
-                                <div class="row clearfix">
-                                <div class="col1 small"><label for="crypto_setup_type">#{msg.keytype}: </label></div>
-				<div class="col2">
-                                    <select id="crypto_setup_type" class="select #{ui.keyType==null? '' : 'hidden'}" name="crypto_setup_type" size="1" onchange="updateKeysOptions()">	
-                                        <option value="" selected="selected">#{msg.pleaseSelect}</option> 
-                                        <option value="RSA">RSA</option> 
-                                        <option value="DiscreteLog">Discrete Logarithm</option> 
-                                    </select>
-                                </div>
-                                </div>
-                                <div id="rsa_options" class="row clearfix hidden">
-                                <div class="col1 small">#{msg.keysize}: </div>
-				<div class="col2">
-                                    <select id="crypto_setup_size" class="select" name="crypto_setup_size" size="1">	
-                                        <option value="1024">1024</option> 
-                                        <option value="2048">2048</option> 
-                                    </select>
-                                </div>
-                                </div>
-                                <div id="dlog_options" class="row clearfix hidden">
-                                <div class="col1 small">#{msg.valuep}: </div>
-				<div class="col2">
-                                    <input type="text" id="p" value="#{ui.primeP}"/>
-                                </div>
-                                <div class="col1 small">#{msg.valueq}: </div>
-                                <div class="col2">
-                                    <input type="text" id="q" value="#{ui.primeQ}"/>
-                                </div>
-                                <div class="col1 small" value="#{ui.generator}">#{msg.valueg}: </div>
-                                <div class="col2">
-                                    <input type="text" id="g" value="4"/>
-                                </div>
-                                </div>
-                                <div class="col2only">
-                                    <button id="generate_key_bu" class="button" onclick="generateKeyPair();">#{msg.genkeysButton}</button>
-                                </div>
-				<div id="substep_2_1_1" class="row clearfix">
-					<div class="col1 small">#{msg.yourVotingKeyLabel}</div>
-					<div class="col2"><textarea id="secretkey_ta" class="middle" readonly="readonly"></textarea></div>
-				</div>
-			</div>
+            <div id="substep_2_1" class="substep clearfix"><div class="substep_nr">1</div>
+                <p>#{msg.genkeysSubstep21Text}</p>
 
-			<div id="substep_2_2" class="substep clearfix"><div class="substep_nr">2</div>
-				<p>#{msg.genkeysSubstep22Text}</p>
-				<form onsubmit="return false;">
-					<div class="row clearfix">
-						<div class="col1 small">#{msg.password}</div>
-						<div class="col2"><input type="password" name="password" id="password" /></div>
-					</div>
-					<div class="row clearfix">
-						<div class="col1 small">#{msg.retypePassword}</div>
-						<div class="col2"><input type="password" name="password2" id="password2" /><img id="password-check-icon" src="img/check.png" /></div>
-					</div>
-				</form>
-			</div>
-                        
-                        <div id="substep_2_3" class="substep clearfix"><div class="substep_nr">3</div>
-				<p>#{msg.genCertSubstep23Text}</p>
-                                <div class="row clearfix">
-                                <div class="col1 small">#{msg.application}: </div>
-				<div class="col2">
-                                    <select id="application" class="select" name="application" size="1" >	
-                                        <option value="UniVote">UniVote</option> 
-                                    </select>
-                                </div>
-                                </div>
-                                <div class="row clearfix">
-                                <div class="col1 small">#{msg.role}: </div>
-				<div class="col2">
-                                    <select id="role" class="select" name="role" size="1">	
-                                        <option value="1">#{msg.voterCert}</option> 
-                                        <option value="2">#{msg.tallierCert}</option> 
-                                        <option value="3">#{msg.mixerCert}</option> 
-                                    </select>
-                                </div>
-                                </div>
-                                <div class="row clearfix">
-                                <div class="col1 small">#{msg.identityFunction}: </div>
-				<div class="col2">
-                                    <select id="identity_function" class="select" name="identity_function" size="1">	
-                                        <option value="1">#{msg.idFStandardSwitch}</option> 
-                                        <option value="2">#{msg.idFAnonymizedSwitch}</option> 
-                                        <option value="3">#{msg.idFZurichSwitch}</option> 
-                                    </select>
-                                </div>
-                                </div>
-			</div>
+                <div class="row clearfix #{ui.showKeyTypeField()? '' : 'notdisplayed'}">
+                    <div class="col1 small"><label for="crypto_setup_type">#{msg.keytype}: </label></div>
+                    <div class="col2">
+                        <select id="crypto_setup_type" class="select" name="crypto_setup_type" size="1" onchange="updateKeysOptions()">	
+                            <option value="">#{msg.pleaseSelect}</option> 
+                            <option value="RSA" selected="#{ui.keyType=='RSA'? 'selected' : ''}">RSA</option> 
+                            <option value="DiscreteLog" selected="#{ui.keyType=='DiscreteLog'? 'selected' : ''}">Discrete Logarithm</option> 
+                        </select>
+                    </div>
+                </div>
+                <div id="rsa_options" class="row clearfix hidden">
+                    <div class="#{ui.showKeySizeField()? '' : 'notdisplayed'}">
+                        <div class="col1 small">#{msg.keysize}: </div>
+                        <div class="col2">
+                            <select id="crypto_setup_size" class="select" name="crypto_setup_size" size="1">	
+                                <option value="1024" selected="#{ui.keySize=='1024'? 'selected=' : ''}">1024</option> 
+                                <option value="2048" selected="#{ui.keySize=='2048'? 'selected' : ''}">2048</option> 
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="dlog_options" class="row clearfix hidden #{ui.showPrimePField() || ui.showPrimeQField() || ui.showGeneratorField()? '' : 'notdisplayed'}">
+                    <div class="#{ui.showPrimePField()? '' : 'notdisplayed'}">
+                        <div class="col1 small">#{msg.valuep}: </div>
+                        <div class="col2">
+                            <input type="text" id="p" value="#{ui.primeP}"/>
+                        </div>
+                    </div>
+                    <div class="#{ui.showPrimeQField()? '' : 'notdisplayed'}">
+                        <div class="col1 small">#{msg.valueq}: </div>
+                        <div class="col2">
+                            <input type="text" id="q" value="#{ui.primeQ}"/>
+                        </div>
+                    </div>
+                    <div class="#{ui.showGeneratorField()? '' : 'notdisplayed'}">
+                        <div class="col1 small">#{msg.valueg}: </div>
+                        <div class="col2">
+                            <input type="text" id="g" value="#{ui.generator}"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="col2only">
+                    <button id="generate_key_bu" class="button" onclick="generateKeyPair();">#{msg.genkeysButton}</button>
+                </div>
+                <div id="substep_2_1_1" class="row clearfix">
+                    <div class="col1 small">#{msg.yourVotingKeyLabel}</div>
+                    <div class="col2"><textarea id="secretkey_ta" class="middle" readonly="readonly"></textarea></div>
+                </div>
+            </div>
 
-			<div id="substep_2_4" class="substep clearfix"><div class="substep_nr">4</div>
-				<p>#{msg.genkeysSubstep24Text}</p>
-				<div class="col2only">
-					<button id="retreive_secretkey_bu" class="button" onclick="completeRegistration( true );">#{msg.retreiveSecretKey}</button> <span class="small">#{msg.to} #{userData.email}</span>
-					<c:if test="${initParam['dev-mode'] == 'true'}">
-						<br /><br/><span class="tiny">In dev-mode: <br/>if you don't have a running SMTP Server on your localhost...<br/>
-						<button class="button" onclick="completeRegistration( true );">Save Key</button></span>
-					</c:if>
-				</div>
-			</div>
-                        
-                        
-		</div>
+            <div id="substep_2_2" class="substep clearfix"><div class="substep_nr">2</div>
+                <p>#{msg.genkeysSubstep22Text}</p>
+                <form onsubmit="return false;">
+                    <div class="row clearfix">
+                        <div class="col1 small">#{msg.password}</div>
+                        <div class="col2"><input type="password" name="password" id="password" /></div>
+                    </div>
+                    <div class="row clearfix">
+                        <div class="col1 small">#{msg.retypePassword}</div>
+                        <div class="col2"><input type="password" name="password2" id="password2" /><img id="password-check-icon" src="img/check.png" /></div>
+                    </div>
+                </form>
+            </div>
+            <div id="substep_2_3" class="substep clearfix #{ui.showApplicationIdentifierField()|| ui.showRoleField() || ui.showIdentityFunctionIndexField()? '' : 'notdisplayed'}">
+                <div class="substep_nr">3</div>
+                <p>#{msg.genCertSubstep23Text}</p>
+                <div class="row clearfix #{ui.showApplicationIdentifierField()? '' : 'notdisplayed'}">
+                    <div class="col1 small">#{msg.application}: </div>
+                    <div class="col2">
+                        <input type="text" id="application" value="#{ui.applicationIdentifier}"/>
+                    </div>
+                </div>
+                <div class="row clearfix #{ui.showRoleField()? '' : 'notdisplayed'}">
+                    <div class="col1 small">#{msg.role}: </div>
+                    <div class="col2">
+                        <select id="role" class="select" name="role" size="1">	
+                            <option value="1" selected="#{ui.role==1? 'selected' : ''}">#{msg.voterCert}</option> 
+                            <option value="2" selected="#{ui.role==2? 'selected' : ''}">#{msg.tallierCert}</option> 
+                            <option value="3" selected="#{ui.role==3? 'selected' : ''}">#{msg.mixerCert}</option> 
+                        </select>
+                    </div>
+                </div>
+                <div class="row clearfix #{ui.showIdentityFunctionIndexField()? '' : 'notdisplayed'}">
+                    <div class="col1 small">#{msg.identityFunction}: </div>
+                    <div class="col2">
+                        <select id="identity_function" class="select" name="identity_function" size="1">	
+                            <option value="1" selected="#{ui.identityFunctionIndex==1? 'selected' : ''}">#{msg.idFStandardSwitch}</option> 
+                            <option value="2" selected="#{ui.identityFunctionIndex==2? 'selected' : ''}">#{msg.idFAnonymizedSwitch}</option> 
+                            <option value="3" selected="#{ui.identityFunctionIndex==3? 'selected' : ''}">#{msg.idFZurichSwitch}</option> 
+                        </select>
+                    </div>
+                </div>
+            </div>
 
-		<!-- STEP 3: Confirmation content -->
-		<div id="step_3_content" class="hidden">
-			<p class="center"><img src="img/check_big.png" /></p>
-			<p class="block">#{msg.regsuccess}</p>
-			<p class="block spacer30">#{msg.inspectcert}</p>
-			<p class="center"><button class="button" onclick="inspectCert();">#{msg.savecert}</button></p>
+            <div id="substep_2_4" class="substep clearfix"><div class="substep_nr">
+                    #{!ui.showApplicationIdentifierField() and !ui.showRoleField() and !ui.showIdentityFunctionIndexField() ? '3' : '4'}
+                </div>
+                <p>#{msg.genkeysSubstep24Text}</p>
+                <div class="col2only">
+                    <button id="retreive_secretkey_bu" class="button" onclick="completeRegistration(true);">#{msg.retreiveSecretKey}</button> <span class="small">#{msg.to} #{userData.email}</span>
+                    <c:if test="${initParam['dev-mode'] == 'true'}">
+                        <br /><br/><span class="tiny">In dev-mode: <br/>if you don't have a running SMTP Server on your localhost...<br/>
+                            <button class="button" onclick="completeRegistration(true);">Save Key</button></span>
+                    </c:if>
+                </div>
+            </div>
 
-			<p class="block spacer50">
-				<h:outputLink value="index.xhtml" class="raquo">#{msg.backhome}</h:outputLink>
-			</p>
-		</div>
-	</ui:define>
+
+        </div>
+
+        <!-- STEP 3: Confirmation content -->
+        <div id="step_3_content" class="hidden">
+            <p class="center"><img src="img/check_big.png" /></p>
+            <p class="block">#{msg.regsuccess}</p>
+            <p class="block spacer30">#{msg.inspectcert}</p>
+            <p class="center"><button class="button" onclick="inspectCert();">#{msg.savecert}</button></p>
+
+            <p class="block spacer50">
+                <h:outputLink value="index.xhtml" class="raquo">#{msg.backhome}</h:outputLink>
+            </p>
+        </div>
+    </ui:define>
 
 </ui:composition>

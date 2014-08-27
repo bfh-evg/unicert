@@ -120,11 +120,12 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
         if (propertyValue == null) {
             logger.log(Level.SEVERE,
                     "Could not retrieve global JNDI property: {0}.", new Object[]{propertyName});
+            return -1;
         } else {
             logger.log(Level.INFO,
                     "Retrieved global JNDI property: {0}.", new Object[]{propertyName});
+            return Integer.parseInt(propertyValue);
         }
-        return Integer.parseInt(propertyValue);
     }
 
     /**

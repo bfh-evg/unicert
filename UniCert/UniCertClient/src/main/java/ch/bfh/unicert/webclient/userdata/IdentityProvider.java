@@ -17,9 +17,8 @@ package ch.bfh.unicert.webclient.userdata;
  */
 public enum IdentityProvider {
     
-    SWITCH_AAI("switchaai"),
-    GOOGLE("google"),
-    FACEBOOK("facebook");
+    SWITCH_AAI("SwitchAAI"),
+    GOOGLE("Google");
     
     private final String key;
     

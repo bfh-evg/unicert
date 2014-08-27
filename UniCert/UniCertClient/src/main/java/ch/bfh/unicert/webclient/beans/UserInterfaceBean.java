@@ -39,10 +39,13 @@ public class UserInterfaceBean implements Serializable {
     private boolean showGeneratorField;
     private String applicationIdentifier;
     private boolean showApplicationIdentifierField;
-    private String role;
+    private int role;
     private boolean showRoleField;
-    private String identityFunctionIndex;
+    private int identityFunctionIndex;
     private boolean showIdentityFunctionIndexField;
+    private boolean initialized;
+    private boolean hasMulitpleIdentityProviders;
+    private String[] identityProviders;
 
     
     public String getPropertySetIdentifier() {
@@ -63,10 +66,17 @@ public class UserInterfaceBean implements Serializable {
             logger.log(Level.SEVERE,
                     "Could not initialize configuration helper for registration subsystem, exception: {0}",
                     new Object[]{ex});
+            this.initialized = false;
             return;
         }
         
         this.identityProvider = config.getIdentityProvider();
+        if(this.identityProvider!=null && this.identityProvider.contains(",")){
+            this.hasMulitpleIdentityProviders = true;
+            this.identityProviders = identityProvider.split("\\,");
+        } else {
+            this.hasMulitpleIdentityProviders = false;
+        }
         
         this.keyType = config.getKeyType();
         this.showKeyTypeField = this.keyType==null;
@@ -77,21 +87,22 @@ public class UserInterfaceBean implements Serializable {
         this.primeP = config.getPrimeP();
         this.showPrimePField = this.primeP==null;
         
-        this.primeQ = config.getPrimeP();
+        this.primeQ = config.getPrimeQ();
         this.showPrimeQField = this.primeQ==null;
         
-        this.generator = config.getPrimeP();
+        this.generator = config.getGenerator();
         this.showGeneratorField = this.generator==null;
         
-        this.applicationIdentifier = config.getPrimeP();
+        this.applicationIdentifier = config.getApplicationIdentifier();
         this.showApplicationIdentifierField = this.applicationIdentifier==null;
         
-        this.role = config.getPrimeP();
-        this.showRoleField = this.role==null;
+        this.role = config.getRole();
+        this.showRoleField = this.role<0;
         
-        this.identityFunctionIndex = config.getPrimeP();
-        this.showIdentityFunctionIndexField = this.identityFunctionIndex==null;
+        this.identityFunctionIndex = config.getIdentityFunctionIndex();
+        this.showIdentityFunctionIndexField = this.identityFunctionIndex<0;
         
+        this.initialized = true;
     }
     
     public String getIdentityProvider(){
@@ -146,7 +157,7 @@ public class UserInterfaceBean implements Serializable {
         return showApplicationIdentifierField;
     }
 
-    public String getRole() {
+    public int getRole() {
         return role;
     }
 
@@ -154,13 +165,26 @@ public class UserInterfaceBean implements Serializable {
         return showRoleField;
     }
 
-    public String getIdentityFunctionIndex() {
+    public int getIdentityFunctionIndex() {
         return identityFunctionIndex;
     }
 
     public boolean showIdentityFunctionIndexField() {
         return showIdentityFunctionIndexField;
     }
+
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    public boolean hasMulitpleIdentityProviders() {
+        return hasMulitpleIdentityProviders;
+    }
+
+    public String[] getIdentityProviders() {
+        return identityProviders;
+    }
+    
     
     
 }

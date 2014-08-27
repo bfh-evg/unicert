@@ -115,28 +115,47 @@ function init() {
     elements.retreiveSecretKeyButton.disabled = true;
     elements.password.disabled = true;
     elements.password2.disabled = true;
-    elements.application.disabled = true;
+    elements.application.disabled = false;
     elements.role.disabled = true;
     elements.identity_function.disabled = true;
     elements.generateKeyButton.disabled = true;
-    elements.p.value = ucConfig.SCHNORR.P;
+    /*elements.p.value = ucConfig.SCHNORR.P;
     elements.q.value = ucConfig.SCHNORR.Q;
-    elements.g.value = ucConfig.SCHNORR.G;
+    elements.g.value = ucConfig.SCHNORR.G;*/
     secretKey = null;
     publicKey = null;
     modulo = null;
     elements.secretKey.value = "";
+    //if cryptoSetupType has a default value (is not shown)
+    if(hasClass(elements.cryptoSetupType.parentNode.parentNode, "notdisplayed")){
+        //enable generateKey button
+        elements.generateKeyButton.disabled = false;
+        //if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
+        if(hasClass(elements.p.parentNode.parentNode,"notdisplayed") || hasClass(elements.q.parentNode.parentNode,"notdisplayed") || hasClass(elements.g.parentNode.parentNode,"notdisplayed")){
+            updateKeysOptions();
+        }
+    }
+}
+
+function hasClass(element, cls) {
+    return ('' + element.className).indexOf('' + cls) > -1;
 }
 
 function updateKeysOptions() {
     if (elements.cryptoSetupType.value == "RSA") {
-        $(elements.rsaOptions).show("slow");
+        //only shows cryptoSetupSize when not set
+        if(!hasClass(elements.cryptoSetupSize.parentNode.parentNode,"notdisplayed")){
+            $(elements.rsaOptions).show("slow");
+        }
         $(elements.dlogOptions).hide("slow");
-
         elements.generateKeyButton.disabled = false;
     } else if (elements.cryptoSetupType.value == "DiscreteLog") {
+        if(!hasClass(elements.p.parentNode.parentNode,"notdisplayed") ||
+                !hasClass(elements.q.parentNode.parentNode,"notdisplayed") ||
+                !hasClass(elements.g.parentNode.parentNode,"notdisplayed")){
+            $(elements.dlogOptions).show("slow");
+        }
         $(elements.rsaOptions).hide("slow");
-        $(elements.dlogOptions).show("slow");
         elements.generateKeyButton.disabled = false;
     } else {
         $(elements.rsaOptions).hide("slow");
@@ -202,6 +221,12 @@ function generateKeyPair() {
         type = "RSA";
         ucCrypto.generateRSASecretKey(parseInt(elements.cryptoSetupSize.value), doneCbRSA, updateCb);
     } else if (elements.cryptoSetupType.value == "DiscreteLog") {
+        if(elements.p.value=="" || elements.q.value=="" || elements.g.value==""){
+            $.unblockUI();
+            $.blockUI({ message: '<p>' + msg.missingValuePQG + '</p>',
+                            timeout: 5000});
+             return;
+        }
         type = "DLOG";
         p = leemon.str2bigInt(elements.p.value, 10, 1);
         q = leemon.str2bigInt(elements.q.value, 10, 1);
