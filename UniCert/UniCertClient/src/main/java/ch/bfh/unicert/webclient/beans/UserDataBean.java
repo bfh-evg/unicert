@@ -47,7 +47,6 @@ public class UserDataBean implements Serializable {
      * The logger this servlet uses.
      */
     private static final Logger logger = Logger.getLogger(UserDataBean.class.getName());
-    private static final boolean DEV_MODE = false;
     
     private UserData ud;
     
@@ -69,7 +68,7 @@ public class UserDataBean implements Serializable {
         logRequestMap(requestMap);
         logger.log(Level.INFO, "Initialization of user data");
 
-        if (Boolean.parseBoolean(externalContext.getInitParameter("dev-mode")) || DEV_MODE) {
+        if (Boolean.parseBoolean(externalContext.getInitParameter("dev-mode"))) {
                 //Developper mode data
                 ud = new SwitchAAIUserData("1-2-3-4", null, null, null, "11-222-333", null, "Test name",
                         "test surname", "test@bfh.ch", "Law", "Master", null,

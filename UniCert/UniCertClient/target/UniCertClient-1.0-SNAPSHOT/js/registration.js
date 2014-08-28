@@ -39,6 +39,7 @@ var modulo;
 var p, q, g;
 
 var type = "";
+var size;
 
 /**
  * Holds the used DOM elements.
@@ -119,19 +120,16 @@ function init() {
     elements.role.disabled = true;
     elements.identity_function.disabled = true;
     elements.generateKeyButton.disabled = true;
-    /*elements.p.value = ucConfig.SCHNORR.P;
-    elements.q.value = ucConfig.SCHNORR.Q;
-    elements.g.value = ucConfig.SCHNORR.G;*/
     secretKey = null;
     publicKey = null;
     modulo = null;
     elements.secretKey.value = "";
     //if cryptoSetupType has a default value (is not shown)
-    if(hasClass(elements.cryptoSetupType.parentNode.parentNode, "notdisplayed")){
+    if (hasClass(elements.cryptoSetupType.parentNode.parentNode, "notdisplayed")) {
         //enable generateKey button
         elements.generateKeyButton.disabled = false;
         //if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
-        if(hasClass(elements.p.parentNode.parentNode,"notdisplayed") || hasClass(elements.q.parentNode.parentNode,"notdisplayed") || hasClass(elements.g.parentNode.parentNode,"notdisplayed")){
+        if (hasClass(elements.p.parentNode.parentNode, "notdisplayed") || hasClass(elements.q.parentNode.parentNode, "notdisplayed") || hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
             updateKeysOptions();
         }
     }
@@ -144,15 +142,15 @@ function hasClass(element, cls) {
 function updateKeysOptions() {
     if (elements.cryptoSetupType.value == "RSA") {
         //only shows cryptoSetupSize when not set
-        if(!hasClass(elements.cryptoSetupSize.parentNode.parentNode,"notdisplayed")){
+        if (!hasClass(elements.cryptoSetupSize.parentNode.parentNode, "notdisplayed")) {
             $(elements.rsaOptions).show("slow");
         }
         $(elements.dlogOptions).hide("slow");
         elements.generateKeyButton.disabled = false;
     } else if (elements.cryptoSetupType.value == "DiscreteLog") {
-        if(!hasClass(elements.p.parentNode.parentNode,"notdisplayed") ||
-                !hasClass(elements.q.parentNode.parentNode,"notdisplayed") ||
-                !hasClass(elements.g.parentNode.parentNode,"notdisplayed")){
+        if (!hasClass(elements.p.parentNode.parentNode, "notdisplayed") ||
+                !hasClass(elements.q.parentNode.parentNode, "notdisplayed") ||
+                !hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
             $(elements.dlogOptions).show("slow");
         }
         $(elements.rsaOptions).hide("slow");
@@ -190,6 +188,7 @@ function generateKeyPair() {
         $(elements.substep22).animate({opacity: 1}, 500);
         elements.password.disabled = false;
         elements.password2.disabled = false;
+        
     };
 
     // Done callback of verification key computation
@@ -209,6 +208,7 @@ function generateKeyPair() {
         $(elements.substep22).animate({opacity: 1}, 500);
         elements.password.disabled = false;
         elements.password2.disabled = false;
+        
     };
 
     // Update callback of verification key computation
@@ -219,13 +219,14 @@ function generateKeyPair() {
     // Generate the keys
     if (elements.cryptoSetupType.value == "RSA") {
         type = "RSA";
-        ucCrypto.generateRSASecretKey(parseInt(elements.cryptoSetupSize.value), doneCbRSA, updateCb);
+        size = parseInt(elements.cryptoSetupSize.value);
+        ucCrypto.generateRSASecretKey(size, doneCbRSA, updateCb);
     } else if (elements.cryptoSetupType.value == "DiscreteLog") {
-        if(elements.p.value=="" || elements.q.value=="" || elements.g.value==""){
+        if (elements.p.value == "" || elements.q.value == "" || elements.g.value == "") {
             $.unblockUI();
-            $.blockUI({ message: '<p>' + msg.missingValuePQG + '</p>',
-                            timeout: 5000});
-             return;
+            $.blockUI({message: '<p>' + msg.missingValuePQG + '</p>',
+                timeout: 5000});
+            return;
         }
         type = "DLOG";
         p = leemon.str2bigInt(elements.p.value, 10, 1);
@@ -284,12 +285,14 @@ function completeRegistration(byMail) {
         certificate = cert;
 
         var skC;
+       
         if (type == "RSA") {
-            // (3) Hand out secret key to the voter
+            // (3) Hand out secret key to the voter (size one time pad = size(n) + PRE/POST-Fix)
             var sk = leemon.bigInt2str(secretKey, 64);
             // encrypt secret key with users password
             skC = ucCrypto.encryptSecretKey(sk, pw);
         } else if (type == "DLOG") {
+            
             // (3) Hand out secret key to the voter
             var sk = leemon.bigInt2str(secretKey, 64);
             // encrypt secret key with users password
@@ -328,8 +331,8 @@ function completeRegistration(byMail) {
     var createCertErrorCb = function(request, status, error) {
 
         var message = "";
-        
-        try{
+
+        try {
             var json = JSON.parse(request.responseText);
             if (json.error != "") {
                 msgName = "msg.error" + json.error;
@@ -337,11 +340,11 @@ function completeRegistration(byMail) {
             } else {
                 message = msg.errorundefined;
             }
-        } catch(err){
+        } catch (err) {
             message = msg.errorundefined;
         }
-        
-        
+
+
         $.unblockUI();
         $.blockUI({
             message: '<p>' + msg.createCertificateFailed + " " + message + '</p>',
@@ -363,7 +366,7 @@ function completeRegistration(byMail) {
 
     // Done callback of verification key signature computation for RSA
     var computeSignatureDoneCb = function(signature) {
-        
+
         // (2) Send verification key to CA and get the certificate
         //TODO also sent cs type here since used in signature
         ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, leemon.bigInt2str(signature, 10),
@@ -373,15 +376,15 @@ function completeRegistration(byMail) {
     // (1) Compute verification key proof / signature
     var valuesToSign = requester.idp + SEPARATOR + requester.email + SEPARATOR + requester.id;
     valuesToSign = valuesToSign + SEPARATOR + elements.cryptoSetupType.value + SEPARATOR + elements.cryptoSetupSize.value;
-    valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(publicKey,10);
-    
+    valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(publicKey, 10);
+
     $.blockUI({message: '<p id="blockui-processing">' + msg.processing + '...</p>'});
     if (type == "RSA") {
-        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(modulo,10);
+        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(modulo, 10);
         valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
         ucCrypto.computeSignatureAsync(secretKey, publicKey, modulo, valuesToSign, computeSignatureDoneCb, computeUpdateCb);
     } else if (type == "DLOG") {
-        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(p,10) + SEPARATOR + leemon.bigInt2str(q,10) + SEPARATOR + leemon.bigInt2str(g,10);
+        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(p, 10) + SEPARATOR + leemon.bigInt2str(q, 10) + SEPARATOR + leemon.bigInt2str(g, 10);
         valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
         ucCrypto.computeVerificationKeyProofAsync(p, q, g, secretKey, publicKey, valuesToSign, computeProofDoneCb, computeUpdateCb);
     }

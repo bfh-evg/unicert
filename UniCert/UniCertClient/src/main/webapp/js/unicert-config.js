@@ -14,19 +14,14 @@
 (function(window) {
 
 	function Config() {
+            
+                //TODO remove commented stuff
 
 		/**
 		 * The url of the certificate authority. The url must terminate with '/'
 		 * as the concrete service (like register or list) is appended.
 		 */
 		this.URL_CERTIFICATE_AUTHORITY	= '/UniCertClient/registration/';
-
-		/**
-		 * The url of the voting service. The url must terminate with '/' as the
-		 * concrete service (like ElectionBoardService or VotingService) is appended.
-		 */
-//		this.URL_VOTING_SERVICE			= '/election/';
-
 
 		/**
 		 * The home site.
@@ -37,8 +32,8 @@
 		 * Signs used for concat.
 		 */
 		this.CONCAT_SEPARATOR			= "|";
-		this.CONCAT_DELIMINATOR_L		= "(";
-		this.CONCAT_DELIMINATOR_R		= ")";
+//		this.CONCAT_DELIMINATOR_L		= "(";
+//		this.CONCAT_DELIMINATOR_R		= ")";
 
 		/**
 		 * Pre- and postfix used for secret key padding. Important: As the padded
@@ -55,29 +50,30 @@
 		this.ENC_PRIVATE_KEY_POSTFIX	= "-----END ENCRYPTED UNICERT KEY-----";
 
 		/**
-		 * Size of the one-time-pad to encrypt secret key.
+		 * Size of prefix and postfix
+                 * Used for the one-time-pad to encrypt secret key.
 		 *
-		 * => (size of q) + (size of pre- and postfix) = 256 + 411 < 1024
+		 * => size of pre- and postfix = 411 < 512
 		 */
-		this.PRIVATE_KEY_ONE_TIME_PAD_SIZE = 1024;
+		this.PRIVATE_KEY_ONE_TIME_PAD_PREPOSTFIX_SIZE = 512;
 
-		/**
-		 * Cryptographic parameters.
-		 *
-		 * -> Base refers only to the bigInt representation of Schnorr, Elgamal
-		 *    and RSA parameters.
-		 */
-		this.BASE = 10;
-
-		/**
-		 * p, q and q for Schnorr signature.
-		 */
-		this.SCHNORR = {
-			P: "161931481198080639220214033595931441094586304918402813506510547237223787775475425991443924977419330663170224569788019900180050114468430413908687329871251101280878786588515668012772798298511621634145464600626619548823238185390034868354933050128115662663653841842699535282987363300852550784188180264807606304297",
-			Q: "65133683824381501983523684796057614145070427752690897588060462960319251776021",
-			G: "109291242937709414881219423205417309207119127359359243049468707782004862682441897432780127734395596275377218236442035534825283725782836026439537687695084410797228793004739671835061419040912157583607422965551428749149162882960112513332411954585778903685207256083057895070357159920203407651236651002676481874709"
-		}
-
+//		/**
+//		 * Cryptographic parameters.
+//		 *
+//		 * -> Base refers only to the bigInt representation of Schnorr, Elgamal
+//		 *    and RSA parameters.
+//		 */
+//		this.BASE = 10;
+//
+//		/**
+//		 * p, q and q for Schnorr signature.
+//		 */
+//		this.SCHNORR = {
+//			P: "161931481198080639220214033595931441094586304918402813506510547237223787775475425991443924977419330663170224569788019900180050114468430413908687329871251101280878786588515668012772798298511621634145464600626619548823238185390034868354933050128115662663653841842699535282987363300852550784188180264807606304297",
+//			Q: "65133683824381501983523684796057614145070427752690897588060462960319251776021",
+//			G: "109291242937709414881219423205417309207119127359359243049468707782004862682441897432780127734395596275377218236442035534825283725782836026439537687695084410797228793004739671835061419040912157583607422965551428749149162882960112513332411954585778903685207256083057895070357159920203407651236651002676481874709"
+//		}
+//
 //		/**
 //		 * p, q and g for Elgamal encryption.
 //		 */

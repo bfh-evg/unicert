@@ -14,6 +14,7 @@ package ch.bfh.unicert.webclient.beans;
 import ch.bfh.unicert.subsystem.Certificate;
 import ch.bfh.unicert.subsystem.IdentityData;
 import ch.bfh.unicert.subsystem.Registration;
+import ch.bfh.unicert.subsystem.RegistrationMock;
 import ch.bfh.unicert.subsystem.cryptography.CryptographicSetup;
 import ch.bfh.unicert.subsystem.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.subsystem.cryptography.RsaSetup;
@@ -25,9 +26,7 @@ import ch.bfh.unicert.webclient.identityfunction.ZurichSwitchAAIIdentityFunction
 import ch.bfh.unicert.webclient.userdata.IdentityProvider;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.math.BigInteger;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -38,7 +37,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.core.Response;
 
 /**
  * Proxy for the registration process between the UniCert subsystem and the web
@@ -103,44 +101,42 @@ public class RegistrationProxy extends HttpServlet {
 
         // Set character encoding of the response.
         response.setCharacterEncoding("UTF-8");
-        
+
         /*
-        *************** IDENTIFICATION MANAGEMENT ***************
-        */
-        logger.log(Level.SEVERE, "params "+request.getParameter("params"));
+         *************** IDENTIFICATION MANAGEMENT ***************
+         */
+        logger.log(Level.SEVERE, "params " + request.getParameter("params"));
         //Redirection to IDP
         if (request.getParameter("params") != null) {
             logger.log(Level.INFO, "Redirect to IDP");
-            
+
             UserInterfaceBean uiBean = this.getUIBean(request);
-            uiBean.setParameterSetIdentifier("/unicert/"+request.getParameter("params")+"/");
-            
+            uiBean.setParameterSetIdentifier("/unicert/" + request.getParameter("params") + "/");
+
             if (uiBean.getIdentityProvider().equals(IdentityProvider.SWITCH_AAI.getKey())) {
                 response.sendRedirect("switchaai.xhtml");
-            } else if (uiBean.getIdentityProvider().equals(IdentityProvider.GOOGLE.getKey())){
+            } else if (uiBean.getIdentityProvider().equals(IdentityProvider.GOOGLE.getKey())) {
                 response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
-                            + " client_id=424911365001.apps.googleusercontent.com&\n"
-                            + " response_type=code&\n"
-                            + " scope=openid%20email&\n"
-                            + " redirect_uri=https://oa2cb.example.com/&\n"
-                            + " state=security_token%3D138r5719ru3e1%26url%3Dhttps://oa2cb.example.com/myHome&\n"
-                            + " login_hint=jsmith@example.com&\n"
-                            + " openid.realm=example.com&\n"
-                            + " hd=example.com");
+                        + " client_id=424911365001.apps.googleusercontent.com&\n"
+                        + " response_type=code&\n"
+                        + " scope=openid%20email&\n"
+                        + " redirect_uri=https://oa2cb.example.com/&\n"
+                        + " state=security_token%3D138r5719ru3e1%26url%3Dhttps://oa2cb.example.com/myHome&\n"
+                        + " login_hint=jsmith@example.com&\n"
+                        + " openid.realm=example.com&\n"
+                        + " hd=example.com");
             } else {
                 logger.log(Level.SEVERE, "Unknown Identity provider selected");
                 internalServerErrorHandler(response, "102 Unknown Identity provider selected");
             }
             return;
         }
-        
+
         /*
-        *************** CERTIFICATE GENERATION ***************
-        */
-        
+         *************** CERTIFICATE GENERATION ***************
+         */
         logger.log(Level.INFO, "Certificate requested");
 
-                
         Registration registration;
         try {
             registration = getRegistration();
@@ -157,14 +153,14 @@ public class RegistrationProxy extends HttpServlet {
             logger.log(Level.INFO, "Got request without SWITCHaai security context");
             return;
         }
-        
+
         logger.log(Level.INFO, "User data initialized");
 
         String messageForSignature = ud.getIdentityProvider() + SEPARATOR + ud.getMail() + SEPARATOR
                 + ud.getUniqueIdentifier() + SEPARATOR;
-        
+
         try {
-            
+
             //Get the cryptographic setup
             String csType = request.getParameter(CRYPTO_SETUP_TYPE);
             int csSize = Integer.parseInt(request.getParameter(CRYPTO_SETUP_SIZE));
@@ -210,7 +206,7 @@ public class RegistrationProxy extends HttpServlet {
             }
 
             logger.log(Level.INFO, "Crypto setup initialized");
-                    
+
             //Get the selected Identity Function
             int functionId = Integer.parseInt(request.getParameter(IDENTITY_FUNCTION));
             messageForSignature += functionId + SEPARATOR;
@@ -234,7 +230,7 @@ public class RegistrationProxy extends HttpServlet {
             }
 
             logger.log(Level.INFO, "Identity function applied");
-            
+
             //Get the application identifier
             String applicationIdentifier = request.getParameter(APP_IDENTIFIER);
             messageForSignature += applicationIdentifier + SEPARATOR;
@@ -247,7 +243,7 @@ public class RegistrationProxy extends HttpServlet {
             cs.setSignatureOtherInput(messageForSignature);
 
             logger.log(Level.INFO, "Asking to generate certificate");
-            
+
             //Create the certificate
             Certificate cert = registration.createCertificate(cs, idData, applicationIdentifier, role);
 
@@ -266,8 +262,7 @@ public class RegistrationProxy extends HttpServlet {
         } catch (IllegalArgumentException | UnsupportedOperationException ex) {
             internalServerErrorHandler(response, "130 Cryptographic error");
             logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
-        } 
-        catch (Exception ex) {
+        } catch (Exception ex) {
             internalServerErrorHandler(response, "Undefined error");
             logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
         }
@@ -322,17 +317,17 @@ public class RegistrationProxy extends HttpServlet {
     private Registration getRegistration() throws Exception {
         ServletContext sc = getServletContext();
         Registration registration;
-//        if (Boolean.parseBoolean(sc.getInitParameter(DEV_MODE))
-//                && Boolean.parseBoolean(sc.getInitParameter(DEV_MODE_REGISTRATION_MOCK))) {
-//            registration = new RegistrationMock();
-//            logger.log(Level.WARNING, "Using mock proxy for registration subsystem");
-//        } else {
-        if (regRef != null) {
-            registration = regRef;
-            logger.log(Level.INFO, "Using real proxy for registration subsystem");
+        if (Boolean.parseBoolean(sc.getInitParameter(DEV_MODE))) {
+            registration = new RegistrationMock();
+            logger.log(Level.WARNING, "Using mock proxy for registration subsystem");
         } else {
-            logger.log(Level.SEVERE, "Reference to registration subystem not injected");
-            throw new IllegalStateException("111 Reference to registration subystem not injected");
+            if (regRef != null) {
+                registration = regRef;
+                logger.log(Level.INFO, "Using real proxy for registration subsystem");
+            } else {
+                logger.log(Level.SEVERE, "Reference to registration subystem not injected");
+                throw new IllegalStateException("111 Reference to registration subystem not injected");
+            }
         }
         return registration;
     }
@@ -353,11 +348,11 @@ public class RegistrationProxy extends HttpServlet {
         }
         return ud;
     }
-    
+
     private UserInterfaceBean getUIBean(HttpServletRequest request) {
         HttpSession session = request.getSession();
         UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
-        if(bean==null){
+        if (bean == null) {
             bean = new UserInterfaceBean();
             session.setAttribute("ui", bean);
         }

@@ -17,7 +17,7 @@ function sha256String(string) {
      Number of bits to hash is the number of char of the UTF-8 encoded string multiplied by 8
      We cannot use the length of bytearray since, in javascript, it returs the number of 32 bits integer
      */
-    var hash = SHA256(bytearray, s.length*chrsz);
+    var hash = SHA256(bytearray, s.length * chrsz);
     //convert the obtained byte array to hex representation
     return binb2hex(hash);
 }
@@ -26,22 +26,22 @@ function sha256String(string) {
  *	Hashes a hexadecimal representation of the big int or other
  *	length is the number of bytes from hexStr to hash
  */
-function sha256HexStr(hexStr){
-	/*
-	Each char of the hexadecimal encoded string represents 4 bits.
-	So, the number of bits contained in the hex string is the length of the string
-	multiplied by 4. 
-	*/
-	
-        //If the length of the string is not a multiple of 2, "0" is added at the
-        //beginning of the string
-	if(hexStr.length % 2 != 0){
-            hexStr = "0"+hexStr;
-            //console.log("not multiple of 2: " + hexStr);
-	} 
-	
-	var hash = SHA256(hex2binb(hexStr), (hexStr.length)*4);
-	return binb2hex(hash);
+function sha256HexStr(hexStr) {
+    /*
+     Each char of the hexadecimal encoded string represents 4 bits.
+     So, the number of bits contained in the hex string is the length of the string
+     multiplied by 4. 
+     */
+
+    //If the length of the string is not a multiple of 2, "0" is added at the
+    //beginning of the string
+    if (hexStr.length % 2 != 0) {
+        hexStr = "0" + hexStr;
+        //console.log("not multiple of 2: " + hexStr);
+    }
+
+    var hash = SHA256(hex2binb(hexStr), (hexStr.length) * 4);
+    return binb2hex(hash);
 }
 
 //***********************************************
@@ -122,11 +122,13 @@ function Utf8Encode(string) {
  *  http://www.webtoolkit.info/
  *
  *  Original code by Angel Marin, Paul Johnston.
+ *  
+ *  Length is the number of bits contained in s (that will be hashed)
  *
  */
 function SHA256(s, length) {
 
-    
+
     function safe_add(x, y) {
         var lsw = (x & 0xFFFF) + (y & 0xFFFF);
         var msw = (x >> 16) + (y >> 16) + (lsw >> 16);

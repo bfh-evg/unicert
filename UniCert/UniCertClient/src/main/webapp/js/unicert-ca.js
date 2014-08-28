@@ -72,9 +72,6 @@
                 }
             }
 
-            // The action (either renew or register)
-//			var action = renew ? 'renew' : 'register';
-
             // Ajax request
             $.ajax({
                 type: "POST",
@@ -134,7 +131,6 @@
                 dataType: 'json',
                 success: successCb,
                 error: errorCb,
-                
             });
         }
 
@@ -150,7 +146,7 @@
                 return null;
             }
             var cert = data;
-            
+
             return cert;
         }
 

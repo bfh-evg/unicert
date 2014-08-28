@@ -56,14 +56,6 @@
             <h3 class="">#{msg.registrationTitle}</h3>
             <p class="block"><h:outputText value="#{msg.registrationText}" escape="false" /></p>
             <div class="block spacer10">
-                <!--<form id="idpForm" name="idpForm" method="POST" action="registration">
-                    <label>#{msg.idp}: </label><select id="idp" class="select" name="idp" size="1">	
-                        <option value="switchaai">#{msg.switchAAI}</option> 
-                        <option value="google">#{msg.google}</option>
-                    </select>
-                    
-                </form>
-                <p><a href="#" class="raquo" onclick="document.forms['idpForm'].submit(); return false;">#{msg.goRegister}</a></p>-->
                 <p><a href="authenticate?params=univote-idf1-r1-switch-dsa" class="raquo">#{msg.goRegister}: UniVote, Normal identity function, Voter, SwitchAAI, Discrete Log</a></p>
                 <p><a href="authenticate" class="raquo">#{msg.goRegister}: Custom</a></p>
             </div>

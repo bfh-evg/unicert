@@ -11,36 +11,22 @@
  */
 package ch.bfh.unicert.webclient.util;
 
-import ch.bfh.unicert.subsystem.exceptions.CertificateCreationException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.naming.NamingException;
 
 /**
- * Loads configuration information from the property set 'electionManagerProps'
- * defined in the user-defined global JNDI name space. The properties
+ * Loads configuration information from the property set defined in the
+ * user-defined global JNDI name space. The properties
  * <em>must</em>
  * be defined externally, e.g., via the admin console of Glassfish.
  * <p>
  * A singleton.
  *
- * @author Eric Dubuis &lt;eric.dubuis@bfh.ch&gt;
- * @author Severin Hauser &lt;severin.hauser@bfh.ch&gt;
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class ConfigurationHelperImpl implements ConfigurationHelper {
-
 
     private static final Logger logger = Logger.getLogger(ConfigurationHelperImpl.class.getName());
     private String keyType;
@@ -53,17 +39,26 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private int role;
     private int identityFunctionIndex;
 
-    
-    public ConfigurationHelperImpl(String propertiesSetName) throws ParametersNotFoundException {
-                    this.init(propertiesSetName);
-
+    /**
+     * Create a new ConfigurationHelperImpl Object
+     * @param propertySetName the name of the property set to laod
+     * @throws ParametersNotFoundException if a error occured reading the properties
+     */
+    public ConfigurationHelperImpl(String propertySetName) throws ParametersNotFoundException {
+        this.init(propertySetName);
     }
 
-    private void init(String propertiesSetName) throws ParametersNotFoundException {
+    
+    /**
+     * Helper method reading the properties
+     * @param propertySetName the name of the property set to laod
+     * @throws ParametersNotFoundException if a error occured reading the properties
+     */
+    private void init(String propertySetName) throws ParametersNotFoundException {
         Properties props;
         try {
             javax.naming.InitialContext ic = new javax.naming.InitialContext();
-            props = (Properties) ic.lookup(propertiesSetName);
+            props = (Properties) ic.lookup(propertySetName);
 
         } catch (NamingException ex) {
             logger.log(Level.SEVERE, "JNDI lookup for 'registrationProps' failed. Exception: {0}",
