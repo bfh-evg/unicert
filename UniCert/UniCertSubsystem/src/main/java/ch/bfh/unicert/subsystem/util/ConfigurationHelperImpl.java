@@ -28,7 +28,7 @@ import java.util.logging.Logger;
 import javax.naming.NamingException;
 
 /**
- * Loads configuration information from the property set 'electionManagerProps'
+ * Loads configuration information from the property set 'unicertProps'
  * defined in the user-defined global JNDI name space. The properties
  * <em>must</em>
  * be defined externally, e.g., via the admin console of Glassfish.
@@ -136,6 +136,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
         //Load keystore with private key for the manager
         if (isExternal) {
             //TODO Implement external key store loading.
+            throw new UnsupportedOperationException("Not implemented yet");
         } else {
             KeyStore caKs;
             try {

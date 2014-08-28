@@ -1,13 +1,20 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2014 Berner Fachhochschule, Switzerland.
+ * Bern University of Applied Sciences, Engineering and Information Technology,
+ * Research Institute for Security in the Information Society, E-Voting Group,
+ * Biel, Switzerland.
+ *
+ * Project UniCert.
+ *
+ * Distributable under GPL license.
+ * See terms of license at gnu.org.
  */
 package ch.bfh.unicert.subsystem.cryptography;
 
 import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.abstracts.AbstractSigmaChallengeGenerator;
 import ch.bfh.unicrypt.helper.array.ByteArray;
 import ch.bfh.unicrypt.helper.converter.BigIntegerConverter;
+import ch.bfh.unicrypt.helper.converter.StringConverter;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayElement;
@@ -16,56 +23,57 @@ import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZElement;
 import ch.bfh.unicrypt.math.algebra.general.classes.Pair;
 import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
-import ch.bfh.unicrypt.math.algebra.general.classes.Tuple;
-import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
 import ch.bfh.unicrypt.math.algebra.general.interfaces.SemiGroup;
 import ch.bfh.unicrypt.math.algebra.general.interfaces.Set;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 
 /**
- *
+ * This class provides a Fiat-Shamir SigmaChallengeGenerator
+ * 
+ * Instead of using the RandomOracle as other implementation of the SigmaChallengeGenerator,
+ * this class uses a hash function to compute the challenge.
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
 
     private final String otherInput;
     private final HashMethod hashMethod;
-    private final String stringCharset;
+    private final StringConverter stringConverter;
 
     protected SigmaChallengeGenerator(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, 
-            String otherInput, HashMethod hashMethod, String stringCharset) {
+            String otherInput, HashMethod hashMethod, StringConverter stringConverter) {
         super(publicInputSpace, commitmentSpace, challengeSpace);
         this.otherInput = otherInput;
         this.hashMethod = hashMethod;
-        this.stringCharset = stringCharset;
+        this.stringConverter = stringConverter;
     }
 
     @Override
     protected ZElement abstractGenerate(Pair input) {
+        //TODO remove
 //        Element element0 = input.getAt(0);
 //        Element element1 = input.getAt(1);
 
         
                 
         ByteArray messageHashed = null;
-        try {
 //            System.out.println("pub in dec: "+ element0.getBigInteger().toString(10));
 //            System.out.println("public input hex: "+ getHexValue(element0.getByteArray().getAll()));
 //            System.out.println("pub in hashed bytes: "+ getHexValue(element0.getByteArray().getHashValue().getAll()));
 //            System.out.println("public input hashed: "+ getHexValue(element0.getHashValue(hashMethod).getAll()));
 //            System.out.println("commitment hashed: "+ getHexValue(element1.getHashValue(hashMethod).getAll()));
-            ByteArrayElement b = ByteArrayMonoid.getInstance().getElementFrom(ByteArray.getInstance(otherInput.getBytes(this.stringCharset)));
+            ByteArrayElement b = ByteArrayMonoid.getInstance().getElementFrom(stringConverter.convertToByteArray(otherInput));
+            
             //ByteArray b = ByteArray.getInstance(completeString.getBytes(this.stringCharset));
 //            System.out.println("other input: "+proverId);
 //            System.out.println("other input hashed: "+ getHexValue(b.getHashValue(hashMethod).getAll()));
             messageHashed = Triple.getInstance(input.getAt(0), input.getAt(1), b).getHashValue(hashMethod);
 //            System.out.println("Complete hash: "+ getHexValue(messageHashed.getAll()));
             //messageHashed = ByteArray.getInstance(completeString.getBytes(this.stringEncoding)).getHashValue(this.hashAlgorithm);
-        } catch (UnsupportedEncodingException ex) {
-            throw new IllegalArgumentException("String encoding not supported: "+this.stringCharset);
-        }
+        
         
         
         //Makes a positive big integer with the result of the hash function, and return the corresponding element in the
@@ -76,6 +84,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
   
     }
     
+    //TODO remove
     private String getHexValue(byte[] array) {
         char[] symbols = "0123456789ABCDEF".toCharArray();
         char[] hexValue = new char[array.length * 2];
@@ -110,7 +119,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
      */
     public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, String otherInput){
         return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput,
-            HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), "UTF-8");
+            HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), StringConverter.getInstance(Charset.forName("UTF-8")));
     }
 
     /**
@@ -134,7 +143,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
      * @return a challenge generator
      */
     public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, 
-            Z challengeSpace, String otherInput, HashMethod hashMethod, String stringCharset){
-        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput, hashMethod, stringCharset );
+            Z challengeSpace, String otherInput, HashMethod hashMethod, StringConverter stringConverter){
+        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput, hashMethod, stringConverter );
     }
 }

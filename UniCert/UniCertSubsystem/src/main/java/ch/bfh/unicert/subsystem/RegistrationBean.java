@@ -11,14 +11,11 @@
  */
 package ch.bfh.unicert.subsystem;
 
-//import ch.bfh.uniboard.UniBoardService;
-//import ch.bfh.uniboard.UniBoardService_Service;
 import ch.bfh.uniboard.UniBoardService;
 import ch.bfh.uniboard.UniBoardService_Service;
 import ch.bfh.uniboard.data.AttributesDTO;
 import ch.bfh.uniboard.data.AttributesDTO.AttributeDTO;
 import ch.bfh.uniboard.data.StringValueDTO;
-import ch.bfh.uniboard.service.StringValue;
 import ch.bfh.unicert.subsystem.cryptography.CryptographicSetup;
 import ch.bfh.unicert.subsystem.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.subsystem.cryptography.RsaSetup;
@@ -33,29 +30,25 @@ import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
 import ch.bfh.unicrypt.helper.array.ByteArray;
 import ch.bfh.unicrypt.helper.converter.BigIntegerConverter;
+import ch.bfh.unicrypt.helper.converter.StringConverter;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
-import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayElement;
-import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayMonoid;
-import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
 import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
 import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
 import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
-import ch.bfh.unicrypt.math.function.classes.HashFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
@@ -66,7 +59,6 @@ import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -76,7 +68,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.Remote;
 import javax.ejb.Startup;
 import javax.ejb.Stateless;
 import javax.xml.namespace.QName;
@@ -191,9 +182,7 @@ public class RegistrationBean implements Registration {
 
         } else if (cs instanceof DiscreteLogSetup) {
             DiscreteLogSetup setup = (DiscreteLogSetup) cs;
-            if (setup.getP().getValue().bitLength() < (setup.getSize() - (setup.getSize() * 5 / 1000))
-                    || setup.getP().getValue().bitLength() < MIN_DLOG_SIZE
-                    || !setup.getGenerator().isGenerator()) {
+            if (setup.getP().getValue().bitLength() < MIN_DLOG_SIZE || !setup.getGenerator().isGenerator()) {
                 logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
                 throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected");
             }
@@ -203,7 +192,7 @@ public class RegistrationBean implements Registration {
             Function func = GeneratorFunction.getInstance(setup.getGenerator());
             
             SigmaChallengeGenerator scg = SigmaChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(), Z.getInstance(), setup.getProofOtherInput(),
-                    HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), "UTF-8");
+                    HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), StringConverter.getInstance(Charset.forName("UTF-8")));
             PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
 
             //verify proof
@@ -227,10 +216,7 @@ public class RegistrationBean implements Registration {
             StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
             hashedAppId = new String(Base64.encodeBase64(sm.getElement(applicationIdentifier).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getAll()));
             //Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
-            //TODO why does this not work on the server ??
-            //byte[] hashed = hashFunction.apply(sm.getElement(applicationIdentifier)).getByteArray().getAll();
             logger.log(Level.INFO, "Application identifier hashed. Encoding Base 64");
-            //hashedAppId = new String(Base64.encodeBase64(applicationIdentifier.getBytes()));
         } catch (Exception e) {
             logger.log(Level.WARNING, "Problem while hashing application identifier: {0}", e.getMessage());
             throw new CertificateCreationException("230 Problem while hashing application identifier");
@@ -248,6 +234,18 @@ public class RegistrationBean implements Registration {
                 hashedAppId,
                 role);
 
+        postOnUniBoard(cert);
+        
+        return cert;
+
+    }
+    
+    /**
+     * Helper method managing the publication of certificate on a UniBoard instance
+     * @param cert the certificate to publish
+     * @throws CertificateCreationException if an error occured during publication
+     */
+    protected void postOnUniBoard(Certificate cert) throws CertificateCreationException{
         logger.log(Level.INFO, "Posting certificate on the UniBoard");
         
         String endpointUrl = getUniBoardServiceURL();
@@ -269,7 +267,6 @@ public class RegistrationBean implements Registration {
         attributes.add(new AttributeDTO("group", new StringValueDTO("certificate")));
         AttributesDTO alpha = new AttributesDTO(attributes);
         
-        //logger.log(Level.SEVERE, "base64 "+ new String(Base64.encodeBase64(cert.toJSON().getBytes())));
         AttributesDTO beta = board.post(cert.toJSON().getBytes(), alpha);
         
         if(beta.getAttribute().isEmpty()){
@@ -282,26 +279,8 @@ public class RegistrationBean implements Registration {
         }
                 
         logger.log(Level.INFO, "Certificate posted on UniBoard");
-        
-        return cert;
-
     }
     
-     private String getHexValue(byte[] array) {
-        char[] symbols = "0123456789ABCDEF".toCharArray();
-        char[] hexValue = new char[array.length * 2];
-
-        for (int i = 0; i < array.length; i++) {
-            //convert the byte to an int
-            int current = array[i] & 0xff;
-            //determine the Hex symbol for the last 4 bits
-            hexValue[i * 2 + 1] = symbols[current & 0x0f];
-            //determine the Hex symbol for the first 4 bits
-            hexValue[i * 2] = symbols[current >> 4];
-        }
-        return String.valueOf(hexValue);
-    }
-
     /**
      * Creates the DSA public key of the requestor.
      *
