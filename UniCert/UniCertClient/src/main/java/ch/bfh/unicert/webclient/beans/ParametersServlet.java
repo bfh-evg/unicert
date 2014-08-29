@@ -11,6 +11,7 @@
  */
 package ch.bfh.unicert.webclient.beans;
 
+import ch.bfh.unicert.webclient.beans.util.Google2Api;
 import ch.bfh.unicert.webclient.userdata.IdentityProvider;
 import java.io.IOException;
 import java.util.Map;
@@ -18,15 +19,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
+import javax.faces.webapp.FacesServlet;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.scribe.builder.ServiceBuilder;
+import org.scribe.oauth.OAuthService;
 
 /**
- * Servlet responsible to load JNDI properties allowing to preconfigure the registration page with the already defined values
+ * Servlet responsible to load JNDI properties allowing to preconfigure the
+ * registration page with the already defined values
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
@@ -59,10 +64,10 @@ public class ParametersServlet extends HttpServlet {
         //Retrieves properties set
         String propertiesSetIdentifier = request.getParameter(PROPERTY_SET_IDENTIFIER);
         String idp = request.getParameter(IDENTITY_PROVIDER);
-        
+
         //Debug mode
         if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
-            idp= "SwitchAAI";
+            idp = "Google";
             this.getUIBean(request);
         }
 
@@ -86,7 +91,7 @@ public class ParametersServlet extends HttpServlet {
 
             //Redirection to identity provider
             if (!uiBean.hasMulitpleIdentityProviders()) {
-                redirectToIdp(uiBean.getIdentityProvider(), response);
+                redirectToIdp(uiBean.getIdentityProvider(), request, response);
                 return;
             } else {
                 //if multiple identity providers are supported we show a selection page
@@ -94,7 +99,7 @@ public class ParametersServlet extends HttpServlet {
                 return;
             }
         } else {
-            redirectToIdp(idp, response);
+            redirectToIdp(idp, request, response);
             return;
         }
 
@@ -102,31 +107,40 @@ public class ParametersServlet extends HttpServlet {
 
     /**
      * Helper method managing the redirection to the correct identity provider
+     *
      * @param identityProvider the identity provider name
      * @param response servlet respons
      * @throws IOException if an I/O Exception occurs
      */
-    private void redirectToIdp(String identityProvider, HttpServletResponse response) throws IOException {
-        if(identityProvider==null){
+    private void redirectToIdp(String identityProvider, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (identityProvider == null) {
             logger.log(Level.SEVERE, "Identity provider not set");
             internalServerErrorHandler(response, "Identity provider not set");
             return;
         }
-        
+
         //Redirection to IDP
         logger.log(Level.INFO, "Redirect to IDP");
         if (identityProvider.equals(IdentityProvider.SWITCH_AAI.getKey())) {
             response.sendRedirect("switchaai.xhtml");
         } else if (identityProvider.equals(IdentityProvider.GOOGLE.getKey())) {
-            response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
-                    + " client_id=424911365001.apps.googleusercontent.com&\n"
-                    + " response_type=code&\n"
-                    + " scope=openid%20email&\n"
-                    + " redirect_uri=https://oa2cb.example.com/&\n"
-                    + " state=security_token%3D138r5719ru3e1%26url%3Dhttps://oa2cb.example.com/myHome&\n"
-                    + " login_hint=jsmith@example.com&\n"
-                    + " openid.realm=example.com&\n"
-                    + " hd=example.com");
+            String CLIENT_ID = "452554920436-ek1075ugb6vtckc9acng7qo455993u9f.apps.googleusercontent.com";
+            String CLIENT_SECRET = "LvTANZRJ_PrYl-vwWsLPB83u ";
+
+            //Configure
+            ServiceBuilder builder = new ServiceBuilder();
+            OAuthService service = builder.provider(Google2Api.class)
+                    .apiKey(CLIENT_ID)
+                    .apiSecret(CLIENT_SECRET)
+                    .callback("http://localhost:8080/UniCertClient/oauth2callback")
+                    .scope("email profile") 
+                    .debug()
+                    .build(); //Now build the call
+
+            HttpSession sess = request.getSession();
+            sess.setAttribute("oauth2Service", service);
+
+            response.sendRedirect(service.getAuthorizationUrl(null));
         } else {
             logger.log(Level.SEVERE, "Unknown Identity provider");
             internalServerErrorHandler(response, "Unknown Identity provider selected");
@@ -173,9 +187,9 @@ public class ParametersServlet extends HttpServlet {
 
     /**
      * Helper method returning the UserInterfaceBean
-     * 
+     *
      * If none is found in the session, one is created and save in the session
-     * 
+     *
      * @param request servlet request
      * @return the UserInterfaceBean
      */
@@ -183,6 +197,8 @@ public class ParametersServlet extends HttpServlet {
         HttpSession session = request.getSession();
         UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
         if (bean == null) {
+//            FacesContext context = FacesContext.getCurrentInstance();
+//            bean = (UserInterfaceBean) context.getApplication().evaluateExpressionGet(context, "#{iu}", UserInterfaceBean.class);
             bean = new UserInterfaceBean();
             session.setAttribute("ui", bean);
         }

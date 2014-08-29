@@ -13,6 +13,7 @@ package ch.bfh.unicert.webclient.identityfunction;
 
 import ch.bfh.unicert.subsystem.IdentityData;
 import ch.bfh.unicert.subsystem.util.ExtensionOID;
+import ch.bfh.unicert.webclient.userdata.GoogleUserData;
 import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
 import ch.bfh.unicrypt.helper.Alphabet;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
@@ -23,24 +24,47 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * This function is a specialization of the Standard SwitchAAI function which
- * uses hash value of the mail adress as common name and the hash of the unique id as unique id
+ * This function is a specialization of the Standard Google function which
+ * uses hash value of the mail adress as common name
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
-public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdentityFunction {
+public class AnonymizedGoogleIdentityFunction extends StandardGoogleIdentityFunction {
 
-    private static final Logger logger = Logger.getLogger(AnonymizedSwitchAAIIdentityFunction.class.getName());
+    private static final Logger logger = Logger.getLogger(AnonymizedGoogleIdentityFunction.class.getName());
 
     @Override
-    protected void putInOtherValues(Map otherValues, SwitchAAIUserData ud){
+    protected void putInOtherValues(Map otherValues, GoogleUserData ud){
     }
     
     @Override
-    protected String selectCommonName(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException {
+    protected String selectCommonName(GoogleUserData ud) throws IdentityFunctionNotApplicableException {
 
-        String commonName = super.selectCommonName(ud);
+        String commonName = "";
 
+        //Common name
+        if (ud.getMail() != null) {
+            commonName = ud.getMail();
+            logger.log(Level.INFO, "Retrieved for common name: value={0}",
+                    new Object[]{commonName});
+        } else {
+            commonName = ud.getCompleteName();
+            if (commonName != null) {
+                logger.log(Level.INFO, "Retrieved for common name: value={0}",
+                        new Object[]{commonName});
+            } else {
+                commonName = ud.getUniqueIdentifier();
+                if (commonName != null) {
+                    logger.log(Level.INFO, "Retrieved for common name: value={0}",
+                            new Object[]{commonName});
+                } else {
+                    // Cannot initialize voter id -- giving up.
+                    logger.log(Level.SEVERE, "Cannot initialize common name -- giving up.");
+                    throw new IdentityFunctionNotApplicableException("121 Important identity data missing to initialize common name");
+                }
+            }
+        }
+        
         //Anonymization of commonName by hashing it with SHA256
         try {
             StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
@@ -54,9 +78,17 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
     }
     
     @Override
-    protected String selectUniqueId(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException {
-
-        String uniqueID = super.selectUniqueId(ud);
+    protected String selectUniqueId(GoogleUserData ud) throws IdentityFunctionNotApplicableException {
+        // UID. Essential in the back-end.
+        String uniqueID = ud.getUniqueIdentifier();
+        if (uniqueID != null) {
+            logger.log(Level.INFO, "Retrieved for uid: value={0}",
+                    new Object[]{uniqueID});
+        } else {
+            // Cannot initialize uid -- giving up.
+            logger.log(Level.SEVERE, "Cannot initialize uid -- giving up.");
+            throw new IdentityFunctionNotApplicableException("124 Important identity data missing to initialize unique id");
+        }
         
         //Anonymization of commonName by hashing it with SHA256
         try {
@@ -66,7 +98,7 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
             logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
             throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing");
         }
-
+        
         return uniqueID;
     }
     

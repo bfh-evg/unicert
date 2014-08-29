@@ -12,6 +12,7 @@
 package ch.bfh.unicert.webclient.identityfunction;
 
 import ch.bfh.unicert.subsystem.IdentityData;
+import ch.bfh.unicert.subsystem.util.ExtensionOID;
 import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.util.HashMap;
@@ -45,15 +46,19 @@ public class StandardSwitchAAIIdentityFunction implements IdentityFunction {
         }
 
         Map otherValues = new HashMap();
+        putInOtherValues(otherValues, ud);
                
         String commonName = this.selectCommonName(ud);
 
         String uniqueID = this.selectUniqueId(ud);
-                                      
-        return new IdentityData(commonName,  uniqueID, ud.getHomeOrganization(), ud.getStudyBranch(), null, null,
+        
+        return createIdentityData(commonName,  uniqueID, ud.getHomeOrganization(), ud.getStudyBranch(), null, null,
                 null, null, null, ud.getIdentityProvider(), otherValues);
         
                 
+    }
+    
+    protected void putInOtherValues(Map otherValues, SwitchAAIUserData ud){
     }
 
     protected String selectCommonName(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException{
@@ -112,6 +117,13 @@ public class StandardSwitchAAIIdentityFunction implements IdentityFunction {
             }
         }
         return uniqueID;
+    }
+    
+    protected IdentityData createIdentityData(String commonName, String uniqueId, String organisation, String organisationUnit,
+            String countryName, String state, String locality, String surname, String givenName,
+            String identityProvider, Map<ExtensionOID, String> otherValues ){
+        return new IdentityData(commonName, uniqueId, organisation, organisationUnit, countryName, state,
+                locality, surname, givenName, identityProvider, otherValues);
     }
     
 }

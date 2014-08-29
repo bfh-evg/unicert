@@ -19,8 +19,10 @@ import ch.bfh.unicert.subsystem.cryptography.CryptographicSetup;
 import ch.bfh.unicert.subsystem.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.subsystem.cryptography.RsaSetup;
 import ch.bfh.unicert.subsystem.exceptions.CertificateCreationException;
+import ch.bfh.unicert.webclient.identityfunction.AnonymizedGoogleIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.IdentityFunctionNotApplicableException;
+import ch.bfh.unicert.webclient.identityfunction.StandardGoogleIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.StandardSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.ZurichSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.userdata.IdentityProvider;
@@ -52,8 +54,6 @@ public class RegistrationProxy extends HttpServlet {
      */
     @EJB
     private Registration regRef;
-//    @EJB
-//    UserInterfaceBean uiBean;
 
     /**
      * Property name for the development mode.
@@ -102,35 +102,35 @@ public class RegistrationProxy extends HttpServlet {
         // Set character encoding of the response.
         response.setCharacterEncoding("UTF-8");
 
-        /*
-         *************** IDENTIFICATION MANAGEMENT ***************
-         */
-        logger.log(Level.SEVERE, "params " + request.getParameter("params"));
-        //Redirection to IDP
-        if (request.getParameter("params") != null) {
-            logger.log(Level.INFO, "Redirect to IDP");
-
-            UserInterfaceBean uiBean = this.getUIBean(request);
-            uiBean.setParameterSetIdentifier("/unicert/" + request.getParameter("params") + "/");
-
-            if (uiBean.getIdentityProvider().equals(IdentityProvider.SWITCH_AAI.getKey())) {
-                response.sendRedirect("switchaai.xhtml");
-            } else if (uiBean.getIdentityProvider().equals(IdentityProvider.GOOGLE.getKey())) {
-                response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
-                        + " client_id=424911365001.apps.googleusercontent.com&\n"
-                        + " response_type=code&\n"
-                        + " scope=openid%20email&\n"
-                        + " redirect_uri=https://oa2cb.example.com/&\n"
-                        + " state=security_token%3D138r5719ru3e1%26url%3Dhttps://oa2cb.example.com/myHome&\n"
-                        + " login_hint=jsmith@example.com&\n"
-                        + " openid.realm=example.com&\n"
-                        + " hd=example.com");
-            } else {
-                logger.log(Level.SEVERE, "Unknown Identity provider selected");
-                internalServerErrorHandler(response, "102 Unknown Identity provider selected");
-            }
-            return;
-        }
+//        /*
+//         *************** IDENTIFICATION MANAGEMENT ***************
+//         */
+//        logger.log(Level.SEVERE, "params " + request.getParameter("params"));
+//        //Redirection to IDP
+//        if (request.getParameter("params") != null) {
+//            logger.log(Level.INFO, "Redirect to IDP");
+//
+//            UserInterfaceBean uiBean = this.getUIBean(request);
+//            uiBean.setParameterSetIdentifier("/unicert/" + request.getParameter("params") + "/");
+//
+//            if (uiBean.getIdentityProvider().equals(IdentityProvider.SWITCH_AAI.getKey())) {
+//                response.sendRedirect("switchaai.xhtml");
+//            } else if (uiBean.getIdentityProvider().equals(IdentityProvider.GOOGLE.getKey())) {
+//                response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
+//                        + " client_id=424911365001.apps.googleusercontent.com&\n"
+//                        + " response_type=code&\n"
+//                        + " scope=openid%20email&\n"
+//                        + " redirect_uri=https://oa2cb.example.com/&\n"
+//                        + " state=security_token%3D138r5719ru3e1%26url%3Dhttps://oa2cb.example.com/myHome&\n"
+//                        + " login_hint=jsmith@example.com&\n"
+//                        + " openid.realm=example.com&\n"
+//                        + " hd=example.com");
+//            } else {
+//                logger.log(Level.SEVERE, "Unknown Identity provider selected");
+//                internalServerErrorHandler(response, "102 Unknown Identity provider selected");
+//            }
+//            return;
+//        }
 
         /*
          *************** CERTIFICATE GENERATION ***************
@@ -223,6 +223,12 @@ public class RegistrationProxy extends HttpServlet {
                 case 3:
                     idData = new ZurichSwitchAAIIdentityFunction().apply(ud);
                     break;
+                case 4:
+                    idData = new StandardGoogleIdentityFunction().apply(ud);
+                    break;
+                case 5:
+                    idData = new AnonymizedGoogleIdentityFunction().apply(ud);
+                    break;
                 default:
                     internalServerErrorHandler(response, "120 Unknown identity function");
                     logger.log(Level.SEVERE, "Unknown identity function");
@@ -259,12 +265,12 @@ public class RegistrationProxy extends HttpServlet {
         } catch (IdentityFunctionNotApplicableException ex) {
             internalServerErrorHandler(response, ex.getMessage());
             logger.log(Level.SEVERE, ex.getMessage());
-        } catch (IllegalArgumentException | UnsupportedOperationException ex) {
-            internalServerErrorHandler(response, "130 Cryptographic error");
-            logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
-        } catch (Exception ex) {
-            internalServerErrorHandler(response, "Undefined error");
-            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
+//        } catch (IllegalArgumentException | UnsupportedOperationException ex) {
+//            internalServerErrorHandler(response, "130 Cryptographic error");
+//            logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
+//        } catch (Exception ex) {
+//            internalServerErrorHandler(response, "Undefined error");
+//            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
         }
     }
 
@@ -342,17 +348,22 @@ public class RegistrationProxy extends HttpServlet {
      */
     private UserData getUserData(HttpServletRequest request) {
         HttpSession session = request.getSession();
-        UserData ud = ((UserDataBean) session.getAttribute("userData")).getUserData();
-        if (ud != null && ud.getUniqueIdentifier() == null) {
-            ud = null;
+        UserDataBean bean = ((UserDataBean) session.getAttribute("userData"));
+        if (bean == null) {
+//            FacesContext context = FacesContext.getCurrentInstance();
+//            bean = (UserDataBean) context.getApplication().evaluateExpressionGet(context, "#{userData}", UserDataBean.class);
+            bean = new UserDataBean();
+            session.setAttribute("userData", bean);
         }
-        return ud;
+        return bean.getUserData();
     }
 
     private UserInterfaceBean getUIBean(HttpServletRequest request) {
         HttpSession session = request.getSession();
         UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
         if (bean == null) {
+//            FacesContext context = FacesContext.getCurrentInstance();
+//            bean = (UserInterfaceBean) context.getApplication().evaluateExpressionGet(context, "#{iu}", UserInterfaceBean.class);
             bean = new UserInterfaceBean();
             session.setAttribute("ui", bean);
         }

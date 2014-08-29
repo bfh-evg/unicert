@@ -30,10 +30,7 @@
     </ui:define>
 
     <ui:define name="header">
-        <f:metadata>
-            <f:event type="preRenderView" listener="#{userData.readValues}"/>
-        </f:metadata>
-
+       
         <h2 class="center">#{msg.registration}</h2>
 
         <form name="properties">
@@ -147,6 +144,8 @@
                             <option value="1" selected="#{ui.identityFunctionIndex==1? 'selected' : ''}">#{msg.idFStandardSwitch}</option> 
                             <option value="2" selected="#{ui.identityFunctionIndex==2? 'selected' : ''}">#{msg.idFAnonymizedSwitch}</option> 
                             <option value="3" selected="#{ui.identityFunctionIndex==3? 'selected' : ''}">#{msg.idFZurichSwitch}</option> 
+                            <option value="4" selected="#{ui.identityFunctionIndex==4? 'selected' : ''}">#{msg.idFStandardGoogle}</option> 
+                            <option value="5" selected="#{ui.identityFunctionIndex==5? 'selected' : ''}">#{msg.idFAnonymizedGoogle}</option> 
                         </select>
                     </div>
                 </div>

@@ -128,6 +128,14 @@ public class UserDataBean implements Serializable {
     }
     
     /**
+     * Set the user data if they are construct through another way than the
+     * readValue() method
+     * @param ud user data to be set
+     */
+    public void setUserData(UserData ud){
+        this.ud=ud;
+    }
+    /**
      * Helper method for debugging purposes logging.
      *
      * @param requestMap a map of name/value pairs provided by the HTTP request
