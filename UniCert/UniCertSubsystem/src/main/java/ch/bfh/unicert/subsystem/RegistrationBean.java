@@ -120,8 +120,8 @@ import sun.security.rsa.RSAPublicKeyImpl;
 @Startup
 public class RegistrationBean implements Registration {
 
-    private static final int MIN_RSA_SIZE = 1020;
-    private static final int MIN_DLOG_SIZE = 1020;
+    private static final int MIN_RSA_SIZE = 1010;
+    private static final int MIN_DLOG_SIZE = 1010;
 
     private static final Logger logger = Logger.getLogger(RegistrationBean.class.getName());
 
@@ -141,12 +141,12 @@ public class RegistrationBean implements Registration {
         //Check validity of crypto setup
         if (cs instanceof RsaSetup) {
             RsaSetup setup = (RsaSetup) cs;
-            if (setup.getN().bitLength() < (setup.getSize() - (setup.getSize() * 5 / 1000))
+            if (setup.getN().bitLength() < (setup.getSize() - (setup.getSize() * 5 / 1000) - 1)
                     || setup.getN().bitLength() < MIN_RSA_SIZE) {
                 logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
                 throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected. N was "
-                        + setup.getN().bitLength() + " long, but " + (setup.getSize() - (setup.getSize() * 5 / 1000))
-                        + " or " + MIN_RSA_SIZE + "is required.");
+                        + setup.getN().bitLength() + " long, but " + (setup.getSize() - (setup.getSize() * 5 / 1000) - 1)
+                        + " or " + MIN_RSA_SIZE + " is required.");
             }
             
             logger.log(Level.INFO, "Valid RSA setup");
@@ -435,10 +435,10 @@ public class RegistrationBean implements Registration {
             x509NameString += "CN=" + id.getCommonName();
 
             if (id.getSurname() != null && !id.getSurname().equals("")) {
-                x509NameString += ", SN=" + id.getCommonName();
+                x509NameString += ", SURNAME=" + id.getSurname();
             }
             if (id.getGivenName() != null && !id.getGivenName().equals("")) {
-                x509NameString += ", GN=" + id.getGivenName();
+                x509NameString += ", GIVENNAME=" + id.getGivenName();
             }
             if (id.getUniqueIdentifier() != null && !id.getUniqueIdentifier().equals("")) {
                 x509NameString += ", UID=" + id.getUniqueIdentifier();
@@ -458,7 +458,9 @@ public class RegistrationBean implements Registration {
             if (id.getLocality() != null && !id.getLocality().equals("")) {
                 x509NameString += ", L=" + id.getLocality();
             }
-
+            //Remove non-ascii char since they are not supported
+            //x509NameString = x509NameString.replaceAll("[^\\x00-\\x7F]", "");
+            
             X509Name x509Name = new X509Name(x509NameString);
 
             V3TBSCertificateGenerator certGen = new V3TBSCertificateGenerator();

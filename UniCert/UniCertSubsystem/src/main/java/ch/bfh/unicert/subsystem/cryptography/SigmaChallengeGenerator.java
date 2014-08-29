@@ -59,7 +59,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
 
         
                 
-        ByteArray messageHashed = null;
+//        ByteArray messageHashed = null;
 //            System.out.println("pub in dec: "+ element0.getBigInteger().toString(10));
 //            System.out.println("public input hex: "+ getHexValue(element0.getByteArray().getAll()));
 //            System.out.println("pub in hashed bytes: "+ getHexValue(element0.getByteArray().getHashValue().getAll()));
@@ -70,7 +70,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
             //ByteArray b = ByteArray.getInstance(completeString.getBytes(this.stringCharset));
 //            System.out.println("other input: "+proverId);
 //            System.out.println("other input hashed: "+ getHexValue(b.getHashValue(hashMethod).getAll()));
-            messageHashed = Triple.getInstance(input.getAt(0), input.getAt(1), b).getHashValue(hashMethod);
+         ByteArray   messageHashed = Triple.getInstance(input.getAt(0), input.getAt(1), b).getHashValue(hashMethod);
 //            System.out.println("Complete hash: "+ getHexValue(messageHashed.getAll()));
             //messageHashed = ByteArray.getInstance(completeString.getBytes(this.stringEncoding)).getHashValue(this.hashAlgorithm);
         
@@ -139,7 +139,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
      * @param challengeSpace space containing the challenge
      * @param otherInput other stuff that must be hash with the public input and the commitment to obtain the challenge
      * @param hashMethod Hash method to use to generate the challenge
-     * @param stringCharset Charset used to convert other input string into a byte array
+     * @param stringConverter the string converter to be used ton convert otherInput into a ByteArray
      * @return a challenge generator
      */
     public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, 

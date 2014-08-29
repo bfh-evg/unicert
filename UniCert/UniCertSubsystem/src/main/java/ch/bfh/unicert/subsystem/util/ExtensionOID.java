@@ -42,9 +42,16 @@ public enum ExtensionOID {
     ROLE("1.3.6.1.4.1.13305.1.3", "role"),
     
     /**
+     * The OID representing the extension storing the language of the requester
+     */
+    LANG("1.3.6.1.4.1.13305.1.4", "language"),
+    
+    /**
      * A OID available for test
      */
     TEST("1.3.6.1.4.1.13305.1.99", "test");
+    
+    
     
     private final String OID;
     private final String name;
