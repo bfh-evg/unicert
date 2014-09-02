@@ -25,7 +25,7 @@ import ch.bfh.unicert.subsystem.exceptions.CertificateCreationException;
 public class RegistrationMock extends RegistrationBean {
 
     @Override
-    protected void postOnUniBoard(Certificate cert) throws CertificateCreationException {
+    protected void postOnUniBoard(Certificate cert, String endpointURL) throws CertificateCreationException {
         //Does nothing
     }
 

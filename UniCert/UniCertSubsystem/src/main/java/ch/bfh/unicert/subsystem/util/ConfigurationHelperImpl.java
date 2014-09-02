@@ -52,6 +52,10 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private static final Logger logger = Logger.getLogger(ConfigurationHelperImpl.class.getName());
     private String uniboardURL;
 
+    private String googleClientID;
+    private String googleClientSecret;
+    private String googleClientRedirectURI;
+    
     /**
      * Private constructor, used internally only.
      */
@@ -109,6 +113,29 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
         return uniboardURL;
     }
     
+    /**
+     * @inheritDoc
+     */
+    @Override
+    public String getGoogleClientID() {
+        return this.googleClientID;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    @Override
+    public String getGoogleClientSecret() {
+        return this.googleClientSecret;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    @Override
+    public String getGoogleRedirectURI() {
+        return this.googleClientRedirectURI;
+    }
     
 
     public void init() throws CertificateCreationException {
@@ -132,6 +159,10 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
         this.issuerId = retrieveStringProperty(props, "issuerId");
         this.uniboardURL = retrieveStringProperty(props, "uniboardURL");
         this.validityYears = retrieveIntegerProperty(props, "validityYears");
+        
+        this.googleClientID = retrieveStringProperty(props, "googleClientID");
+        this.googleClientSecret = retrieveStringProperty(props, "googleClientSecret");
+        this.googleClientRedirectURI = retrieveStringProperty(props, "googleRedirectURI");
 
         //Load keystore with private key for the manager
         if (isExternal) {
@@ -218,7 +249,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private String retrieveStringProperty(Properties props, String propertyName) {
         String propertyValue = props.getProperty(propertyName);
         if (propertyValue == null) {
-            logger.log(Level.SEVERE,
+            logger.log(Level.WARNING,
                     "Could not retrieve global JNDI property: {0}.", new Object[]{propertyName});
         } else {
             logger.log(Level.INFO,
@@ -238,7 +269,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private Integer retrieveIntegerProperty(Properties props, String propertyName) {
         String propertyValue = props.getProperty(propertyName);
         if (propertyValue == null) {
-            logger.log(Level.SEVERE,
+            logger.log(Level.WARNING,
                     "Could not retrieve global JNDI property: {0}.", new Object[]{propertyName});
         } else {
             logger.log(Level.INFO,

@@ -49,4 +49,22 @@ public interface ConfigurationHelper {
      * @return a string representation of the url
      */
     public String getUniBoardServiceURL();
+    
+    /**
+     * Returns the ClientID for Google authentication
+     * @return the ClientID for Google authentication
+     */
+    public String getGoogleClientID();
+
+    /**
+     * Returns the Client Secret for Google authentication
+     * @return the Client Secret for Google authentication
+     */
+    public String getGoogleClientSecret();
+
+    /**
+     * Returns the URI where Google must redirect after the authentication
+     * @return the URI where Google must redirect after the authentication
+     */
+    public String getGoogleRedirectURI();
 }

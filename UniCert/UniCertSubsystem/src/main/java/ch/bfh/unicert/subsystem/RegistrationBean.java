@@ -233,8 +233,12 @@ public class RegistrationBean implements Registration {
                 expiry,
                 hashedAppId,
                 role);
-
-        postOnUniBoard(cert);
+        
+        //post message on UniBoard if corresponding JNDI parameter is defined
+        if(getUniBoardServiceURL()!=null){
+            postOnUniBoard(cert, getUniBoardServiceURL());
+        }
+        
         
         return cert;
 
@@ -243,12 +247,12 @@ public class RegistrationBean implements Registration {
     /**
      * Helper method managing the publication of certificate on a UniBoard instance
      * @param cert the certificate to publish
+     * @param endpointUrl the url to access UniBoard
      * @throws CertificateCreationException if an error occured during publication
      */
-    protected void postOnUniBoard(Certificate cert) throws CertificateCreationException{
+    protected void postOnUniBoard(Certificate cert, String endpointUrl) throws CertificateCreationException{
         logger.log(Level.INFO, "Posting certificate on the UniBoard");
         
-        String endpointUrl = getUniBoardServiceURL();
         UniBoardService board;
         try {
             URL wsdlLocation = new URL(endpointUrl); 

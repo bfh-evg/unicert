@@ -291,7 +291,7 @@ public class Certificate {
             json += "\"locality\": \"" + this.locality + "\", ";
         }
         if (this.surname != null) {
-            json += "surname: \"" + this.surname + "\", ";
+            json += "\"surname\": \"" + this.surname + "\", ";
         }
         if (this.givenName != null) {
             json += "\"givenName\": \"" + this.givenName + "\", ";
