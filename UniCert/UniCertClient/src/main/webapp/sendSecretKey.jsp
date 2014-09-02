@@ -11,6 +11,8 @@
  * See terms of license at gnu.org.
  */
 --%>
+<%@page import="java.util.regex.Matcher"%>
+<%@page import="java.util.regex.Pattern"%>
 <%@page import="ch.bfh.unicert.webclient.beans.UserDataBean"%>
 <%@page import="java.util.*"%>
 <%@page import="ch.bfh.unicert.webclient.beans.LanguageDetails"%>
@@ -20,6 +22,13 @@
 <%@page import="javax.naming.*"%>
 <%@page contentType="text/javascript" pageEncoding="UTF-8"%>
 <%
+  	
+	final String EMAIL_PATTERN = "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
+		+ "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
+ 
+	Pattern pattern = Pattern.compile(EMAIL_PATTERN);
+	
+        
 	// Line break used in email
 	final String MAIL_LB = "\n";
 
@@ -37,6 +46,8 @@
 
 	// Read the secret key from the request
 	String secretKey = request.getParameter("sk");
+        String mailTo2 = request.getParameter("to");
+        String confirmationTo = mailTo;
 
 	// Configure smtp server -- see Configuration instructions.
 
@@ -68,10 +79,17 @@
 		}
 		body.append(MAIL_LB + MAIL_LB);
 
+                Address[] to = new Address[2];
+                to[0]= new InternetAddress(mailTo);
+                if(pattern.matcher(mailTo2).matches()
+                        ){
+                    to[1]= new InternetAddress(mailTo2);
+                    confirmationTo += " "+msg.getString("andText")+" "+mailTo2;
+                }
 		// Create message
 		MimeMessage message = new MimeMessage(mailSession);
 		//message.setFrom(new InternetAddress(MAIL_FROM_ADDRESS, MAIL_FROM_NAME));
-		message.setRecipient(Message.RecipientType.TO, new InternetAddress(mailTo));
+		message.setRecipients(Message.RecipientType.TO, to);
                 message.setSentDate(new Date());
 		message.setSubject(msg.getString("skMailSubject"), "UTF-8");
 		message.setText(body.toString(),"UTF-8");
@@ -80,7 +98,7 @@
 		Transport.send(message);
 
 		// Send response
-		out.println("{\"message\": \"" + msg.getString("skMailSuccess") + "\", \"to\": \"" + mailTo + "\"}");
+		out.println("{\"message\": \"" + msg.getString("skMailSuccess") + "\", \"to\": \"" + confirmationTo + "\"}");
 
 	} catch (Exception ex) {
 		response.sendError(500, ex.getMessage());

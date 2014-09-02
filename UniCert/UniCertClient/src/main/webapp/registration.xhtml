@@ -156,7 +156,10 @@
                 </div>
                 <p>#{msg.genkeysSubstep24Text}</p>
                 <div class="col2only">
-                    <button id="retreive_secretkey_bu" class="button" onclick="completeRegistration(true);">#{msg.retreiveSecretKey}</button> <span class="small">#{msg.to} #{userData.email}</span>
+                    <table>
+                        <tr><td><button id="retreive_secretkey_bu" class="button" onclick="completeRegistration(true);">#{msg.retreiveSecretKey}</button></td><td>&#160;<span class="small">#{msg.to} #{userData.email}</span></td></tr>
+                        <tr><td></td><td>&#160;<span class="small">#{msg.andText} </span><input type="text" id="alternate_mail" value="#{msg.optionalMail}"/></td></tr>
+                    </table>  
                     <c:if test="${initParam['dev-mode'] == 'true'}">
                         <br /><br/><span class="tiny">In dev-mode: <br/>if you don't have a running SMTP Server on your localhost...<br/>
                             <button class="button" onclick="completeRegistration(true);">Save Key</button></span>

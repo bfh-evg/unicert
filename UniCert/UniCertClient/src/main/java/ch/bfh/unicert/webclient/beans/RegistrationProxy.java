@@ -265,12 +265,12 @@ public class RegistrationProxy extends HttpServlet {
         } catch (IdentityFunctionNotApplicableException ex) {
             internalServerErrorHandler(response, ex.getMessage());
             logger.log(Level.SEVERE, ex.getMessage());
-//        } catch (IllegalArgumentException | UnsupportedOperationException ex) {
-//            internalServerErrorHandler(response, "130 Cryptographic error");
-//            logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
-//        } catch (Exception ex) {
-//            internalServerErrorHandler(response, "Undefined error");
-//            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
+        } catch (IllegalArgumentException | UnsupportedOperationException ex) {
+            internalServerErrorHandler(response, "130 Cryptographic error");
+            logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
+        } catch (Exception ex) {
+            internalServerErrorHandler(response, "Undefined error");
+            logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
         }
     }
 

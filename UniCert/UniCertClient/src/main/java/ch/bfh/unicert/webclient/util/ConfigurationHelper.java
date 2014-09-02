@@ -88,4 +88,6 @@ public interface ConfigurationHelper {
      */
     public int getIdentityFunctionIndex();
     
+    
+    
 }

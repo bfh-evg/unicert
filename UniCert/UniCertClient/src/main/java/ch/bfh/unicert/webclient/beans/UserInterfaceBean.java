@@ -48,7 +48,7 @@ public class UserInterfaceBean implements Serializable {
     private boolean hasMulitpleIdentityProviders = false;
     private String[] identityProviders;
 
-    
+    private ConfigurationHelper config;
     
     /**
      * Returns the property set name
@@ -71,7 +71,7 @@ public class UserInterfaceBean implements Serializable {
      * Helper method initializing the instance by reading the properties
      */
     private void loadConfig(){
-        ConfigurationHelper config;
+        
         try {
             config = new ConfigurationHelperImpl(propertySetIdentifier);
         } catch (ParametersNotFoundException ex) {
@@ -293,6 +293,12 @@ public class UserInterfaceBean implements Serializable {
         return identityProviders;
     }
     
-    
+    /**
+     * Return the configuration helper object
+     * @return the configuration helper object
+     */
+    public ConfigurationHelper getConfiguration(){
+        return this.config;
+    }
     
 }

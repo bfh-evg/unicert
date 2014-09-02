@@ -189,7 +189,7 @@ public class SwitchAAIUserData implements UserData {
 
     @Override
     public String getIdentityProvider() {
-        return this.IDENTITY_PROVIDER.toString();
+        return this.IDENTITY_PROVIDER.getKey();
     }
     
     @Override

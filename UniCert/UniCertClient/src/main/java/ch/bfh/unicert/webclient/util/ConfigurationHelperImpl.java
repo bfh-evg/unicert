@@ -38,6 +38,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private String applicationIdentifier;
     private int role;
     private int identityFunctionIndex;
+    
 
     /**
      * Create a new ConfigurationHelperImpl Object
@@ -187,4 +188,5 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     public int getIdentityFunctionIndex() {
         return this.identityFunctionIndex;
     }
+
 }

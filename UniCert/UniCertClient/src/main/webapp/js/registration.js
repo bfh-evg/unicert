@@ -133,6 +133,15 @@ function init() {
             updateKeysOptions();
         }
     }
+    
+    if(requester.idp == "SwitchAAI"){
+        elements.identity_function.remove(4);
+        elements.identity_function.remove(3);
+    } else if (requester.idp == "Google"){
+        elements.identity_function.remove(2);
+        elements.identity_function.remove(1);
+        elements.identity_function.remove(0);
+    }
 }
 
 function hasClass(element, cls) {
@@ -420,7 +429,7 @@ function retreiveSecretKeyByMail(skC, doneCb, errorCb) {
     $.ajax({
         type: "POST",
         url: 'sendSecretKey.jsp',
-        data: {sk: skC},
+        data: {sk: skC, to: document.getElementById("alternate_mail").value },
         dataType: 'json',
         success: successCb,
         error: errorCb

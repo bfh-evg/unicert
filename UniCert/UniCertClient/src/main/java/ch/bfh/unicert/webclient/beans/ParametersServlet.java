@@ -11,15 +11,12 @@
  */
 package ch.bfh.unicert.webclient.beans;
 
+import ch.bfh.unicert.subsystem.util.ConfigurationHelperImpl;
 import ch.bfh.unicert.webclient.beans.util.Google2Api;
 import ch.bfh.unicert.webclient.userdata.IdentityProvider;
 import java.io.IOException;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.faces.context.ExternalContext;
-import javax.faces.context.FacesContext;
-import javax.faces.webapp.FacesServlet;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -45,6 +42,8 @@ public class ParametersServlet extends HttpServlet {
 
     private static final String PROPERTY_SET_IDENTIFIER = "params";
     private static final String IDENTITY_PROVIDER = "idp";
+    
+    private UserInterfaceBean uiBean;
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -68,7 +67,7 @@ public class ParametersServlet extends HttpServlet {
         //Debug mode
         if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
             idp = "Google";
-            this.getUIBean(request);
+            uiBean = this.getUIBean(request);
         }
 
         //if idp is not set, this is the first time this method is called, so we get the
@@ -76,7 +75,7 @@ public class ParametersServlet extends HttpServlet {
         if (idp == null) {
             logger.log(Level.INFO, "Retrieve parameters: {0}", propertiesSetIdentifier);
 
-            UserInterfaceBean uiBean = uiBean = this.getUIBean(request);
+            uiBean = uiBean = this.getUIBean(request);
             if (propertiesSetIdentifier != null) {
                 uiBean.setParameterSetIdentifier("/unicert/" + propertiesSetIdentifier);
             } else {
@@ -124,15 +123,25 @@ public class ParametersServlet extends HttpServlet {
         if (identityProvider.equals(IdentityProvider.SWITCH_AAI.getKey())) {
             response.sendRedirect("switchaai.xhtml");
         } else if (identityProvider.equals(IdentityProvider.GOOGLE.getKey())) {
-            String CLIENT_ID = "452554920436-ek1075ugb6vtckc9acng7qo455993u9f.apps.googleusercontent.com";
-            String CLIENT_SECRET = "LvTANZRJ_PrYl-vwWsLPB83u ";
-
+            //Load general configuration (this is the Config of the subsystem, not from the client!)
+            String clientID;
+            String clientSecret;
+            String redirectUri;
+            if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
+                clientID = "452554920436-ek1075ugb6vtckc9acng7qo455993u9f.apps.googleusercontent.com";
+                clientSecret = "LvTANZRJ_PrYl-vwWsLPB83u";
+                redirectUri = "http://localhost:8080/UniCertClient/oauth2callback";
+            } else {
+                clientID = ConfigurationHelperImpl.getInstance().getGoogleClientID();
+                clientSecret = ConfigurationHelperImpl.getInstance().getGoogleClientSecret();
+                redirectUri = ConfigurationHelperImpl.getInstance().getGoogleRedirectURI();
+            }
             //Configure
             ServiceBuilder builder = new ServiceBuilder();
             OAuthService service = builder.provider(Google2Api.class)
-                    .apiKey(CLIENT_ID)
-                    .apiSecret(CLIENT_SECRET)
-                    .callback("http://localhost:8080/UniCertClient/oauth2callback")
+                    .apiKey(clientID)
+                    .apiSecret(clientSecret)
+                    .callback(redirectUri)
                     .scope("email profile") 
                     .debug()
                     .build(); //Now build the call
