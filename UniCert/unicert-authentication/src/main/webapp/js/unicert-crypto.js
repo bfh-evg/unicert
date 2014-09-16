@@ -303,13 +303,23 @@
 
             // 1. Add pre- and postfix to key
             var key = PRIVATE_KEY_PREFIX + sk + PRIVATE_KEY_POSTFIX;
+            
             // 2. Convert key into bigInt
             key = leemon.str2bigInt(key, 64, 0);
-            // 3. Seed rng with password (save current RNG temporary to not
+            
+            //3. Create a salt of exactly 128 bits
+            var salt;
+            do{
+                salt=leemon.randBigInt(128);
+            }while(leemon.bitSize(salt)!=128)
+            salt = leemon.bigInt2str(salt,64)
+                        
+            // 4. Seed rng with password and salt (save current RNG temporary to not
             // lose accumulated data for future randomness)
             var cRNG = Math.random;
-            Math.seedrandom(password);
-            // 4. Get one-time-pad and reassign old rng
+            Math.seedrandom(password+""+salt);
+            
+            // 5. Get one-time-pad and reassign old rng
             //compute the size of the pre/postfixed key
             var keyLength = leemon.bitSize(key);
             //compute the required size for one time pad, we want it to be a multiple of 16, in order
@@ -317,13 +327,14 @@
             var oneTimePadSize = keyLength+(16-keyLength%16)+PRIVATE_KEY_ONE_TIME_PAD_PREPOSTFIX_SIZE;
             var r = leemon.randBigInt(oneTimePadSize);
             Math.random = cRNG;
-            // 5. Encrypt key using one-time-pad
+            
+            // 6. Encrypt key using one-time-pad
             var keyC = leemon.xor(key, r);
-            // 6. Convert key to string with base 64
+            // 7. Convert key to string with base 64
             keyC = leemon.bigInt2str(keyC, 64);
-            // 7. Pad encrypted key with pre- and postfix
-            keyC = ENC_PRIVATE_KEY_PREFIX + '\n' + keyC + '\n' + ENC_PRIVATE_KEY_POSTFIX;
-            // 8. Return encrypted and padded key
+            // 8. Pad encrypted key with pre- and postfix and add salt
+            keyC = ENC_PRIVATE_KEY_PREFIX + '\n' + salt + keyC + '\n' + ENC_PRIVATE_KEY_POSTFIX;
+            // 9. Return encrypted and padded key
             return keyC;
         }
 
@@ -359,12 +370,17 @@
             }
 
             var keyC = match[1];
+            
+            //extract salt (128 bits => 22 base64 chars)
+            var salt = keyC.substring(0,22);
+            //salt = leemon.str2bigInt(salt, 64, 0);
+            keyC = keyC.substring(22);
 
             // 2. Decrypt key with password
             keyC = leemon.str2bigInt(keyC, 64, 0);
             // Save current RNG temporary to not lose accumulated data for future randomness
             var cRNG = Math.random;
-            Math.seedrandom(password);
+            Math.seedrandom(password+""+salt);
             //Compute the size of the pre/post fixed encrypted key
             var keyLength= leemon.bitSize(keyC) ;
             //look for a multiple of 16, since the size of the one time pad used for encryption was
@@ -375,7 +391,7 @@
             }
             
             var r = leemon.randBigInt(oneTimePadSize);
-
+            
             // Reassign old rng
             Math.random = cRNG;
             var keyP = leemon.xor(keyC, r);
