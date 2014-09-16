@@ -77,12 +77,8 @@ public class UserDataBean implements Serializable {
                 logger.log(Level.WARNING, "Initialization in 'dev-mode' done");
                 return;
         } else {
-        
-        // Determine the identity provider and fill the corresponding userData object
-        //if (requestMap.containsKey("Shib-SwissEP-UniqueID")) {
-                ud = new SwitchAAIUserData(requestMap);                    
-//        } else {
-//            logger.log(Level.SEVERE, "Shib-SwissEP-UniqueID not found, initialization not done");
+            // Determine the identity provider and fill the corresponding userData object
+            ud = new SwitchAAIUserData(requestMap);                    
         }
               
         

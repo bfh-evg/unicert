@@ -28,7 +28,7 @@ import org.scribe.oauth.OAuthService;
 
 /**
  * Servlet responsible to load JNDI properties allowing to preconfigure the
- * registration page with the already defined values
+ * certificate request page with the already defined values
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
@@ -98,6 +98,7 @@ public class ParametersServlet extends HttpServlet {
                 return;
             }
         } else {
+            //used when user clicks on a link in idpselection.xhtml
             redirectToIdp(idp, request, response);
             return;
         }
@@ -121,8 +122,10 @@ public class ParametersServlet extends HttpServlet {
         //Redirection to IDP
         logger.log(Level.INFO, "Redirect to IDP");
         if (identityProvider.equals(IdentityProvider.SWITCH_AAI.getKey())) {
+            //SWITCH AAI
             response.sendRedirect("switchaai.xhtml");
         } else if (identityProvider.equals(IdentityProvider.GOOGLE.getKey())) {
+            //GOOGLE OAUTH
             //Load general configuration (this is the Config of the subsystem, not from the client!)
             String clientID;
             String clientSecret;
@@ -191,7 +194,7 @@ public class ParametersServlet extends HttpServlet {
      */
     @Override
     public String getServletInfo() {
-        return "Servlet loading the properties needed in registration.";
+        return "Servlet loading the properties needed in certificate request.";
     }
 
     /**
@@ -206,8 +209,6 @@ public class ParametersServlet extends HttpServlet {
         HttpSession session = request.getSession();
         UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
         if (bean == null) {
-//            FacesContext context = FacesContext.getCurrentInstance();
-//            bean = (UserInterfaceBean) context.getApplication().evaluateExpressionGet(context, "#{iu}", UserInterfaceBean.class);
             bean = new UserInterfaceBean();
             session.setAttribute("ui", bean);
         }

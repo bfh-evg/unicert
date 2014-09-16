@@ -13,8 +13,8 @@ package ch.bfh.unicert.webclient.beans;
 
 import ch.bfh.unicert.issuer.Certificate;
 import ch.bfh.unicert.issuer.IdentityData;
-import ch.bfh.unicert.issuer.Registration;
-import ch.bfh.unicert.issuer.RegistrationMock;
+import ch.bfh.unicert.issuer.CertificateIssuer;
+import ch.bfh.unicert.issuer.CertificateIssuerMock;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
@@ -25,7 +25,6 @@ import ch.bfh.unicert.webclient.identityfunction.IdentityFunctionNotApplicableEx
 import ch.bfh.unicert.webclient.identityfunction.StandardGoogleIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.StandardSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.ZurichSwitchAAIIdentityFunction;
-import ch.bfh.unicert.webclient.userdata.IdentityProvider;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -41,29 +40,24 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
- * Proxy for the registration process between the UniCert subsystem and the web
+ * Proxy for the certificate issuence process between the UniCertIssuer and the web client
  * pages
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
-@WebServlet("/registration/*")
-public class RegistrationProxy extends HttpServlet {
+@WebServlet("/certificate-request/*")
+public class CertificateRequestServlet extends HttpServlet {
 
     /**
-     * The injected proxy for accessing the effective registration subsystem.
+     * The injected proxy for accessing the effective certificate issuer.
      */
     @EJB
-    private Registration regRef;
+    private CertificateIssuer issuerRef;
 
     /**
      * Property name for the development mode.
      */
     public static final String DEV_MODE = "dev-mode";
-    /**
-     * Property name for the development mode where a mock for the registration
-     * is used.
-     */
-    public static final String DEV_MODE_REGISTRATION_MOCK = "dev-mode-registration-mock";
 
     private static final String IDENTITY_FUNCTION = "identity_function";
     private static final String CRYPTO_SETUP_TYPE = "crypto_setup_type";
@@ -83,7 +77,7 @@ public class RegistrationProxy extends HttpServlet {
     /**
      * The logger this servlet uses.
      */
-    private static final Logger logger = Logger.getLogger(RegistrationProxy.class.getName());
+    private static final Logger logger = Logger.getLogger(CertificateRequestServlet.class.getName());
 
     private static final String SEPARATOR = "|";
 
@@ -102,46 +96,16 @@ public class RegistrationProxy extends HttpServlet {
         // Set character encoding of the response.
         response.setCharacterEncoding("UTF-8");
 
-//        /*
-//         *************** IDENTIFICATION MANAGEMENT ***************
-//         */
-//        logger.log(Level.SEVERE, "params " + request.getParameter("params"));
-//        //Redirection to IDP
-//        if (request.getParameter("params") != null) {
-//            logger.log(Level.INFO, "Redirect to IDP");
-//
-//            UserInterfaceBean uiBean = this.getUIBean(request);
-//            uiBean.setParameterSetIdentifier("/unicert/" + request.getParameter("params") + "/");
-//
-//            if (uiBean.getIdentityProvider().equals(IdentityProvider.SWITCH_AAI.getKey())) {
-//                response.sendRedirect("switchaai.xhtml");
-//            } else if (uiBean.getIdentityProvider().equals(IdentityProvider.GOOGLE.getKey())) {
-//                response.sendRedirect("https://accounts.google.com/o/oauth2/auth?\n"
-//                        + " client_id=424911365001.apps.googleusercontent.com&\n"
-//                        + " response_type=code&\n"
-//                        + " scope=openid%20email&\n"
-//                        + " redirect_uri=https://oa2cb.example.com/&\n"
-//                        + " state=security_token%3D138r5719ru3e1%26url%3Dhttps://oa2cb.example.com/myHome&\n"
-//                        + " login_hint=jsmith@example.com&\n"
-//                        + " openid.realm=example.com&\n"
-//                        + " hd=example.com");
-//            } else {
-//                logger.log(Level.SEVERE, "Unknown Identity provider selected");
-//                internalServerErrorHandler(response, "102 Unknown Identity provider selected");
-//            }
-//            return;
-//        }
-
         /*
          *************** CERTIFICATE GENERATION ***************
          */
         logger.log(Level.INFO, "Certificate requested");
 
-        Registration registration;
+        CertificateIssuer issuer;
         try {
-            registration = getRegistration();
+            issuer = getIssuerRef();
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Error while trying to get proxy for registration subsystem: {0}", ex.getMessage());
+            logger.log(Level.SEVERE, "Error while trying to get proxy for certificate issuer: {0}", ex.getMessage());
             internalServerErrorHandler(response, ex.getMessage());
             return;
         }
@@ -251,7 +215,7 @@ public class RegistrationProxy extends HttpServlet {
             logger.log(Level.INFO, "Asking to generate certificate");
 
             //Create the certificate
-            Certificate cert = registration.createCertificate(cs, idData, applicationIdentifier, role);
+            Certificate cert = issuer.createCertificate(cs, idData, applicationIdentifier, role);
 
             logger.log(Level.INFO, "Returning certificate");
             response.getWriter().printf(cert.toJSON());
@@ -309,33 +273,32 @@ public class RegistrationProxy extends HttpServlet {
      */
     @Override
     public String getServletInfo() {
-        return "Servlet acting as proxy for the registration subsystem.";
+        return "Servlet acting as proxy for the certificate issuer.";
     }
 
     /**
-     * Returns the reference for the registration subsystem. If faces properties
-     * 'dev-mode' and 'dev-mode-registration-mock' are true then a or the
-     * registration subsystem is returned.
+     * Returns the reference for the certificate issuer component. If faces properties
+     * 'dev-mode' is true then a mock instance is returned, otherwise the EJB injected bean is returned
      *
-     * @return a stub (proxy)
+     * @return the certificate issuer
      * @throws Exception if there is a problem
      */
-    private Registration getRegistration() throws Exception {
+    private CertificateIssuer getIssuerRef() throws Exception {
         ServletContext sc = getServletContext();
-        Registration registration;
+        CertificateIssuer issuer;
         if (Boolean.parseBoolean(sc.getInitParameter(DEV_MODE))) {
-            registration = new RegistrationMock();
-            logger.log(Level.WARNING, "Using mock proxy for registration subsystem");
+            issuer = new CertificateIssuerMock();
+            logger.log(Level.WARNING, "Using mock proxy for certificate issuer");
         } else {
-            if (regRef != null) {
-                registration = regRef;
-                logger.log(Level.INFO, "Using real proxy for registration subsystem");
+            if (issuerRef != null) {
+                issuer = issuerRef;
+                logger.log(Level.INFO, "Using real proxy for certificate issuer");
             } else {
-                logger.log(Level.SEVERE, "Reference to registration subystem not injected");
-                throw new IllegalStateException("111 Reference to registration subystem not injected");
+                logger.log(Level.SEVERE, "Reference to certificate issuer not injected");
+                throw new IllegalStateException("111 Reference to certificate issuer not injected");
             }
         }
-        return registration;
+        return issuer;
     }
 
     /**
@@ -351,8 +314,6 @@ public class RegistrationProxy extends HttpServlet {
         UserDataBean bean = ((UserDataBean) session.getAttribute("userData"));
         if (bean == null) {
             logger.log(Level.INFO, "No existing UserDataBean, creating one");
-//            FacesContext context = FacesContext.getCurrentInstance();
-//            bean = (UserDataBean) context.getApplication().evaluateExpressionGet(context, "#{userData}", UserDataBean.class);
             bean = new UserDataBean();
             session.setAttribute("userData", bean);
         }
@@ -364,8 +325,6 @@ public class RegistrationProxy extends HttpServlet {
         UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
         if (bean == null) {
             logger.log(Level.INFO, "No existing UserInterfaceBean, creating one");
-//            FacesContext context = FacesContext.getCurrentInstance();
-//            bean = (UserInterfaceBean) context.getApplication().evaluateExpressionGet(context, "#{iu}", UserInterfaceBean.class);
             bean = new UserInterfaceBean();
             session.setAttribute("ui", bean);
         }

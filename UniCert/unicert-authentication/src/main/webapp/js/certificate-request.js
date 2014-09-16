@@ -9,7 +9,7 @@
  * Distributable under GPL license.
  * See terms of license at gnu.org.
  *
- * This file contains the registration page specific JS.
+ * This file contains the certificate request page specific JS.
  *
  */
 
@@ -275,7 +275,7 @@ function checkPasswords() {
 
 
 /**
- * Completes the registration. (1) Computes verification key proof,
+ * Completes the certificate request. (1) Computes verification key proof,
  * (2) sends verification key to the CA and in response get the certificate
  * and finally (3) the secret key is handed out to the voter either by
  * file download or by mail.
@@ -283,7 +283,7 @@ function checkPasswords() {
  *  @param byMail - If true, the secret key is passed by mail, otherwise by
  *  file download to the voter.
  */
-function completeRegistration(byMail) {
+function completeCertRequest(byMail) {
 
     byMail = byMail || false;
     var pw = elements.password.value;
@@ -368,7 +368,6 @@ function completeRegistration(byMail) {
     // Done callback of verification key proof computation for DLog
     var computeProofDoneCb = function(proof) {
         // (2) Send verification key to CA and get the certificate
-        //TODO also sent cs type here since used in signature
         ucCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
                 elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     }
@@ -377,7 +376,6 @@ function completeRegistration(byMail) {
     var computeSignatureDoneCb = function(signature) {
 
         // (2) Send verification key to CA and get the certificate
-        //TODO also sent cs type here since used in signature
         ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, leemon.bigInt2str(signature, 10),
                 elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     }

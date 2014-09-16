@@ -16,8 +16,8 @@ import javax.faces.bean.ManagedBean;
 import javax.faces.bean.SessionScoped;
 
 /**
- * This class represents a Bean storing the predefined values for the registration process
- * 
+ * This class represents a Bean storing the predefined values
+ * in the certificate request page
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 @ManagedBean(name = "ui")
@@ -76,7 +76,7 @@ public class UserInterfaceBean implements Serializable {
             config = new ConfigurationHelperImpl(propertySetIdentifier);
         } catch (ParametersNotFoundException ex) {
             logger.log(Level.SEVERE,
-                    "Could not initialize configuration helper for registration subsystem, exception: {0}",
+                    "Could not initialize configuration helper for authentication component, exception: {0}",
                     new Object[]{ex});
             this.initialized = false;
             return;
@@ -128,7 +128,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the keyType field must be shown in registration page
+     * Indicate if the keyType field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showKeyTypeField() {
@@ -147,7 +147,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the keySize field must be shown in registration page
+     * Indicate if the keySize field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showKeySizeField() {
@@ -163,7 +163,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the primeP field must be shown in registration page
+     * Indicate if the primeP field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showPrimePField() {
@@ -179,7 +179,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the primeQ field must be shown in registration page
+     * Indicate if the primeQ field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showPrimeQField() {
@@ -195,7 +195,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the generator field must be shown in registration page
+     * Indicate if the generator field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showGeneratorField() {
@@ -211,7 +211,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the application identifier field must be shown in registration page
+     * Indicate if the application identifier field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showApplicationIdentifierField() {
@@ -233,7 +233,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the role field must be shown in registration page
+     * Indicate if the role field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showRoleField() {
@@ -254,7 +254,7 @@ public class UserInterfaceBean implements Serializable {
     }
 
     /**
-     * Indicate if the identityFunction field must be shown in registration page
+     * Indicate if the identityFunction field must be shown in certificate request page
      * @return true if it must be shown, false otherwise
      */
     public boolean showIdentityFunctionIndexField() {

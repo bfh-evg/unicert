@@ -10,7 +10,7 @@
  * See terms of license at gnu.org.
  *
  * The certificate authority (CA) object. It manages the communication with
- * the CA on the server side, mainly for registration.
+ * the CA on the server side, mainly for certificate request.
  * 
  */
 
@@ -38,7 +38,7 @@
 
         // Url of the CA
         window.ucConfig = window.ucConfig || {};
-        var URL_CERTIFICATE_AUTHORITY = ucConfig.URL_CERTIFICATE_AUTHORITY || "/unicert-authentication/registration/";
+        var URL_CERTIFICATE_AUTHORITY = ucConfig.URL_CERTIFICATE_AUTHORITY || "/unicert-authentication/certificate-request/";
 
         /**
          * Creates an RSA certificate by sending (asynchronously) the verification key 

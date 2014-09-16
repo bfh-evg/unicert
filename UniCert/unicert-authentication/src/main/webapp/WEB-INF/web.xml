@@ -8,32 +8,27 @@
         <param-name>com.sun.faces.autoCompleteOffOnViewState</param-name>
         <param-value>false</param-value>
     </context-param>
-
     <context-param>
         <param-name>dev-mode</param-name>
-		<param-value>false</param-value>	
+        <param-value>false</param-value>
     </context-param>
-    
     <servlet>
         <servlet-name>Faces Servlet</servlet-name>
         <servlet-class>javax.faces.webapp.FacesServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
-    
     <servlet>
-        <servlet-name>RegistrationProxy</servlet-name>
-        <servlet-class>ch.bfh.unicert.webclient.beans.RegistrationProxy</servlet-class>
+        <servlet-name>CertificateRequestServlet</servlet-name>
+        <servlet-class>ch.bfh.unicert.webclient.beans.CertificateRequestServlet</servlet-class>
     </servlet>
     <servlet>
         <servlet-name>ParametersServlet</servlet-name>
         <servlet-class>ch.bfh.unicert.webclient.beans.ParametersServlet</servlet-class>
     </servlet>
-    
     <servlet-mapping>
         <servlet-name>Faces Servlet</servlet-name>
         <url-pattern>*.xhtml</url-pattern>
     </servlet-mapping>
-    
     <session-config>
         <session-timeout>
             30
@@ -42,5 +37,4 @@
     <welcome-file-list>
         <welcome-file>index.xhtml</welcome-file>
     </welcome-file-list>
-
 </web-app>

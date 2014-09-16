@@ -9,9 +9,8 @@
  * Distributable under GPL license.
  * See terms of license at gnu.org.
  */
-package ch.bfh.unicert.webclient.beans.util;
+package ch.bfh.unicert.webclient.beans;
 
-import ch.bfh.unicert.webclient.beans.UserDataBean;
 import ch.bfh.unicert.webclient.userdata.GoogleUserData;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.ByteArrayInputStream;
@@ -73,13 +72,12 @@ public class OAuth2CallbackServlet extends HttpServlet {
         JsonReader reader = Json.createReader(new ByteArrayInputStream(
                 oResp.getBody().getBytes()));
         JsonObject profile = reader.readObject();
-        System.out.println("profile "+profile);
         UserData ud = new GoogleUserData(profile.getString("id"), profile.getString("email"), profile.getBoolean("verified_email"),
             profile.getString("name"), profile.getString("given_name"), profile.getString("family_name"), profile.getString("locale"), profile.getString("hd"));
         this.getUserDataBean(req).setUserData(ud);
         
         try {
-            resp.sendRedirect("registration.xhtml");
+            resp.sendRedirect("certificate-request.xhtml");
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Unable to redirect after successful Google login: {0}", ex);
             try {

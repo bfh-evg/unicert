@@ -62,8 +62,8 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
             props = (Properties) ic.lookup(propertySetName);
 
         } catch (NamingException ex) {
-            logger.log(Level.SEVERE, "JNDI lookup for 'registrationProps' failed. Exception: {0}",
-                    new Object[]{ex});
+            logger.log(Level.SEVERE, "JNDI lookup for '{0}' failed. Exception: {1}",
+                    new Object[]{propertySetName,ex});
             throw new ParametersNotFoundException("Fail to load configuration");
         }
 

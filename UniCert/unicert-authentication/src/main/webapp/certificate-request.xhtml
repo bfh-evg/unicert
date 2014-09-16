@@ -26,12 +26,12 @@
         <script type="text/javascript" src="js/unicert-random.js"></script>
         <script type="text/javascript" src="js/unicert-ca.js"></script>
         <script type="text/javascript" src="js/unicert-crypto.js"></script>
-        <script type="text/javascript" src="js/registration.js"></script>
+        <script type="text/javascript" src="js/certificate-request.js"></script>
     </ui:define>
 
     <ui:define name="header">
        
-        <h2 class="center">#{msg.registration}</h2>
+        <h2 class="center">#{msg.certrequest}</h2>
 
         <form name="properties">
             <input type="hidden" id="requester-id" value="#{userData.uniqueIdentifier}" />
@@ -134,6 +134,7 @@
                             <option value="1" selected="#{ui.role==1? 'selected' : ''}">#{msg.voterCert}</option> 
                             <option value="2" selected="#{ui.role==2? 'selected' : ''}">#{msg.tallierCert}</option> 
                             <option value="3" selected="#{ui.role==3? 'selected' : ''}">#{msg.mixerCert}</option> 
+                            <option value="4" selected="#{ui.role==4? 'selected' : ''}">#{msg.electionAdminCert}</option> 
                         </select>
                     </div>
                 </div>
@@ -157,12 +158,12 @@
                 <p>#{msg.genkeysSubstep24Text}</p>
                 <div class="col2only">
                     <table>
-                        <tr><td><button id="retreive_secretkey_bu" class="button" onclick="completeRegistration(true);">#{msg.retreiveSecretKey}</button></td><td>&#160;<span class="small">#{msg.to} #{userData.email}</span></td></tr>
+                        <tr><td><button id="retreive_secretkey_bu" class="button" onclick="completeCertRequest(true);">#{msg.retreiveSecretKey}</button></td><td>&#160;<span class="small">#{msg.to} #{userData.email}</span></td></tr>
                         <tr><td></td><td>&#160;<span class="small">#{msg.andText} </span><input type="text" id="alternate_mail" value="#{msg.optionalMail}"/></td></tr>
                     </table>  
                     <c:if test="${initParam['dev-mode'] == 'true'}">
                         <br /><br/><span class="tiny">In dev-mode: <br/>if you don't have a running SMTP Server on your localhost...<br/>
-                            <button class="button" onclick="completeRegistration(true);">Save Key</button></span>
+                            <button class="button" onclick="completeCertRequest(true);">Save Key</button></span>
                     </c:if>
                 </div>
             </div>
