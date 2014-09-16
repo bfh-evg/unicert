@@ -6,13 +6,13 @@ package ch.bfh.unicert.subsystem;
  * and open the template in the editor.
  */
 import ch.bfh.unicert.issuer.Certificate;
-import ch.bfh.unicert.issuer.RegistrationMock;
+import ch.bfh.unicert.issuer.CertificateIssuerMock;
 import ch.bfh.unicert.issuer.IdentityData;
-import ch.bfh.unicert.issuer.Registration;
+import ch.bfh.unicert.issuer.CertificateIssuer;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
-import ch.bfh.unicert.issuer.cryptography.SigmaChallengeGenerator;
+import ch.bfh.unicert.issuer.cryptography.FiatShamirChallengeGenerator;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 import ch.bfh.unicert.issuer.util.CertificateHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelper;
@@ -66,11 +66,11 @@ import sun.security.rsa.RSAPublicKeyImpl;
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 @RunWith(Arquillian.class)
-public class RegistrationBeanTest {
+public class CertificateIssuerBeanTest {
 
     private static BigInteger p = new BigInteger("24421817481307177449647246484681681783337829412862177682538435312071281569646025606745584903210775224457523457768723824442724616998787110952108654428565400454402598245210227144929556256697593550903247924055714937916514526166092438066936693296218391429342957961400667273342778842895486447440287639065428393782477303395870298962805975752198304889507138990179204870133839847367098792875574662446712567387387134946911523722735147628746206081844500879809860996360597720571611720620174658556850893276934140542331691801045622505813030592119908356317756153773900818965668280464355085745552657819811997912683349698802670648319");
 
-    public RegistrationBeanTest() {
+    public CertificateIssuerBeanTest() {
     }
 
     /**
@@ -81,7 +81,7 @@ public class RegistrationBeanTest {
     @Deployment
     public static JavaArchive createDeployment() {
         JavaArchive ja = ShrinkWrap.create(JavaArchive.class)
-                .addPackage(Registration.class.getPackage())
+                .addPackage(CertificateIssuer.class.getPackage())
                 .addPackage(CryptographicSetup.class.getPackage())
                 .addPackage(CertificateCreationException.class.getPackage())
                 .addPackage(ConfigurationHelper.class.getPackage())
@@ -91,9 +91,9 @@ public class RegistrationBeanTest {
     }
 
     /**
-     * The injected reference to a subclass of the registration bean.
+     * The injected reference to a subclass of the certificate issuer bean.
      */
-    private static Registration registration;
+    private static CertificateIssuer issuer;
 
     @BeforeClass
     public static void setUpClass() {
@@ -107,9 +107,9 @@ public class RegistrationBeanTest {
     @Before
     public void setUp() {
         try {
-            registration = getRegistration();
+            issuer = getCertificateIssuer();
         } catch (Exception ex) {
-            Logger.getLogger(RegistrationBeanTest.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(CertificateIssuerBeanTest.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -118,13 +118,13 @@ public class RegistrationBeanTest {
     }
 
     /**
-     * Demonstrates that we get a non-null reference to the registration.
+     * Demonstrates that we get a non-null reference to the issuer.
      *
      * @throws Exception if there is an error
      */
     @Test
-    public void testAssertReferenceToRegistrationBean() throws Exception {
-        assertNotNull(registration);
+    public void testAssertReferenceToIssuerBean() throws Exception {
+        assertNotNull(issuer);
     }
 
     /**
@@ -159,7 +159,7 @@ public class RegistrationBeanTest {
         StringElement message = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII).getElement(originalMessage);
 
         Function func = GeneratorFunction.getInstance(g);
-        SigmaChallengeGenerator scg = SigmaChallengeGenerator.getInstance(G_q, G_q, Z.getInstance(), originalMessage);
+        FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(G_q, G_q, Z.getInstance(), originalMessage);
         PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
 
         Triple proof = pips.generate(x, y);
@@ -170,7 +170,7 @@ public class RegistrationBeanTest {
         String applicationId = "testUniCert";
         int role = 1;
 
-        Certificate cert = registration.createCertificate(dls, idData, applicationId, role);
+        Certificate cert = issuer.createCertificate(dls, idData, applicationId, role);
 
         assertEquals(idData.getCommonName(), cert.getCommonName());
         assertEquals(idData.getUniqueIdentifier(), cert.getUniqueIdentifier());
@@ -259,7 +259,7 @@ public class RegistrationBeanTest {
         String applicationId = "testUniCert";
         int role = 1;
 
-        Certificate cert = registration.createCertificate(rs, idData, applicationId, role);
+        Certificate cert = issuer.createCertificate(rs, idData, applicationId, role);
 
         assertEquals(idData.getCommonName(), cert.getCommonName());
         assertEquals(idData.getUniqueIdentifier(), cert.getUniqueIdentifier());
@@ -294,14 +294,13 @@ public class RegistrationBeanTest {
     }
 
     /**
-     * Returns the registration stub (or a mock).
+     * Returns the issuer stub (or a mock).
      * <p>
-     * TODO Flexibility not yet implemented.
      *
-     * @return a stub for a registration
+     * @return a stub for a issuer
      * @throws Exception if there is an error
      */
-    protected Registration getRegistration() throws Exception {
-        return new RegistrationMock();
+    protected CertificateIssuer getCertificateIssuer() throws Exception {
+        return new CertificateIssuerMock();
     }
 }

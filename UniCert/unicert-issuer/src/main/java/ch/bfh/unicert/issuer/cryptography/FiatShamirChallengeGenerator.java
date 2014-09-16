@@ -37,13 +37,13 @@ import java.nio.charset.Charset;
  * this class uses a hash function to compute the challenge.
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
-public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
+public class FiatShamirChallengeGenerator extends AbstractSigmaChallengeGenerator {
 
     private final String otherInput;
     private final HashMethod hashMethod;
     private final StringConverter stringConverter;
 
-    protected SigmaChallengeGenerator(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, 
+    protected FiatShamirChallengeGenerator(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, 
             String otherInput, HashMethod hashMethod, StringConverter stringConverter) {
         super(publicInputSpace, commitmentSpace, challengeSpace);
         this.otherInput = otherInput;
@@ -53,7 +53,7 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
 
     @Override
     protected ZElement abstractGenerate(Pair input) {
-        //TODO remove
+        //TODO remove and Move
 //        Element element0 = input.getAt(0);
 //        Element element1 = input.getAt(1);
 
@@ -117,8 +117,8 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
      * @param otherInput other stuff that must be hash with the public input and the commitment to obtain the challenge
      * @return a challenge generator
      */
-    public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, String otherInput){
-        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput,
+    public static FiatShamirChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, Z challengeSpace, String otherInput){
+        return new FiatShamirChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput,
             HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), StringConverter.getInstance(Charset.forName("UTF-8")));
     }
 
@@ -142,8 +142,8 @@ public class SigmaChallengeGenerator extends AbstractSigmaChallengeGenerator {
      * @param stringConverter the string converter to be used ton convert otherInput into a ByteArray
      * @return a challenge generator
      */
-    public static SigmaChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, 
+    public static FiatShamirChallengeGenerator getInstance(Set publicInputSpace, SemiGroup commitmentSpace, 
             Z challengeSpace, String otherInput, HashMethod hashMethod, StringConverter stringConverter){
-        return new SigmaChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput, hashMethod, stringConverter );
+        return new FiatShamirChallengeGenerator(publicInputSpace, commitmentSpace, challengeSpace, otherInput, hashMethod, stringConverter );
     }
 }

@@ -13,12 +13,11 @@ package ch.bfh.unicert.issuer;
 
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
-import java.math.BigInteger;
 import javax.ejb.Local;
 
 /**
- * This interface defines the operation supported by the registration
- * system as seen from the registration proxy.
+ * This interface defines the operation supported by the certificate issuer
+ * as seen from the CertificateRequestServlet.
  * <p>
  * Operations returning data return an object that can be converted to JSON format
  *
@@ -26,17 +25,14 @@ import javax.ejb.Local;
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 @Local
-public interface Registration {
+public interface CertificateIssuer {
     
     /**
      * Request a certificate providing the necessary information
      * @param cs Cryptographic setup corresponding to the type of certificate wanted (DSA, RSA)
-     * @param publicKey the public key to certify
      * @param idData identity information over the requester
      * @param applicationIdentifier identifier of the application the certificate is issued for
      * @param role role the certificate is issued for
-     * @param signature signature or proof of knowledge of the private
-     * @param originalMessage message that was originally signed
      * @return a Certificate object containing the X509 certificate
      * @throws CertificateCreationException if the certificate could not be created
      */

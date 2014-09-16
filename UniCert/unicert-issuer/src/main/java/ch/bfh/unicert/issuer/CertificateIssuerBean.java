@@ -19,7 +19,7 @@ import ch.bfh.uniboard.data.StringValueDTO;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
-import ch.bfh.unicert.issuer.cryptography.SigmaChallengeGenerator;
+import ch.bfh.unicert.issuer.cryptography.FiatShamirChallengeGenerator;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 import ch.bfh.unicert.issuer.util.CertificateHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelper;
@@ -108,8 +108,8 @@ import sun.security.provider.DSAPublicKeyImpl;
 import sun.security.rsa.RSAPublicKeyImpl;
 
 /**
- * Implements the registration service used by the registration proxy of the
- * unicert client. Upon request constructs a certificate for the requestor and
+ * Implements the certificate issuence service used by the authentication component of the
+ * unicert webclient. Upon request constructs a certificate for the requestor and
  * returns it
  *
  * @author Eric Dubuis &lt;eric.dubuis@bfh.ch&gt;
@@ -118,12 +118,12 @@ import sun.security.rsa.RSAPublicKeyImpl;
  */
 @Stateless
 @Startup
-public class RegistrationBean implements Registration {
+public class CertificateIssuerBean implements CertificateIssuer {
 
     private static final int MIN_RSA_SIZE = 1010;
     private static final int MIN_DLOG_SIZE = 1010;
 
-    private static final Logger logger = Logger.getLogger(RegistrationBean.class.getName());
+    private static final Logger logger = Logger.getLogger(CertificateIssuerBean.class.getName());
 
     @Override
     public Certificate createCertificate(CryptographicSetup cs, IdentityData idData, String applicationIdentifier, int role)
@@ -191,7 +191,7 @@ public class RegistrationBean implements Registration {
             
             Function func = GeneratorFunction.getInstance(setup.getGenerator());
             
-            SigmaChallengeGenerator scg = SigmaChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(), Z.getInstance(), setup.getProofOtherInput(),
+            FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(), Z.getInstance(), setup.getProofOtherInput(),
                     HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), StringConverter.getInstance(Charset.forName("UTF-8")));
             PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
 
@@ -266,6 +266,7 @@ public class RegistrationBean implements Registration {
             throw new CertificateCreationException("230 Unable to connect to UniBoard to publish certificate");
         }
 
+        //TODO add signature and authorization
         List<AttributeDTO> attributes = new ArrayList();
         attributes.add(new AttributeDTO("section", new StringValueDTO("unicert")));
         attributes.add(new AttributeDTO("group", new StringValueDTO("certificate")));
@@ -290,7 +291,7 @@ public class RegistrationBean implements Registration {
      *
      * @param publicKey the value for the public key
      * @return the DSA object representing the DSA public key
-     * @throws RegistrationException if there is an error
+     * @throws CertificateCreationException if there is an error
      */
     private DSAPublicKey createDSAPublicKey(BigInteger publicKey, BigInteger p, BigInteger q, BigInteger g) throws CertificateCreationException {
         DSAPublicKey dpk;
@@ -345,7 +346,7 @@ public class RegistrationBean implements Registration {
      * Retrieves and returns the certificate of the issuer.
      *
      * @return the issuer certificate
-     * @throws RegistrationException if there is an error
+     * @throws CertificateCreationException if there is an error
      */
     private X509Certificate getIssuerCertificate() throws CertificateCreationException {
         return getConfigurationHelper().getIssuerCertificate();
@@ -375,7 +376,7 @@ public class RegistrationBean implements Registration {
      *
      * @param rsaPrivKey a RSA private key
      * @return the cipher parameters
-     * @throws RegistrationException if there is an error
+     * @throws CertificateCreationException if there is an error
      */
     private RSAPrivateCrtKeyParameters createIssuerCipherParams(RSAPrivateCrtKey rsaPrivKey)
             throws CertificateCreationException {

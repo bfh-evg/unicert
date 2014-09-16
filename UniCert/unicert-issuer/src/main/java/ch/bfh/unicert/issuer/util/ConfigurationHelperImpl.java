@@ -74,7 +74,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
                 instance.init();
             } catch (CertificateCreationException ex) {
                 logger.log(Level.SEVERE,
-                        "Could not initialize configuration helper for registration subsystem, exception: {0}",
+                        "Could not initialize configuration helper for issuer component, exception: {0}",
                         new Object[]{ex});
             }
         }
@@ -145,7 +145,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
             props = (Properties) ic.lookup("unicertProps");
 
         } catch (NamingException ex) {
-            logger.log(Level.SEVERE, "JNDI lookup for 'registrationProps' failed. Exception: {0}",
+            logger.log(Level.SEVERE, "JNDI lookup for 'unicertProps' failed. Exception: {0}",
                     new Object[]{ex});
             throw new CertificateCreationException("200 Fail to load configuration");
         }
@@ -202,7 +202,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
                 throw new CertificateCreationException("200 Failed to load keystore");
             }
 
-            // retrieve certificate of CA / registration subsystem.
+            // retrieve certificate of CA / issuer component.
             try {
                 this.certificate = (X509Certificate) caKs.getCertificate(issuerId);
             } catch (KeyStoreException ex) {

@@ -11,7 +11,7 @@
  */
 package ch.bfh.unicert.issuer.cryptography;
 
-import ch.bfh.unicert.issuer.RegistrationBean;
+import ch.bfh.unicert.issuer.CertificateIssuerBean;
 import ch.bfh.unicrypt.helper.factorization.Prime;
 import ch.bfh.unicrypt.helper.factorization.SafePrime;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;

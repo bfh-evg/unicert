@@ -12,17 +12,17 @@
 package ch.bfh.unicert.issuer;
 
 import ch.bfh.unicert.issuer.Certificate;
-import ch.bfh.unicert.issuer.RegistrationBean;
+import ch.bfh.unicert.issuer.CertificateIssuerBean;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 
 /**
- * Mock class for the Registration bean used for unit testing
+ * Mock class for the certificate issuer bean used for unit testing
  * 
  * This class overrides the method posting the certificate on the board, since this
  * feature is not available in local test
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
-public class RegistrationMock extends RegistrationBean {
+public class CertificateIssuerMock extends CertificateIssuerBean {
 
     @Override
     protected void postOnUniBoard(Certificate cert, String endpointURL) throws CertificateCreationException {
