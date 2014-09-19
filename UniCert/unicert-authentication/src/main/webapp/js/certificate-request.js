@@ -200,7 +200,7 @@ function generateKeyPair() {
         
     };
 
-    // Done callback of verification key computation
+    // Done callback of keys computation
     var doneCbRSA = function(keys) {
 
         secretKey = keys[0];
@@ -374,6 +374,7 @@ function completeCertRequest(byMail) {
 
     // Done callback of verification key signature computation for RSA
     var computeSignatureDoneCb = function(signature) {
+        console.log("sig: "+leemon.bigInt2str(signature,10));
 
         // (2) Send verification key to CA and get the certificate
         ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, leemon.bigInt2str(signature, 10),
@@ -427,7 +428,7 @@ function retreiveSecretKeyByMail(skC, doneCb, errorCb) {
     $.ajax({
         type: "POST",
         url: 'sendSecretKey.jsp',
-        data: {sk: skC, to: document.getElementById("alternate_mail").value },
+        data: {sk: skC, to: document.getElementById("alternate_mail").value, appid: elements.application.value, role: elements.role.value, idp: requester.idp, pem: certificate.pem},
         dataType: 'json',
         success: successCb,
         error: errorCb

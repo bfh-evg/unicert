@@ -72,8 +72,14 @@ public class OAuth2CallbackServlet extends HttpServlet {
         JsonReader reader = Json.createReader(new ByteArrayInputStream(
                 oResp.getBody().getBytes()));
         JsonObject profile = reader.readObject();
+        if(profile == null){
+            logger.log(Level.SEVERE, "Google login failed: profile is null");
+            internalServerErrorHandler(resp, "Google login failed");
+            return;
+        }
+                
         UserData ud = new GoogleUserData(profile.getString("id"), profile.getString("email"), profile.getBoolean("verified_email"),
-            profile.getString("name"), profile.getString("given_name"), profile.getString("family_name"), profile.getString("locale"), profile.getString("hd"));
+            profile.getString("name"), profile.getString("given_name"), profile.getString("family_name"), profile.getString("locale"), null);
         this.getUserDataBean(req).setUserData(ud);
         
         try {

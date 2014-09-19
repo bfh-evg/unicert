@@ -27,8 +27,8 @@ import org.scribe.builder.ServiceBuilder;
 import org.scribe.oauth.OAuthService;
 
 /**
- * Servlet responsible to load JNDI properties allowing to preconfigure the
- * certificate request page with the already defined values
+ * Servlet responsible to load JNDI properties allowing to preconfigure the certificate request page with the already
+ * defined values
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
@@ -42,12 +42,11 @@ public class ParametersServlet extends HttpServlet {
 
     private static final String PROPERTY_SET_IDENTIFIER = "params";
     private static final String IDENTITY_PROVIDER = "idp";
-    
+
     private UserInterfaceBean uiBean;
 
     /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
+     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      *
      * @param request servlet request
      * @param response servlet response
@@ -55,53 +54,52 @@ public class ParametersServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+	    throws ServletException, IOException {
 
-        // Set character encoding of the response.
-        response.setCharacterEncoding("UTF-8");
+	// Set character encoding of the response.
+	response.setCharacterEncoding("UTF-8");
 
-        //Retrieves properties set
-        String propertiesSetIdentifier = request.getParameter(PROPERTY_SET_IDENTIFIER);
-        String idp = request.getParameter(IDENTITY_PROVIDER);
+	//Retrieves properties set
+	String propertiesSetIdentifier = request.getParameter(PROPERTY_SET_IDENTIFIER);
+	String idp = request.getParameter(IDENTITY_PROVIDER);
 
-        //Debug mode
-        if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
-            idp = "Google";
-            uiBean = this.getUIBean(request);
-        }
+	//Debug mode
+//	if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
+//	    idp = "SwitchAAI";
+//	    uiBean = this.getUIBean(request);
+//	}
+	//if idp is not set, this is the first time this method is called, so we get the
+	//JNDI properties
+	if (idp == null) {
+	    logger.log(Level.INFO, "Retrieve parameters: {0}", propertiesSetIdentifier);
 
-        //if idp is not set, this is the first time this method is called, so we get the
-        //JNDI properties
-        if (idp == null) {
-            logger.log(Level.INFO, "Retrieve parameters: {0}", propertiesSetIdentifier);
+	    uiBean = uiBean = this.getUIBean(request);
+	    if (propertiesSetIdentifier != null) {
+		uiBean.setParameterSetIdentifier("/unicert/" + propertiesSetIdentifier);
+	    } else {
+		uiBean.setParameterSetIdentifier("/unicert/default");
+	    }
 
-            uiBean = uiBean = this.getUIBean(request);
-            if (propertiesSetIdentifier != null) {
-                uiBean.setParameterSetIdentifier("/unicert/" + propertiesSetIdentifier);
-            } else {
-                uiBean.setParameterSetIdentifier("/unicert/default");
-            }
+	    if (!uiBean.isInitialized()) {
+		logger.log(Level.SEVERE, "Unable to load properties set");
+		internalServerErrorHandler(response, "Unable to load properties set");
+		return;
+	    }
 
-            if (!uiBean.isInitialized()) {
-                logger.log(Level.SEVERE, "Unable to load properties set");
-                internalServerErrorHandler(response, "Unable to load properties set");
-                return;
-            }
-
-            //Redirection to identity provider
-            if (!uiBean.hasMulitpleIdentityProviders()) {
-                redirectToIdp(uiBean.getIdentityProvider(), request, response);
-                return;
-            } else {
-                //if multiple identity providers are supported we show a selection page
-                response.sendRedirect("idpselection.xhtml");
-                return;
-            }
-        } else {
-            //used when user clicks on a link in idpselection.xhtml
-            redirectToIdp(idp, request, response);
-            return;
-        }
+	    //Redirection to identity provider
+	    if (!uiBean.hasMulitpleIdentityProviders()) {
+		redirectToIdp(uiBean.getIdentityProvider(), request, response);
+		return;
+	    } else {
+		//if multiple identity providers are supported we show a selection page
+		response.sendRedirect("idpselection.xhtml");
+		return;
+	    }
+	} else {
+	    //used when user clicks on a link in idpselection.xhtml
+	    redirectToIdp(idp, request, response);
+	    return;
+	}
 
     }
 
@@ -112,51 +110,52 @@ public class ParametersServlet extends HttpServlet {
      * @param response servlet respons
      * @throws IOException if an I/O Exception occurs
      */
-    private void redirectToIdp(String identityProvider, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (identityProvider == null) {
-            logger.log(Level.SEVERE, "Identity provider not set");
-            internalServerErrorHandler(response, "Identity provider not set");
-            return;
-        }
+    private void redirectToIdp(String identityProvider, HttpServletRequest request, HttpServletResponse response) throws
+	    IOException {
+	if (identityProvider == null) {
+	    logger.log(Level.SEVERE, "Identity provider not set");
+	    internalServerErrorHandler(response, "Identity provider not set");
+	    return;
+	}
 
-        //Redirection to IDP
-        logger.log(Level.INFO, "Redirect to IDP");
-        if (identityProvider.equals(IdentityProvider.SWITCH_AAI.getKey())) {
-            //SWITCH AAI
-            response.sendRedirect("switchaai.xhtml");
-        } else if (identityProvider.equals(IdentityProvider.GOOGLE.getKey())) {
-            //GOOGLE OAUTH
-            //Load general configuration (this is the Config of the subsystem, not from the client!)
-            String clientID;
-            String clientSecret;
-            String redirectUri;
-            if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
-                clientID = "452554920436-ek1075ugb6vtckc9acng7qo455993u9f.apps.googleusercontent.com";
-                clientSecret = "LvTANZRJ_PrYl-vwWsLPB83u";
-                redirectUri = "http://localhost:8080/unicert-authentication/oauth2callback";
-            } else {
-                clientID = ConfigurationHelperImpl.getInstance().getGoogleClientID();
-                clientSecret = ConfigurationHelperImpl.getInstance().getGoogleClientSecret();
-                redirectUri = ConfigurationHelperImpl.getInstance().getGoogleRedirectURI();
-            }
-            //Configure
-            ServiceBuilder builder = new ServiceBuilder();
-            OAuthService service = builder.provider(Google2Api.class)
-                    .apiKey(clientID)
-                    .apiSecret(clientSecret)
-                    .callback(redirectUri)
-                    .scope("email profile") 
-                    .debug()
-                    .build(); //Now build the call
+	//Redirection to IDP
+	logger.log(Level.INFO, "Redirect to IDP");
+	if (identityProvider.equals(IdentityProvider.SWITCH_AAI.getKey())) {
+	    //SWITCH AAI
+	    response.sendRedirect("switchaai.xhtml");
+	} else if (identityProvider.equals(IdentityProvider.GOOGLE.getKey())) {
+	    //GOOGLE OAUTH
+	    //Load general configuration (this is the Config of the subsystem, not from the client!)
+	    String clientID;
+	    String clientSecret;
+	    String redirectUri;
+	    if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
+		clientID = "176426429385-8m2uv9d3o62nmnsf338000g0m1bakave.apps.googleusercontent.com";//452554920436-ek1075ugb6vtckc9acng7qo455993u9f.apps.googleusercontent.com";
+		clientSecret = "hdK91UZQXwjreMZo3_xnQaWu ";//"LvTANZRJ_PrYl-vwWsLPB83u";
+		redirectUri = "http://localhost:8080/unicert-authentication/oauth2callback";
+	    } else {
+		clientID = ConfigurationHelperImpl.getInstance().getGoogleClientID();
+		clientSecret = ConfigurationHelperImpl.getInstance().getGoogleClientSecret();
+		redirectUri = ConfigurationHelperImpl.getInstance().getGoogleRedirectURI();
+	    }
+	    //Configure
+	    ServiceBuilder builder = new ServiceBuilder();
+	    OAuthService service = builder.provider(Google2Api.class)
+		    .apiKey(clientID)
+		    .apiSecret(clientSecret)
+		    .callback(redirectUri)
+		    .scope("email profile")
+		    .debug()
+		    .build(); //Now build the call
 
-            HttpSession sess = request.getSession();
-            sess.setAttribute("oauth2Service", service);
+	    HttpSession sess = request.getSession();
+	    sess.setAttribute("oauth2Service", service);
 
-            response.sendRedirect(service.getAuthorizationUrl(null));
-        } else {
-            logger.log(Level.SEVERE, "Unknown Identity provider");
-            internalServerErrorHandler(response, "Unknown Identity provider selected");
-        }
+	    response.sendRedirect(service.getAuthorizationUrl(null));
+	} else {
+	    logger.log(Level.SEVERE, "Unknown Identity provider");
+	    internalServerErrorHandler(response, "Unknown Identity provider selected");
+	}
     }
 
     /**
@@ -169,8 +168,8 @@ public class ParametersServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
+	    throws ServletException, IOException {
+	processRequest(request, response);
     }
 
     /**
@@ -183,8 +182,8 @@ public class ParametersServlet extends HttpServlet {
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
+	    throws ServletException, IOException {
+	processRequest(request, response);
     }
 
     /**
@@ -194,7 +193,7 @@ public class ParametersServlet extends HttpServlet {
      */
     @Override
     public String getServletInfo() {
-        return "Servlet loading the properties needed in certificate request.";
+	return "Servlet loading the properties needed in certificate request.";
     }
 
     /**
@@ -206,13 +205,13 @@ public class ParametersServlet extends HttpServlet {
      * @return the UserInterfaceBean
      */
     private UserInterfaceBean getUIBean(HttpServletRequest request) {
-        HttpSession session = request.getSession();
-        UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
-        if (bean == null) {
-            bean = new UserInterfaceBean();
-            session.setAttribute("ui", bean);
-        }
-        return bean;
+	HttpSession session = request.getSession();
+	UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
+	if (bean == null) {
+	    bean = new UserInterfaceBean();
+	    session.setAttribute("ui", bean);
+	}
+	return bean;
     }
 
     /**
@@ -223,8 +222,8 @@ public class ParametersServlet extends HttpServlet {
      * @throws IOException if the response cannot be written
      */
     private void internalServerErrorHandler(HttpServletResponse response, String kind) throws IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error: " + kind);
+	response.setContentType("text/html;charset=UTF-8");
+	response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error: " + kind);
     }
 
 }

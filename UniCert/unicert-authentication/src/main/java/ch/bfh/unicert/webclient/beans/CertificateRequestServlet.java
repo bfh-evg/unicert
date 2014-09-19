@@ -206,7 +206,7 @@ public class CertificateRequestServlet extends HttpServlet {
             messageForSignature += applicationIdentifier + SEPARATOR;
 
             //Get the role
-            int role = Integer.parseInt(request.getParameter(ROLE));
+            String role = request.getParameter(ROLE);
             messageForSignature += role;
 
             //Set whole signed data in order to be able to verify the signature/proof
@@ -232,10 +232,10 @@ public class CertificateRequestServlet extends HttpServlet {
         } catch (IllegalArgumentException | UnsupportedOperationException ex) {
             internalServerErrorHandler(response, "130 Cryptographic error");
             logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
-        } catch (Exception ex) {
+        } /*catch (Exception ex) {
             internalServerErrorHandler(response, "Undefined error");
             logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
-        }
+        }*/
     }
 
     /**
