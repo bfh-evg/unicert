@@ -18,8 +18,9 @@ import ch.bfh.uniboard.data.AttributesDTO.AttributeDTO;
 import ch.bfh.uniboard.data.StringValueDTO;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
-import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.cryptography.FiatShamirChallengeGenerator;
+import ch.bfh.unicert.issuer.cryptography.RemovingLeadingZerosBigIntegerToByteArray;
+import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 import ch.bfh.unicert.issuer.util.CertificateHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelper;
@@ -28,9 +29,10 @@ import ch.bfh.unicert.issuer.util.ExtensionOID;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
-import ch.bfh.unicrypt.helper.array.ByteArray;
-import ch.bfh.unicrypt.helper.converter.BigIntegerConverter;
-import ch.bfh.unicrypt.helper.converter.StringConverter;
+import ch.bfh.unicrypt.helper.converter.classes.ConvertMethod;
+import ch.bfh.unicrypt.helper.converter.classes.biginteger.FiniteByteArrayToBigInteger;
+import ch.bfh.unicrypt.helper.converter.classes.bytearray.BigIntegerToByteArray;
+import ch.bfh.unicrypt.helper.converter.classes.bytearray.StringToByteArray;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
@@ -43,7 +45,6 @@ import ch.bfh.unicrypt.math.function.interfaces.Function;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.ByteOrder;
@@ -72,7 +73,6 @@ import javax.ejb.Startup;
 import javax.ejb.Stateless;
 import javax.xml.namespace.QName;
 import javax.xml.ws.BindingProvider;
-import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -108,9 +108,8 @@ import sun.security.provider.DSAPublicKeyImpl;
 import sun.security.rsa.RSAPublicKeyImpl;
 
 /**
- * Implements the certificate issuence service used by the authentication component of the
- * unicert webclient. Upon request constructs a certificate for the requestor and
- * returns it
+ * Implements the certificate issuence service used by the authentication component of the unicert webclient. Upon
+ * request constructs a certificate for the requestor and returns it
  *
  * @author Eric Dubuis &lt;eric.dubuis@bfh.ch&gt;
  * @author Reto Koenig &lt;reto.koenig@bfh.ch&gt;
@@ -126,166 +125,188 @@ public class CertificateIssuerBean implements CertificateIssuer {
     private static final Logger logger = Logger.getLogger(CertificateIssuerBean.class.getName());
 
     @Override
-    public Certificate createCertificate(CryptographicSetup cs, IdentityData idData, String applicationIdentifier, int role)
-            throws CertificateCreationException {
+    public Certificate createCertificate(CryptographicSetup cs, IdentityData idData, String applicationIdentifier,
+	    String role)
+	    throws CertificateCreationException {
 
-        PublicKey pk = null;
-        
-        logger.log(Level.INFO, "Certificate requested for {0}", idData.getCommonName());
+	PublicKey pk = null;
 
-        //Check if role is realistic
-        if (role < 0) {
-            throw new CertificateCreationException("200 Unknow role");
-        }
+	logger.log(Level.INFO, "Certificate requested for {0}", idData.getCommonName());
 
-        //Check validity of crypto setup
-        if (cs instanceof RsaSetup) {
-            RsaSetup setup = (RsaSetup) cs;
-            if (setup.getN().bitLength() < (setup.getSize() - (setup.getSize() * 5 / 1000) - 1)
-                    || setup.getN().bitLength() < MIN_RSA_SIZE) {
-                logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
-                throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected. N was "
-                        + setup.getN().bitLength() + " long, but " + (setup.getSize() - (setup.getSize() * 5 / 1000) - 1)
-                        + " or " + MIN_RSA_SIZE + " is required.");
-            }
-            
-            logger.log(Level.INFO, "Valid RSA setup");
-            
-            //verify signature
-            RSASignatureScheme rsa = RSASignatureScheme.getInstance(ZMod.getInstance(setup.getN()));
-            ZMod rsaGroup = ZMod.getInstance(setup.getN());
-            Element publicKey = rsaGroup.getElement(setup.getPublicKey());
-            Element signature = rsaGroup.getElement(setup.getSignature());
-          
-            //Hash of message to sign
-            ByteArray messageHashed = null;
-            try {
-                logger.log(Level.INFO, "Hashing message");
-                messageHashed = ByteArray.getInstance(setup.getSignatureOtherInput().getBytes("UTF-8")).getHashValue(HashAlgorithm.SHA256);
-                logger.log(Level.INFO, "Message hashed");
-            } catch (UnsupportedEncodingException ex) {
-                logger.log(Level.SEVERE, "222 Message to sign encoding problem", ex);
-                throw new CertificateCreationException("222 Message to sign encoding problem");
-            }
-            logger.log(Level.INFO, "Getting element");
-            Element message  = rsaGroup.getElement(new BigInteger(1,messageHashed.getAll()));
-            //Element message  = rsaGroup.getElementFrom(messageHashed);
-            logger.log(Level.INFO, "Verifiying");
-            if (!rsa.verify(publicKey, message, signature).getValue().booleanValue()) {
-                logger.log(Level.SEVERE, "Signature invalid");
-                throw new CertificateCreationException("222 Signature invalid");
-            }
-            logger.log(Level.INFO, "Signature valid");
-            
-            pk = createRSAPublicKey(setup.getPublicKey(), setup.getN());
-            logger.log(Level.INFO, "Key created");
+	//Check if role is realistic
+	if (role == null) {
+	    throw new CertificateCreationException("200 Unknow role");
+	}
 
-        } else if (cs instanceof DiscreteLogSetup) {
-            DiscreteLogSetup setup = (DiscreteLogSetup) cs;
-            if (setup.getP().getValue().bitLength() < MIN_DLOG_SIZE || !setup.getGenerator().isGenerator()) {
-                logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
-                throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected");
-            }
+	//Check validity of crypto setup
+	if (cs instanceof RsaSetup) {
+	    RsaSetup setup = (RsaSetup) cs;
+	    if (setup.getN().bitLength() < (setup.getSize() - (setup.getSize() * 5 / 1000) - 1)
+		    || setup.getN().bitLength() < MIN_RSA_SIZE) {
+		logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
+		throw new CertificateCreationException(
+			"221 Illegal cryptographic setup: minimal size not respected. N was "
+			+ setup.getN().bitLength() + " long, but "
+			+ (setup.getSize() - (setup.getSize() * 5 / 1000) - 1)
+			+ " or " + MIN_RSA_SIZE + " is required.");
+	    }
 
-            logger.log(Level.INFO, "Valid DLOG setup");
-            
-            Function func = GeneratorFunction.getInstance(setup.getGenerator());
-            
-            FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(), Z.getInstance(), setup.getProofOtherInput(),
-                    HashMethod.getInstance(HashAlgorithm.SHA256, BigIntegerConverter.getInstance(ByteOrder.BIG_ENDIAN, 0), HashMethod.Mode.RECURSIVE), StringConverter.getInstance(Charset.forName("UTF-8")));
-            PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
+	    logger.log(Level.INFO, "Valid RSA setup");
 
-            //verify proof
-            Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), Z.getInstance().getElement(setup.getProofChallenge()), setup.getZ_q().getElement(setup.getProofResponse()));
-            if (!pips.verify(proof, setup.getPublicKey())) {
-                logger.log(Level.SEVERE, "Proof incorrect");
-                throw new CertificateCreationException("223 Proof incorrect");
-            }
-            
-            logger.log(Level.INFO, "Proof correct");
+	    //verify signature
+	    //TODO hashmethod
+	    //TODO alpahber
+	    ZMod rsaGroup = ZMod.getInstance(setup.getN());
+	    RSASignatureScheme rsa = RSASignatureScheme.getInstance(StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII),
+		    rsaGroup, HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
+				    BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.
+				    getInstance(Charset.forName("UTF-8")))));
+	    Element publicKey = rsaGroup.getElement(setup.getPublicKey());
+	    Element signature = rsaGroup.getElement(setup.getSignature());
 
-            pk = createDSAPublicKey(setup.getPublicKey().getBigInteger(), setup.getP().getValue(), setup.getZ_q().getOrder(), setup.getGenerator().getBigInteger());
+	    //Hash of message to sign
+//            ByteArray messageHashed = null;
+//            try {
+//                logger.log(Level.INFO, "Hashing message");
+//                messageHashed = ByteArray.getInstance(setup.getSignatureOtherInput().getBytes("UTF-8")).getHashValue(HashAlgorithm.SHA256);
+//                logger.log(Level.INFO, "Message hashed");
+//            } catch (UnsupportedEncodingException ex) {
+//                logger.log(Level.SEVERE, "222 Message to sign encoding problem", ex);
+//                throw new CertificateCreationException("222 Message to sign encoding problem");
+//            }
+//            logger.log(Level.INFO, "Getting element");
+//            Element message  = rsaGroup.getElement(new BigInteger(1,messageHashed.getBytes()));
+	    logger.log(Level.SEVERE, "n: " + setup.getN());
+	    logger.log(Level.SEVERE, "pk: " + publicKey);
+	    logger.log(Level.SEVERE, "sig: " + signature);
+	    logger.log(Level.SEVERE, "sig oth in: " + setup.getSignatureOtherInput());
+	    Element message = rsa.getMessageSpace().getElement(setup.getSignatureOtherInput());
+	    logger.log(Level.SEVERE, "sig oth in: " + message);
+	    //Element message  = rsaGroup.getElementFrom(messageHashed);
+	    logger.log(Level.INFO, "Verifiying");
+	    if (!rsa.verify(publicKey, message, signature).getValue()) {
+		logger.log(Level.SEVERE, "Signature invalid");
+		throw new CertificateCreationException("222 Signature invalid");
+	    }
+	    logger.log(Level.INFO, "Signature valid");
 
-        }
-        
-        logger.log(Level.INFO, "Hashing application identifier.");
+	    pk = createRSAPublicKey(setup.getPublicKey(), setup.getN());
+	    logger.log(Level.INFO, "Key created");
 
-        //Hashing appIdentifier to avoid publishing unwanted texts in certificate
-        String hashedAppId = applicationIdentifier;
-        try {
-            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
-            hashedAppId = new String(Base64.encodeBase64(sm.getElement(applicationIdentifier).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getAll()));
-            //Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
-            logger.log(Level.INFO, "Application identifier hashed. Encoding Base 64");
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Problem while hashing application identifier: {0}", e.getMessage());
-            throw new CertificateCreationException("230 Problem while hashing application identifier");
-        }
+	} else if (cs instanceof DiscreteLogSetup) {
+	    DiscreteLogSetup setup = (DiscreteLogSetup) cs;
+	    if (setup.getP().getValue().bitLength() < MIN_DLOG_SIZE || !setup.getGenerator().isGenerator()) {
+		logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
+		throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected");
+	    }
 
-        logger.log(Level.INFO, "Required info processed, creating certificate.");
-        
-        Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
-        Certificate cert = createClientCertificate(
-                idData,
-                getIssuerCertificate(),
-                createIssuerCipherParams(getIssuerPrivateRSAKey()),
-                pk,
-                expiry,
-                hashedAppId,
-                role);
-        
-        //post message on UniBoard if corresponding JNDI parameter is defined
-        if(getUniBoardServiceURL()!=null){
-            postOnUniBoard(cert, getUniBoardServiceURL());
-        }
-        
-        
-        return cert;
+	    logger.log(Level.INFO, "Valid DLOG setup");
+
+	    Function func = GeneratorFunction.getInstance(setup.getGenerator());
+
+	    FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(),
+		    Z.getInstance(), setup.getProofOtherInput(),
+		    HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
+				    RemovingLeadingZerosBigIntegerToByteArray.
+				    getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName(
+						    "UTF-8"))), HashMethod.Mode.RECURSIVE), FiniteByteArrayToBigInteger.
+		    getInstance(HashAlgorithm.SHA256.getHashLength()));
+	    PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
+
+	    //verify proof
+	    Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), Z.getInstance().
+		    getElement(setup.getProofChallenge()), setup.getZ_q().getElement(setup.getProofResponse()));
+	    if (!pips.verify(proof, setup.getPublicKey())) {
+		logger.log(Level.SEVERE, "Proof incorrect");
+		throw new CertificateCreationException("223 Proof incorrect");
+	    }
+
+	    logger.log(Level.INFO, "Proof correct");
+
+	    pk = createDSAPublicKey(setup.getPublicKey().getBigInteger(), setup.getP().getValue(), setup.getZ_q().
+		    getOrder(), setup.getGenerator().getBigInteger());
+
+	}
+
+//        logger.log(Level.INFO, "Hashing application identifier.");
+//
+//        //Hashing appIdentifier to avoid publishing unwanted texts in certificate
+//        String hashedAppId = applicationIdentifier;
+//        try {
+//            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+//            hashedAppId = new String(Base64.encodeBase64(sm.getElement(applicationIdentifier).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getAll()));
+//            //Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
+//            logger.log(Level.INFO, "Application identifier hashed. Encoding Base 64");
+//        } catch (Exception e) {
+//            logger.log(Level.WARNING, "Problem while hashing application identifier: {0}", e.getMessage());
+//            throw new CertificateCreationException("230 Problem while hashing application identifier");
+//        }
+	logger.log(Level.INFO, "Required info processed, creating certificate.");
+
+	Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
+	Certificate cert = createClientCertificate(
+		idData,
+		getIssuerCertificate(),
+		createIssuerCipherParams(getIssuerPrivateRSAKey()),
+		pk,
+		expiry,
+		applicationIdentifier,
+		role);
+
+	//post message on UniBoard if corresponding JNDI parameter is defined
+	if (getUniBoardServiceURL() != null) {
+	    postOnUniBoard(cert, getUniBoardServiceURL());
+	}
+
+	return cert;
 
     }
-    
+
     /**
      * Helper method managing the publication of certificate on a UniBoard instance
+     *
      * @param cert the certificate to publish
      * @param endpointUrl the url to access UniBoard
      * @throws CertificateCreationException if an error occured during publication
      */
-    protected void postOnUniBoard(Certificate cert, String endpointUrl) throws CertificateCreationException{
-        logger.log(Level.INFO, "Posting certificate on the UniBoard");
-        
-        UniBoardService board;
-        try {
-            URL wsdlLocation = new URL(endpointUrl); 
-            QName qname = new QName("http://uniboard.bfh.ch/", "UniBoardService");
-            UniBoardService_Service mixingService = new UniBoardService_Service(wsdlLocation, qname);
-            board = mixingService.getUniBoardServicePort();
-            BindingProvider bp = (BindingProvider) board;
-            bp.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Unable to connect to UniBoard  service: {0}, exception: {1}", new Object[]{endpointUrl, ex});
-            throw new CertificateCreationException("230 Unable to connect to UniBoard to publish certificate");
-        }
+    protected void postOnUniBoard(Certificate cert, String endpointUrl) throws CertificateCreationException {
+	logger.log(Level.INFO, "Posting certificate on the UniBoard");
 
-        //TODO add signature and authorization
-        List<AttributeDTO> attributes = new ArrayList();
-        attributes.add(new AttributeDTO("section", new StringValueDTO("unicert")));
-        attributes.add(new AttributeDTO("group", new StringValueDTO("certificate")));
-        AttributesDTO alpha = new AttributesDTO(attributes);
-        
-        AttributesDTO beta = board.post(cert.toJSON().getBytes(), alpha);
-        
-        if(beta.getAttribute().isEmpty()){
-            logger.log(Level.WARNING, "UniBoard response was empty");
-        } else if(beta.getAttribute().get(0).getKey().equals("rejected") || 
-                beta.getAttribute().get(0).getKey().equals("error")){
-            logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{beta.getAttribute().get(0).getKey(),
-                ((StringValueDTO)beta.getAttribute().get(0).getValue()).getValue()});
-            throw new CertificateCreationException("230 UniBoard rejected post");
-        }
-                
-        logger.log(Level.INFO, "Certificate posted on UniBoard");
+	UniBoardService board;
+	try {
+	    URL wsdlLocation = new URL(endpointUrl);
+	    QName qname = new QName("http://uniboard.bfh.ch/", "UniBoardService");
+	    UniBoardService_Service mixingService = new UniBoardService_Service(wsdlLocation, qname);
+	    board = mixingService.getUniBoardServicePort();
+	    BindingProvider bp = (BindingProvider) board;
+	    bp.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
+	} catch (Exception ex) {
+	    logger.log(Level.SEVERE, "Unable to connect to UniBoard  service: {0}, exception: {1}", new Object[]{
+		endpointUrl, ex});
+	    throw new CertificateCreationException("230 Unable to connect to UniBoard to publish certificate");
+	}
+
+	//TODO add signature and authorization
+	List<AttributeDTO> attributes = new ArrayList();
+	attributes.add(new AttributeDTO("section", new StringValueDTO("unicert")));
+	attributes.add(new AttributeDTO("group", new StringValueDTO("certificate")));
+	AttributesDTO alpha = new AttributesDTO(attributes);
+
+	AttributesDTO beta = board.post(cert.toJSON().getBytes(), alpha);
+
+	if (beta.getAttribute().isEmpty()) {
+	    logger.log(Level.WARNING, "UniBoard response was empty");
+	} else if (beta.getAttribute().get(0).getKey().equals("rejected") || beta.getAttribute().get(0).getKey().equals(
+		"error")) {
+	    logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{beta.
+		getAttribute().get(0).getKey(),
+		((StringValueDTO) beta.getAttribute().get(0).getValue()).getValue()});
+	    throw new CertificateCreationException("230 UniBoard rejected post");
+	}
+
+	logger.log(Level.INFO, "Certificate posted on UniBoard");
     }
-    
+
     /**
      * Creates the DSA public key of the requestor.
      *
@@ -293,17 +314,18 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @return the DSA object representing the DSA public key
      * @throws CertificateCreationException if there is an error
      */
-    private DSAPublicKey createDSAPublicKey(BigInteger publicKey, BigInteger p, BigInteger q, BigInteger g) throws CertificateCreationException {
-        DSAPublicKey dpk;
-        try {
+    private DSAPublicKey createDSAPublicKey(BigInteger publicKey, BigInteger p, BigInteger q, BigInteger g) throws
+	    CertificateCreationException {
+	DSAPublicKey dpk;
+	try {
 
-            dpk = new DSAPublicKeyImpl(publicKey, p, q, g);
-        } catch (InvalidKeyException ex) {
-            logger.log(Level.SEVERE, "Could not instantiate DSA public key: {0}",
-                    new Object[]{ex.getMessage()});
-            throw new CertificateCreationException("224 Could not instantiate DSA public key");
-        }
-        return dpk;
+	    dpk = new DSAPublicKeyImpl(publicKey, p, q, g);
+	} catch (InvalidKeyException ex) {
+	    logger.log(Level.SEVERE, "Could not instantiate DSA public key: {0}",
+		    new Object[]{ex.getMessage()});
+	    throw new CertificateCreationException("224 Could not instantiate DSA public key");
+	}
+	return dpk;
     }
 
     /**
@@ -315,31 +337,30 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @throws CertificateCreationException if there is an error
      */
     private RSAPublicKey createRSAPublicKey(BigInteger publicKey, BigInteger n) throws CertificateCreationException {
-        RSAPublicKey rpk;
-        try {
-            rpk = new RSAPublicKeyImpl(n, publicKey);
-        } catch (InvalidKeyException ex) {
-            logger.log(Level.SEVERE, "Could not instantiate RSA public key: {0}",
-                    new Object[]{ex.getMessage()});
-            throw new CertificateCreationException("224 Could not instantiate RSA public key");
-        }
-        return rpk;
+	RSAPublicKey rpk;
+	try {
+	    rpk = new RSAPublicKeyImpl(n, publicKey);
+	} catch (InvalidKeyException ex) {
+	    logger.log(Level.SEVERE, "Could not instantiate RSA public key: {0}",
+		    new Object[]{ex.getMessage()});
+	    throw new CertificateCreationException("224 Could not instantiate RSA public key");
+	}
+	return rpk;
     }
 
     /**
-     * Returns the calendar representing the expiration date. By default, 2
-     * years after now is set
+     * Returns the calendar representing the expiration date. By default, 2 years after now is set
      *
      * @return a calendar
      */
     private Calendar getExpiryDate(Integer validityInYears) {
-        //Default is 2
-        if (validityInYears == null) {
-            validityInYears = 2;
-        }
-        Calendar expiry = Calendar.getInstance();
-        expiry.add(Calendar.YEAR, validityInYears);
-        return expiry;
+	//Default is 2
+	if (validityInYears == null) {
+	    validityInYears = 2;
+	}
+	Calendar expiry = Calendar.getInstance();
+	expiry.add(Calendar.YEAR, validityInYears);
+	return expiry;
     }
 
     /**
@@ -349,7 +370,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @throws CertificateCreationException if there is an error
      */
     private X509Certificate getIssuerCertificate() throws CertificateCreationException {
-        return getConfigurationHelper().getIssuerCertificate();
+	return getConfigurationHelper().getIssuerCertificate();
     }
 
     /**
@@ -358,7 +379,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @return RSA private key
      */
     private RSAPrivateCrtKey getIssuerPrivateRSAKey() {
-        return getConfigurationHelper().getPrivateRSAKey();
+	return getConfigurationHelper().getPrivateRSAKey();
     }
 
     /**
@@ -367,31 +388,31 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @return an url
      */
     private String getUniBoardServiceURL() {
-        return getConfigurationHelper().getUniBoardServiceURL();
+	return getConfigurationHelper().getUniBoardServiceURL();
     }
-    
+
     /**
-     * Given a private RSA key creates an object containing all relevant cipher
-     * parameters.
+     * Given a private RSA key creates an object containing all relevant cipher parameters.
      *
      * @param rsaPrivKey a RSA private key
      * @return the cipher parameters
      * @throws CertificateCreationException if there is an error
      */
     private RSAPrivateCrtKeyParameters createIssuerCipherParams(RSAPrivateCrtKey rsaPrivKey)
-            throws CertificateCreationException {
-        RSAPrivateCrtKeyParameters cipherParams;
-        try {
-            cipherParams
-                    = new RSAPrivateCrtKeyParameters(rsaPrivKey.getModulus(), rsaPrivKey.getPublicExponent(),
-                            rsaPrivKey.getPrivateExponent(), rsaPrivKey.getPrimeP(), rsaPrivKey.getPrimeQ(),
-                            rsaPrivKey.getPrimeExponentP(), rsaPrivKey.getPrimeExponentQ(), rsaPrivKey.getCrtCoefficient());
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Could not get issuer cipher parameters: {0}",
-                    new Object[]{ex.getMessage()});
-            throw new CertificateCreationException("200 Could not get issuer cipher parameters");
-        }
-        return cipherParams;
+	    throws CertificateCreationException {
+	RSAPrivateCrtKeyParameters cipherParams;
+	try {
+	    cipherParams
+		    = new RSAPrivateCrtKeyParameters(rsaPrivKey.getModulus(), rsaPrivKey.getPublicExponent(),
+			    rsaPrivKey.getPrivateExponent(), rsaPrivKey.getPrimeP(), rsaPrivKey.getPrimeQ(),
+			    rsaPrivKey.getPrimeExponentP(), rsaPrivKey.getPrimeExponentQ(), rsaPrivKey.
+			    getCrtCoefficient());
+	} catch (Exception ex) {
+	    logger.log(Level.SEVERE, "Could not get issuer cipher parameters: {0}",
+		    new Object[]{ex.getMessage()});
+	    throw new CertificateCreationException("200 Could not get issuer cipher parameters");
+	}
+	return cipherParams;
     }
 
     /**
@@ -402,132 +423,136 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @param cipherParams issuer private key parameters used for signing
      * @param pk public key of the requestor to certify
      * @param expiry the expiry date
-     * @param applicationIdentifier the application identifier for which te
-     * certificate is issued
+     * @param applicationIdentifier the application identifier for which te certificate is issued
      * @param role role for which the certificate is issued
      * @return the certificate object containing the X509 certificate
      * @throws CertificateCreationException if an error occurs
      */
     private Certificate createClientCertificate(
-            IdentityData id,
-            X509Certificate caCert,
-            CipherParameters cipherParams,
-            PublicKey pk,
-            Calendar expiry,
-            String applicationIdentifier,
-            int role)
-            throws CertificateCreationException {
+	    IdentityData id,
+	    X509Certificate caCert,
+	    CipherParameters cipherParams,
+	    PublicKey pk,
+	    Calendar expiry,
+	    String applicationIdentifier,
+	    String role)
+	    throws CertificateCreationException {
 
-        X509Certificate clientCert;
+	X509Certificate clientCert;
 
-        Hashtable extension = new Hashtable();
+	Hashtable extension = new Hashtable();
 
-        extension.put(new DERObjectIdentifier(ExtensionOID.APPLICATION_IDENTIFIER.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(applicationIdentifier)));
-        extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER("" + role)));
-        extension.put(new DERObjectIdentifier(ExtensionOID.IDENTITY_PROVIDER.getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(id.getIdentityProvider())));
+	extension.put(new DERObjectIdentifier(ExtensionOID.APPLICATION_IDENTIFIER.getOID()), new X509Extension(
+		DERBoolean.FALSE, CertificateHelper.stringToDER(applicationIdentifier)));
+	extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.FALSE,
+		CertificateHelper.stringToDER(role)));
+	extension.put(new DERObjectIdentifier(ExtensionOID.IDENTITY_PROVIDER.getOID()), new X509Extension(
+		DERBoolean.FALSE, CertificateHelper.stringToDER(id.getIdentityProvider())));
 
-        Map<String, String> extensionMap = new HashMap();
-        if (id.getOtherValues() != null) {
-            for (Entry<ExtensionOID, String> entry : id.getOtherValues().entrySet()) {
-                extension.put(new DERObjectIdentifier(entry.getKey().getOID()), new X509Extension(DERBoolean.FALSE, CertificateHelper.stringToDER(entry.getValue())));
-                extensionMap.put(entry.getKey().getName(), entry.getValue());
-            }
-        }
+	Map<String, String> extensionMap = new HashMap();
+	if (id.getOtherValues() != null) {
+	    for (Entry<ExtensionOID, String> entry : id.getOtherValues().entrySet()) {
+		extension.put(new DERObjectIdentifier(entry.getKey().getOID()), new X509Extension(DERBoolean.FALSE,
+			CertificateHelper.stringToDER(entry.getValue())));
+		extensionMap.put(entry.getKey().getName(), entry.getValue());
+	    }
+	}
 
-        try {
+	try {
 
-            String x509NameString = "";
-            x509NameString += "CN=" + id.getCommonName();
+	    String x509NameString = "";
+	    x509NameString += "CN=" + id.getCommonName();
 
-            if (id.getSurname() != null && !id.getSurname().equals("")) {
-                x509NameString += ", SURNAME=" + id.getSurname();
-            }
-            if (id.getGivenName() != null && !id.getGivenName().equals("")) {
-                x509NameString += ", GIVENNAME=" + id.getGivenName();
-            }
-            if (id.getUniqueIdentifier() != null && !id.getUniqueIdentifier().equals("")) {
-                x509NameString += ", UID=" + id.getUniqueIdentifier();
-            }
-            if (id.getOrganisation() != null && !id.getOrganisation().equals("")) {
-                x509NameString += ", O=" + id.getOrganisation();
-            }
-            if (id.getOrganisationUnit() != null && !id.getOrganisationUnit().equals("")) {
-                x509NameString += ", OU=" + id.getOrganisationUnit();
-            }
-            if (id.getCountryName() != null && !id.getCountryName().equals("")) {
-                x509NameString += ", C=" + id.getCountryName();
-            }
-            if (id.getState() != null && !id.getState().equals("")) {
-                x509NameString += ", ST=" + id.getState();
-            }
-            if (id.getLocality() != null && !id.getLocality().equals("")) {
-                x509NameString += ", L=" + id.getLocality();
-            }
-            //Remove non-ascii char since they are not supported
-            //x509NameString = x509NameString.replaceAll("[^\\x00-\\x7F]", "");
-            
-            X509Name x509Name = new X509Name(x509NameString);
+	    if (id.getSurname() != null && !id.getSurname().equals("")) {
+		x509NameString += ", SURNAME=" + id.getSurname();
+	    }
+	    if (id.getGivenName() != null && !id.getGivenName().equals("")) {
+		x509NameString += ", GIVENNAME=" + id.getGivenName();
+	    }
+	    if (id.getUniqueIdentifier() != null && !id.getUniqueIdentifier().equals("")) {
+		x509NameString += ", UID=" + id.getUniqueIdentifier();
+	    }
+	    if (id.getOrganisation() != null && !id.getOrganisation().equals("")) {
+		x509NameString += ", O=" + id.getOrganisation();
+	    }
+	    if (id.getOrganisationUnit() != null && !id.getOrganisationUnit().equals("")) {
+		x509NameString += ", OU=" + id.getOrganisationUnit();
+	    }
+	    if (id.getCountryName() != null && !id.getCountryName().equals("")) {
+		x509NameString += ", C=" + id.getCountryName();
+	    }
+	    if (id.getState() != null && !id.getState().equals("")) {
+		x509NameString += ", ST=" + id.getState();
+	    }
+	    if (id.getLocality() != null && !id.getLocality().equals("")) {
+		x509NameString += ", L=" + id.getLocality();
+	    }
+	    //Remove non-ascii char since they are not supported
+	    //x509NameString = x509NameString.replaceAll("[^\\x00-\\x7F]", "");
 
-            V3TBSCertificateGenerator certGen = new V3TBSCertificateGenerator();
-            certGen.setSerialNumber(new DERInteger(BigInteger.valueOf(System.currentTimeMillis())));
-            certGen.setIssuer(PrincipalUtil.getSubjectX509Principal(caCert));
-            certGen.setSubject(x509Name);
-            certGen.setExtensions(new X509Extensions(extension));
-            DERObjectIdentifier sigOID = new DERObjectIdentifier("1.2.840.113549.1.1.5");
-            AlgorithmIdentifier sigAlgId = new AlgorithmIdentifier(sigOID, new DERNull());
-            certGen.setSignature(sigAlgId);
-            certGen.setSubjectPublicKeyInfo(new SubjectPublicKeyInfo((ASN1Sequence) new ASN1InputStream(
-                    new ByteArrayInputStream(pk.getEncoded())).readObject()));
-            certGen.setStartDate(new Time(new Date(System.currentTimeMillis())));
-            certGen.setEndDate(new Time(expiry.getTime()));
-            TBSCertificateStructure tbsCert = certGen.generateTBSCertificate();
+	    X509Name x509Name = new X509Name(x509NameString);
 
-            //Sign certificate
-            SHA1Digest digester = new SHA1Digest();
-            AsymmetricBlockCipher rsa = new PKCS1Encoding(new RSAEngine());
-            ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-            DEROutputStream dOut = new DEROutputStream(bOut);
-            dOut.writeObject(tbsCert);
-            byte[] signature;
-            byte[] certBlock = bOut.toByteArray();
-            // first create digest
-            digester.update(certBlock, 0, certBlock.length);
-            byte[] hash = new byte[digester.getDigestSize()];
-            digester.doFinal(hash, 0);
-            // then sign it
-            rsa.init(true, cipherParams);
-            DigestInfo dInfo = new DigestInfo(new AlgorithmIdentifier(X509ObjectIdentifiers.id_SHA1, null), hash);
-            byte[] digest = dInfo.getEncoded(ASN1Encodable.DER);
-            signature = rsa.processBlock(digest, 0, digest.length);
+	    V3TBSCertificateGenerator certGen = new V3TBSCertificateGenerator();
+	    certGen.setSerialNumber(new DERInteger(BigInteger.valueOf(System.currentTimeMillis())));
+	    certGen.setIssuer(PrincipalUtil.getSubjectX509Principal(caCert));
+	    certGen.setSubject(x509Name);
+	    certGen.setExtensions(new X509Extensions(extension));
+	    DERObjectIdentifier sigOID = new DERObjectIdentifier("1.2.840.113549.1.1.5");
+	    AlgorithmIdentifier sigAlgId = new AlgorithmIdentifier(sigOID, new DERNull());
+	    certGen.setSignature(sigAlgId);
+	    certGen.setSubjectPublicKeyInfo(new SubjectPublicKeyInfo((ASN1Sequence) new ASN1InputStream(
+		    new ByteArrayInputStream(pk.getEncoded())).readObject()));
+	    certGen.setStartDate(new Time(new Date(System.currentTimeMillis())));
+	    certGen.setEndDate(new Time(expiry.getTime()));
+	    TBSCertificateStructure tbsCert = certGen.generateTBSCertificate();
 
-            ASN1EncodableVector v = new ASN1EncodableVector();
-            v.add(tbsCert);
-            v.add(sigAlgId);
-            v.add(new DERBitString(signature));
+	    //Sign certificate
+	    SHA1Digest digester = new SHA1Digest();
+	    AsymmetricBlockCipher rsa = new PKCS1Encoding(new RSAEngine());
+	    ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+	    DEROutputStream dOut = new DEROutputStream(bOut);
+	    dOut.writeObject(tbsCert);
+	    byte[] signature;
+	    byte[] certBlock = bOut.toByteArray();
+	    // first create digest
+	    digester.update(certBlock, 0, certBlock.length);
+	    byte[] hash = new byte[digester.getDigestSize()];
+	    digester.doFinal(hash, 0);
+	    // then sign it
+	    rsa.init(true, cipherParams);
+	    DigestInfo dInfo = new DigestInfo(new AlgorithmIdentifier(X509ObjectIdentifiers.id_SHA1, null), hash);
+	    byte[] digest = dInfo.getEncoded(ASN1Encodable.DER);
+	    signature = rsa.processBlock(digest, 0, digest.length);
 
-            // Create CRT data structure
-            clientCert = new X509CertificateObject(new X509CertificateStructure(new DERSequence(v)));
-            clientCert.verify(caCert.getPublicKey());
-        } catch (IOException | CertificateException | NoSuchAlgorithmException |
-                InvalidKeyException | NoSuchProviderException | InvalidCipherTextException | SignatureException e) {
-            logger.log(Level.SEVERE, "Could not create client certificate: {0}",
-                    new Object[]{e.getMessage()});
-            throw new CertificateCreationException("230 Could not create client certificate");
-        }
+	    ASN1EncodableVector v = new ASN1EncodableVector();
+	    v.add(tbsCert);
+	    v.add(sigAlgId);
+	    v.add(new DERBitString(signature));
 
-        return new Certificate(clientCert, id.getCommonName(), id.getUniqueIdentifier(), id.getOrganisation(), id.getOrganisationUnit(), id.getCountryName(),
-                id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), applicationIdentifier, role, id.getIdentityProvider(), extensionMap);
+	    // Create CRT data structure
+	    clientCert = new X509CertificateObject(new X509CertificateStructure(new DERSequence(v)));
+	    clientCert.verify(caCert.getPublicKey());
+	} catch (IOException | CertificateException | NoSuchAlgorithmException |
+		InvalidKeyException | NoSuchProviderException | InvalidCipherTextException | SignatureException e) {
+	    logger.log(Level.SEVERE, "Could not create client certificate: {0}",
+		    new Object[]{e.getMessage()});
+	    throw new CertificateCreationException("230 Could not create client certificate");
+	}
+
+	return new Certificate(clientCert, id.getCommonName(), id.getUniqueIdentifier(), id.getOrganisation(), id.
+		getOrganisationUnit(), id.getCountryName(),
+		id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), applicationIdentifier, role, id.
+		getIdentityProvider(), extensionMap);
 
     }
 
     /**
-     * Returns a configuration helper. A subclass may override this method for
-     * testing purposes.
+     * Returns a configuration helper. A subclass may override this method for testing purposes.
      *
      * @return a configuration helper
      */
     protected ConfigurationHelper getConfigurationHelper() {
-        return ConfigurationHelperImpl.getInstance();
+	return ConfigurationHelperImpl.getInstance();
     }
 
 }

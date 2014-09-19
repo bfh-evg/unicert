@@ -37,6 +37,6 @@ public interface CertificateIssuer {
      * @throws CertificateCreationException if the certificate could not be created
      */
     public Certificate createCertificate(CryptographicSetup cs, IdentityData idData,
-            String applicationIdentifier, int role ) throws CertificateCreationException;
+            String applicationIdentifier, String role ) throws CertificateCreationException;
 
 }

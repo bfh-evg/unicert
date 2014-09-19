@@ -51,7 +51,7 @@ public class Certificate {
     
     private X509Certificate cert;
     private final String applicationIdentifier;
-    private final int role;
+    private final String role;
     private final String identityProvider;
 
     /**
@@ -74,7 +74,7 @@ public class Certificate {
      * If some information does not appear in the certificate, null can be passed
      */
     public Certificate(X509Certificate cert, String commonName, String uniqueId, String organisation, String organisationUnit,
-            String countryName, String state, String locality, String surname, String givenName, String applicationIdentifier, int role, String identityProvider, Map extension) {
+            String countryName, String state, String locality, String surname, String givenName, String applicationIdentifier, String role, String identityProvider, Map extension) {
 
         this.commonName = commonName;
         this.uniqueIdentifier = uniqueId;
@@ -223,7 +223,7 @@ public class Certificate {
      * The role the certificate can be used for
      * @return the integer representing the role
      */
-    public int getRole() {
+    public String getRole() {
         return role;
     }
 
@@ -311,8 +311,8 @@ public class Certificate {
         if (this.applicationIdentifier != null) {
             json += "\"applicationIdentifier\": \"" + this.applicationIdentifier + "\", ";
         }
-        if (this.role >= 0) {
-            json += "\"role\": " + this.role + ", ";
+        if (this.role != null) {
+            json += "\"role\": \"" + this.role + "\", ";
         }
         if (this.identityProvider != null) {
             json += "\"identityProvider\": \"" + this.identityProvider + "\", ";
