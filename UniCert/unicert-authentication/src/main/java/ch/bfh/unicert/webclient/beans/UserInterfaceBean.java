@@ -225,6 +225,7 @@ public class UserInterfaceBean implements Serializable {
      * 1: Voter
      * 2: Tallier
      * 3: Mixer
+     * 4: Election administration
      * 
      * @return the role the certificate is issued for
      */
@@ -246,6 +247,8 @@ public class UserInterfaceBean implements Serializable {
      * 1: standard function for SwitchAAI tokens
      * 2: anonymizing function for SwitchAAI tokens
      * 3: special function for University of Zurich, SwitchAAI tokens
+     * 4: standard function for Google
+     * 5: anonymizing function for Google
      * 
      * @return the index of the function
      */

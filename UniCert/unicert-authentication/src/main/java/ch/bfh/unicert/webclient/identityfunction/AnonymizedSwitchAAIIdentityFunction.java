@@ -43,7 +43,7 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
 
         //Anonymization of commonName by hashing it with SHA256
         try {
-            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+            StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
             commonName = getHexValue(sm.getElement(commonName).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getBytes());
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
@@ -60,7 +60,7 @@ public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdenti
         
         //Anonymization of commonName by hashing it with SHA256
         try {
-            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+            StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
             uniqueID = getHexValue(sm.getElement(uniqueID).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getBytes());
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());

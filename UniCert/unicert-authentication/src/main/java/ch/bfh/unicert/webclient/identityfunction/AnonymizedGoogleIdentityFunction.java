@@ -14,7 +14,6 @@ package ch.bfh.unicert.webclient.identityfunction;
 import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.util.ExtensionOID;
 import ch.bfh.unicert.webclient.userdata.GoogleUserData;
-import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
 import ch.bfh.unicrypt.helper.Alphabet;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
@@ -25,7 +24,7 @@ import java.util.logging.Logger;
 
 /**
  * This function is a specialization of the Standard Google function which
- * uses hash value of the mail adress as common name
+ * uses SHA-256 hash value of the mail adress as common name
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
@@ -67,7 +66,7 @@ public class AnonymizedGoogleIdentityFunction extends StandardGoogleIdentityFunc
         
         //Anonymization of commonName by hashing it with SHA256
         try {
-            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+            StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
             commonName = getHexValue(sm.getElement(commonName).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getBytes());
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
@@ -92,7 +91,7 @@ public class AnonymizedGoogleIdentityFunction extends StandardGoogleIdentityFunc
         
         //Anonymization of commonName by hashing it with SHA256
         try {
-            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+            StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
             uniqueID = getHexValue(sm.getElement(uniqueID).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getBytes());
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());

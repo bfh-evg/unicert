@@ -64,9 +64,6 @@
 	// IMPORTANT: size of pre- and postfix = 411 < 512
 	var PRIVATE_KEY_ONE_TIME_PAD_PREPOSTFIX_SIZE = ucConfig.PRIVATE_KEY_ONE_TIME_PAD_PREPOSTFIX_SIZE || 512;
 
-	// Base refers only to the bigInt representation of Schnorr, Elgamal and RSA parameters.
-//        var base = ucConfig.BASE || 10;
-
 
 	////////////////////////////////////////////////////////////////////////
 	// Non-interactive zero-knowledge proof
@@ -89,9 +86,9 @@
 	    var t = leemon.powMod(g, omega, p);
 
 	    //3. Compute c = H(publicInput||t||otherInput)
-	    var hashPI = sha256HexStr(leemon.bigInt2str(publicInput, 16));
+	    var hashPI = sha256BigInt(publicInput);
 	    //3.2 Hash of commitment
-	    var hashCommitment = sha256HexStr(leemon.bigInt2str(t, 16));
+	    var hashCommitment = sha256BigInt(t);
 	    //3.3 Hash of other input
 	    var hashOtherInput = sha256String(otherInput);
 	    //3.4 Hash of all three hashes concatenated
@@ -122,10 +119,10 @@
 //		console.log("q " + leemon.bigInt2str(q, 10));
 //		console.log("g " + leemon.bigInt2str(g, 10));
 //		console.log("public input 10 " + leemon.bigInt2str(publicInput, 10));
-		var hashPI = sha256HexStr(leemon.bigInt2str(publicInput, 16));
+		var hashPI = sha256BigInt(publicInput);
 //		console.log("public input hashed: " + hashPI);
 		//3.2 Hash of commitment
-		var hashCommitment = sha256HexStr(leemon.bigInt2str(t, 16));
+		var hashCommitment = sha256BigInt(t);
 //		console.log("commitment hashed: " + hashCommitment);
 
 		//3.3 Hash of other input
@@ -256,14 +253,9 @@
 
 	    // done
 	    var nizkpDoneCb = function(proof) {
-		//TODO remove commented code
-		//console.log("left " + leemon.bigInt2str(leemon.powMod(g, proof.s, p), 10))
-		//var yc = leemon.powMod(vk, proof.c, p)
-		//console.log("right " + leemon.bigInt2str(leemon.multMod(proof.t, yc, p), 10))
 		proof.t = leemon.bigInt2str(proof.t, 10);
 		proof.c = leemon.bigInt2str(proof.c, 10);
 		proof.s = leemon.bigInt2str(proof.s, 10);
-//		console.log("challenge " + proof.c)
 
 		doneCb(proof);
 	    };
@@ -378,12 +370,12 @@
 
 	    var keyC = match[1];
 
-	    //extract salt (128 bits => 22 base64 chars)
+	    //2. extract salt (128 bits => 22 base64 chars)
 	    var salt = keyC.substring(0, 22);
 	    //salt = leemon.str2bigInt(salt, 64, 0);
 	    keyC = keyC.substring(22);
 
-	    // 2. Decrypt key with password
+	    // 3. Decrypt key with password
 	    keyC = leemon.str2bigInt(keyC, 64, 0);
 	    // Save current RNG temporary to not lose accumulated data for future randomness
 	    var cRNG = Math.random;
@@ -399,12 +391,12 @@
 
 	    var r = leemon.randBigInt(oneTimePadSize);
 
-	    // Reassign old rng
+	    // 4. Reassign old rng
 	    Math.random = cRNG;
 	    var keyP = leemon.xor(keyC, r);
 	    keyP = leemon.bigInt2str(keyP, 64);
 
-	    // 3. Check and erase pre- and postfix
+	    // 5. Check and erase pre- and postfix
 	    pattern = new RegExp(PRIVATE_KEY_PREFIX + "([0-9A-Za-z=_]*)" + PRIVATE_KEY_POSTFIX);
 	    match = pattern.exec(keyP);
 	    if (match == null || match.length != 2) {
@@ -412,7 +404,7 @@
 		return false;
 	    }
 
-	    // 4. Finally return sk
+	    // 6. Finally return sk
 	    return leemon.str2bigInt(match[1], 64, 1);
 	}
 

@@ -40,8 +40,11 @@ public class ParametersServlet extends HttpServlet {
      */
     private static final Logger logger = Logger.getLogger(ParametersServlet.class.getName());
 
+    private static final String DEV_MODE = "dev-mode";
     private static final String PROPERTY_SET_IDENTIFIER = "params";
     private static final String IDENTITY_PROVIDER = "idp";
+    private static final String IDP_SELECTION_PAGE = "idpselection.xhtml";
+    private static final String SWITCH_AAI_PAGE = "switchaai.xhtml";
 
     private UserInterfaceBean uiBean;
 
@@ -64,10 +67,11 @@ public class ParametersServlet extends HttpServlet {
 	String idp = request.getParameter(IDENTITY_PROVIDER);
 
 	//Debug mode
-//	if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
-//	    idp = "SwitchAAI";
-//	    uiBean = this.getUIBean(request);
-//	}
+	if (Boolean.parseBoolean(getServletContext().getInitParameter(DEV_MODE))) {
+	    idp = IdentityProvider.SWITCH_AAI.getKey();
+	    uiBean = this.getUIBean(request);
+	}
+
 	//if idp is not set, this is the first time this method is called, so we get the
 	//JNDI properties
 	if (idp == null) {
@@ -89,16 +93,13 @@ public class ParametersServlet extends HttpServlet {
 	    //Redirection to identity provider
 	    if (!uiBean.hasMulitpleIdentityProviders()) {
 		redirectToIdp(uiBean.getIdentityProvider(), request, response);
-		return;
 	    } else {
 		//if multiple identity providers are supported we show a selection page
-		response.sendRedirect("idpselection.xhtml");
-		return;
+		response.sendRedirect(IDP_SELECTION_PAGE);
 	    }
 	} else {
 	    //used when user clicks on a link in idpselection.xhtml
 	    redirectToIdp(idp, request, response);
-	    return;
 	}
 
     }
@@ -122,16 +123,16 @@ public class ParametersServlet extends HttpServlet {
 	logger.log(Level.INFO, "Redirect to IDP");
 	if (identityProvider.equals(IdentityProvider.SWITCH_AAI.getKey())) {
 	    //SWITCH AAI
-	    response.sendRedirect("switchaai.xhtml");
+	    response.sendRedirect(SWITCH_AAI_PAGE);
 	} else if (identityProvider.equals(IdentityProvider.GOOGLE.getKey())) {
 	    //GOOGLE OAUTH
 	    //Load general configuration (this is the Config of the subsystem, not from the client!)
 	    String clientID;
 	    String clientSecret;
 	    String redirectUri;
-	    if (Boolean.parseBoolean(getServletContext().getInitParameter("dev-mode"))) {
-		clientID = "176426429385-8m2uv9d3o62nmnsf338000g0m1bakave.apps.googleusercontent.com";//452554920436-ek1075ugb6vtckc9acng7qo455993u9f.apps.googleusercontent.com";
-		clientSecret = "hdK91UZQXwjreMZo3_xnQaWu ";//"LvTANZRJ_PrYl-vwWsLPB83u";
+	    if (Boolean.parseBoolean(getServletContext().getInitParameter(DEV_MODE))) {
+		clientID = "176426429385-8m2uv9d3o62nmnsf338000g0m1bakave.apps.googleusercontent.com";
+		clientSecret = "hdK91UZQXwjreMZo3_xnQaWu ";
 		redirectUri = "http://localhost:8080/unicert-authentication/oauth2callback";
 	    } else {
 		clientID = ConfigurationHelperImpl.getInstance().getGoogleClientID();

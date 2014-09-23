@@ -12,7 +12,6 @@
 package ch.bfh.unicert.webclient.userdata;
 
 import java.util.Map;
-import javax.faces.bean.ManagedBean;
 import javax.faces.bean.SessionScoped;
 
 /**
@@ -24,11 +23,8 @@ import javax.faces.bean.SessionScoped;
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  *
  */
-//@ManagedBean(name = "userData")
 @SessionScoped
 public class DebugSwitchAAIUserData extends SwitchAAIUserData {
-
-
 
     // SWITCHaai has two different sets of parameter names for
     // test environments and production envionments. This is the
@@ -119,7 +115,4 @@ public class DebugSwitchAAIUserData extends SwitchAAIUserData {
     public DebugSwitchAAIUserData(String swissEducationUID, String personUID, String persistentId, String cardUID, String matriculationNumber, String employeeNumber, String givenName, String surname, String mail, String studyBranch, String studyLevel, String staffCategory, String homeOrganization, String affiliation, String homeOrganizationType, String orgDN) {
         super(swissEducationUID, personUID, persistentId, cardUID, matriculationNumber, employeeNumber, givenName, surname, mail, studyBranch, studyLevel, staffCategory, homeOrganization, affiliation, homeOrganizationType, orgDN);
     }
-    
-    
-
 }

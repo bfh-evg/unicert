@@ -14,7 +14,6 @@ package ch.bfh.unicert.webclient.identityfunction;
 import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.util.ExtensionOID;
 import ch.bfh.unicert.webclient.userdata.GoogleUserData;
-import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.util.HashMap;
 import java.util.Map;

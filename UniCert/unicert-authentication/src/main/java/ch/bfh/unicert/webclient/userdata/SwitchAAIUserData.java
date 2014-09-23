@@ -14,7 +14,6 @@ package ch.bfh.unicert.webclient.userdata;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.faces.bean.ManagedBean;
 import javax.faces.bean.SessionScoped;
 
 /**
@@ -145,6 +144,11 @@ public class SwitchAAIUserData implements UserData {
      * that, depending on the context, some of the parameters can be null.
      *
      */
+    /**
+     * Constructs a UserData instance, given some initial parameters. Notice
+     * that, depending on the context, some of the parameters can be null.
+     * @param attributesMap  the HTTP request object parameter map
+     */
     public SwitchAAIUserData(Map<String, Object> attributesMap) {
         initializeUserData(attributesMap);
     }
@@ -229,6 +233,7 @@ public class SwitchAAIUserData implements UserData {
         return surname;
     }
 
+    @Override
     public String getMail() {
         return mail;
     }
@@ -266,7 +271,7 @@ public class SwitchAAIUserData implements UserData {
      * Sets 'initialized' to true if it can at least initialized the fields
      * 'voterId' and 'email'.
      *
-     * @param requestMap the HTTP request object parameter map
+     * @param attributesMap the HTTP request object parameter map
      */
     protected void initializeUserData(Map<String, Object> attributesMap) {
 
@@ -324,11 +329,11 @@ public class SwitchAAIUserData implements UserData {
         
         String value = (String) attributesMap.get(attribute);
         if (value != null) {
-            logger.log(Level.INFO, "Retrieved for "+ comment +": name={0}, value={1}",
-                    new Object[]{attribute, value});
+            logger.log(Level.INFO, "Retrieved for {2}: name={0}, value={1}",
+                    new Object[]{attribute, value, comment});
         } else {
             // Cannot initialize -- giving up.
-            logger.log(Level.SEVERE, "Cannot initialize "+ comment +" -- giving up.");
+            logger.log(Level.SEVERE, "Cannot initialize {0} -- giving up.", comment);
         }
         return value;
     }

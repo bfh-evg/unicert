@@ -58,8 +58,7 @@ public class StandardSwitchAAIIdentityFunction implements IdentityFunction {
                 
     }
     
-    protected void putInOtherValues(Map otherValues, SwitchAAIUserData ud){
-    }
+    protected void putInOtherValues(Map otherValues, SwitchAAIUserData ud){}
 
     protected String selectCommonName(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException{
         //Common name

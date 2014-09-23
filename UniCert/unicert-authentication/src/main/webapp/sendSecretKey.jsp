@@ -106,12 +106,7 @@
 
         // Part two is attachment
         MimeBodyPart attachmentPart = new MimeBodyPart();
-//        DataSource source
-//                = new FileDataSource(fileAttachment);
-//        attachmentPart.setDataHandler(
-//                new DataHandler(source));
-//        attachmentPart.setFileName(fileAttachment);
-        DataSource ds = new ByteArrayDataSource(request.getParameter("pem"), "application/x-pem-file");
+	DataSource ds = new ByteArrayDataSource(request.getParameter("pem"), "application/x-pem-file");
         attachmentPart.setDataHandler(new DataHandler(ds));
         attachmentPart.setFileName("certificate.pem");
         

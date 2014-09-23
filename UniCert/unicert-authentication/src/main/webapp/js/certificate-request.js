@@ -31,8 +31,6 @@ var SEPARATOR = ucConfig.CONCAT_SEPARATOR || '|';
  */
 var requester = {};
 
-
-
 var publickey;
 var secretKey;
 var modulo;
@@ -205,7 +203,7 @@ function generateKeyPair() {
 
         secretKey = keys[0];
         publicKey = keys[1];
-        modulo = keys[2]
+        modulo = keys[2];
 
 
         elements.secretKey.value = leemon.bigInt2str(secretKey, 64);
@@ -334,7 +332,7 @@ function completeCertRequest(byMail) {
             gotoStep3();
         }
 
-    }
+    };
 
     // Error callback fo certificate creation
     var createCertErrorCb = function(request, status, error) {
@@ -358,19 +356,19 @@ function completeCertRequest(byMail) {
         $.blockUI({
             message: '<p>' + msg.createCertificateFailed + " " + message + '</p>',
             timeout: 5000});
-    }
+    };
 
     // Update callback of verification key proof computation
     var computeUpdateCb = function() {
         $('#blockui-processing').append('.');
-    }
+    };
 
     // Done callback of verification key proof computation for DLog
     var computeProofDoneCb = function(proof) {
         // (2) Send verification key to CA and get the certificate
         ucCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
                 elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
-    }
+    };
 
     // Done callback of verification key signature computation for RSA
     var computeSignatureDoneCb = function(signature) {
@@ -379,7 +377,7 @@ function completeCertRequest(byMail) {
         // (2) Send verification key to CA and get the certificate
         ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, leemon.bigInt2str(signature, 10),
                 elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
-    }
+    };
 
     // (1) Compute verification key proof / signature
     var valuesToSign = requester.idp + SEPARATOR + requester.email + SEPARATOR + requester.id;
@@ -422,7 +420,7 @@ function retreiveSecretKeyByMail(skC, doneCb, errorCb) {
     var successCb = function(data) {
         // Right now just call the done callback
         doneCb();
-    }
+    };
 
     // Ajax call to send the secret key by mail.
     $.ajax({

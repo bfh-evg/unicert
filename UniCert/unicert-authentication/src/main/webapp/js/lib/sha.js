@@ -7,6 +7,7 @@ var chrsz = 8; //number of bits pro char
 
 /*
  * Hashes a UTF-8 string
+ * returns a hex representation of the hash
  */
 function sha256String(string) {
     //convert given string to UTF-8 string
@@ -23,8 +24,25 @@ function sha256String(string) {
 }
 
 /*
- *	Hashes a hexadecimal representation of the big int or other
- *	length is the number of bytes from hexStr to hash
+ * Hashes a leemon BigInteger
+ * returns a hex representation of the hash
+ */
+function sha256BigInt(bigInteger){
+    
+    //In UniCrypt (Java) the BigInteger as considered as positive before being hashed (0s are added in front of the byte
+    //array in case of a negative big int. So, we do the same here
+    var hexStr = leemon.bigInt2str(bigInteger, 16);
+    
+    if(parseInt(hexStr.substr(0,2),16)>127){
+	hexStr = "0"+hexStr;
+    }
+    
+    return sha256HexStr(hexStr);
+}
+
+/*
+ *	Hashes a hexadecimal representation
+ *	returns a hex representation of the hash
  */
 function sha256HexStr(hexStr) {
     /*
@@ -32,15 +50,13 @@ function sha256HexStr(hexStr) {
      So, the number of bits contained in the hex string is the length of the string
      multiplied by 4. 
      */
-
+    
     //If the length of the string is not a multiple of 2, "0" is added at the
     //beginning of the string
-    //TODO remove comments
     if (hexStr.length % 2 != 0) {
 	hexStr = "0" + hexStr;
-//	console.log("not multiple of 2: " + hexStr);
     }
-//    console.log("BA to hash: " + hexStr);
+    
     var hash = SHA256(hex2binb(hexStr), (hexStr.length) * 4);
     return binb2hex(hash);
 }

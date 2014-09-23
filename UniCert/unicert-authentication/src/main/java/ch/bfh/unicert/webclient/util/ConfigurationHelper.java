@@ -68,22 +68,12 @@ public interface ConfigurationHelper {
     /**
      * The role the certificate will be issued for
      * 
-     * In UniVote:
-     * 1: Voter
-     * 2: Tallier
-     * 3: Mixer
-     * 
      * @return the role
      */
     public int getRole();
     
     /**
      * Get the index of the identity function that must be applied to the identity token
-     * 
-     * 1: standard function for SwitchAAI tokens
-     * 2: anonymizing function for SwitchAAI tokens
-     * 3: special function for University of Zurich, SwitchAAI tokens
-     * 
      * @return the index of the function
      */
     public int getIdentityFunctionIndex();

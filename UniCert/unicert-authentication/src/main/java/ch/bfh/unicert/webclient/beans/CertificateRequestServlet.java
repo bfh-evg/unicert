@@ -175,7 +175,7 @@ public class CertificateRequestServlet extends HttpServlet {
             int functionId = Integer.parseInt(request.getParameter(IDENTITY_FUNCTION));
             messageForSignature += functionId + SEPARATOR;
 
-            IdentityData idData = null;
+            IdentityData idData;
 
             switch (functionId) {
                 case 1:
@@ -232,10 +232,10 @@ public class CertificateRequestServlet extends HttpServlet {
         } catch (IllegalArgumentException | UnsupportedOperationException ex) {
             internalServerErrorHandler(response, "130 Cryptographic error");
             logger.log(Level.SEVERE, "Cryptographic error: {0}", ex.getMessage());
-        } /*catch (Exception ex) {
+        } catch (Exception ex) {
             internalServerErrorHandler(response, "Undefined error");
             logger.log(Level.SEVERE, "Other exception: {0}", ex.getMessage());
-        }*/
+        }
     }
 
     /**
@@ -320,17 +320,6 @@ public class CertificateRequestServlet extends HttpServlet {
         return bean.getUserData();
     }
 
-    private UserInterfaceBean getUIBean(HttpServletRequest request) {
-        HttpSession session = request.getSession();
-        UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
-        if (bean == null) {
-            logger.log(Level.INFO, "No existing UserInterfaceBean, creating one");
-            bean = new UserInterfaceBean();
-            session.setAttribute("ui", bean);
-        }
-        return bean;
-    }
-
     /**
      * Error code returned for the case of an error while processing a request.
      *
@@ -343,12 +332,12 @@ public class CertificateRequestServlet extends HttpServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         String errorCode = kind.substring(0, 3);
-        String errorMessage = "";
+        String errorMessage;
         //Checks if error code is valid
         try {
             Integer.parseInt(errorCode);
             errorMessage = kind.substring(4);
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             errorMessage = kind;
             errorCode = "";
         }
