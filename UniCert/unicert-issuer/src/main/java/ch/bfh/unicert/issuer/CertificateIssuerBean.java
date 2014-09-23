@@ -18,14 +18,13 @@ import ch.bfh.uniboard.data.AttributesDTO.AttributeDTO;
 import ch.bfh.uniboard.data.StringValueDTO;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
-import ch.bfh.unicert.issuer.cryptography.FiatShamirChallengeGenerator;
-import ch.bfh.unicert.issuer.cryptography.RemovingLeadingZerosBigIntegerToByteArray;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 import ch.bfh.unicert.issuer.util.CertificateHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelperImpl;
 import ch.bfh.unicert.issuer.util.ExtensionOID;
+import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirChallengeGenerator;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
@@ -35,6 +34,7 @@ import ch.bfh.unicrypt.helper.converter.classes.bytearray.BigIntegerToByteArray;
 import ch.bfh.unicrypt.helper.converter.classes.bytearray.StringToByteArray;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
+import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
@@ -150,40 +150,19 @@ public class CertificateIssuerBean implements CertificateIssuer {
 			+ (setup.getSize() - (setup.getSize() * 5 / 1000) - 1)
 			+ " or " + MIN_RSA_SIZE + " is required.");
 	    }
-
 	    logger.log(Level.INFO, "Valid RSA setup");
 
 	    //verify signature
-	    //TODO hashmethod
-	    //TODO alpahber
 	    ZMod rsaGroup = ZMod.getInstance(setup.getN());
-	    RSASignatureScheme rsa = RSASignatureScheme.getInstance(StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII),
+	    RSASignatureScheme rsa = RSASignatureScheme.getInstance(StringMonoid.getInstance(Alphabet.UNICODE_BMP),
 		    rsaGroup, HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
 				    BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.
 				    getInstance(Charset.forName("UTF-8")))));
 	    Element publicKey = rsaGroup.getElement(setup.getPublicKey());
 	    Element signature = rsaGroup.getElement(setup.getSignature());
 
-	    //Hash of message to sign
-//            ByteArray messageHashed = null;
-//            try {
-//                logger.log(Level.INFO, "Hashing message");
-//                messageHashed = ByteArray.getInstance(setup.getSignatureOtherInput().getBytes("UTF-8")).getHashValue(HashAlgorithm.SHA256);
-//                logger.log(Level.INFO, "Message hashed");
-//            } catch (UnsupportedEncodingException ex) {
-//                logger.log(Level.SEVERE, "222 Message to sign encoding problem", ex);
-//                throw new CertificateCreationException("222 Message to sign encoding problem");
-//            }
-//            logger.log(Level.INFO, "Getting element");
-//            Element message  = rsaGroup.getElement(new BigInteger(1,messageHashed.getBytes()));
-	    logger.log(Level.SEVERE, "n: " + setup.getN());
-	    logger.log(Level.SEVERE, "pk: " + publicKey);
-	    logger.log(Level.SEVERE, "sig: " + signature);
-	    logger.log(Level.SEVERE, "sig oth in: " + setup.getSignatureOtherInput());
+	    
 	    Element message = rsa.getMessageSpace().getElement(setup.getSignatureOtherInput());
-	    logger.log(Level.SEVERE, "sig oth in: " + message);
-	    //Element message  = rsaGroup.getElementFrom(messageHashed);
-	    logger.log(Level.INFO, "Verifiying");
 	    if (!rsa.verify(publicKey, message, signature).getValue()) {
 		logger.log(Level.SEVERE, "Signature invalid");
 		throw new CertificateCreationException("222 Signature invalid");
@@ -191,7 +170,6 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	    logger.log(Level.INFO, "Signature valid");
 
 	    pk = createRSAPublicKey(setup.getPublicKey(), setup.getN());
-	    logger.log(Level.INFO, "Key created");
 
 	} else if (cs instanceof DiscreteLogSetup) {
 	    DiscreteLogSetup setup = (DiscreteLogSetup) cs;
@@ -199,15 +177,14 @@ public class CertificateIssuerBean implements CertificateIssuer {
 		logger.log(Level.SEVERE, "Illegal cryptographic setup: minimal size not respected");
 		throw new CertificateCreationException("221 Illegal cryptographic setup: minimal size not respected");
 	    }
-
 	    logger.log(Level.INFO, "Valid DLOG setup");
 
 	    Function func = GeneratorFunction.getInstance(setup.getGenerator());
 
+	    StringElement s = StringMonoid.getInstance(Alphabet.UNICODE_BMP).getElement(setup.getProofOtherInput());
 	    FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(),
-		    Z.getInstance(), setup.getProofOtherInput(),
-		    HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
-				    RemovingLeadingZerosBigIntegerToByteArray.
+		    Z.getInstance(), s, HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
+				    BigIntegerToByteArray.
 				    getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName(
 						    "UTF-8"))), HashMethod.Mode.RECURSIVE), FiniteByteArrayToBigInteger.
 		    getInstance(HashAlgorithm.SHA256.getHashLength()));
@@ -220,7 +197,6 @@ public class CertificateIssuerBean implements CertificateIssuer {
 		logger.log(Level.SEVERE, "Proof incorrect");
 		throw new CertificateCreationException("223 Proof incorrect");
 	    }
-
 	    logger.log(Level.INFO, "Proof correct");
 
 	    pk = createDSAPublicKey(setup.getPublicKey().getBigInteger(), setup.getP().getValue(), setup.getZ_q().
@@ -228,20 +204,6 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	}
 
-//        logger.log(Level.INFO, "Hashing application identifier.");
-//
-//        //Hashing appIdentifier to avoid publishing unwanted texts in certificate
-//        String hashedAppId = applicationIdentifier;
-//        try {
-//            StringMonoid sm = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
-//            hashedAppId = new String(Base64.encodeBase64(sm.getElement(applicationIdentifier).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getAll()));
-//            //Function hashFunction = HashFunction.getInstance(sm, HashMethod.getInstance(HashAlgorithm.SHA256));
-//            logger.log(Level.INFO, "Application identifier hashed. Encoding Base 64");
-//        } catch (Exception e) {
-//            logger.log(Level.WARNING, "Problem while hashing application identifier: {0}", e.getMessage());
-//            throw new CertificateCreationException("230 Problem while hashing application identifier");
-//        }
-	logger.log(Level.INFO, "Required info processed, creating certificate.");
 
 	Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
 	Certificate cert = createClientCertificate(
@@ -252,7 +214,8 @@ public class CertificateIssuerBean implements CertificateIssuer {
 		expiry,
 		applicationIdentifier,
 		role);
-
+	logger.log(Level.INFO, "Certificate created");
+	
 	//post message on UniBoard if corresponding JNDI parameter is defined
 	if (getUniBoardServiceURL() != null) {
 	    postOnUniBoard(cert, getUniBoardServiceURL());
@@ -270,7 +233,6 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @throws CertificateCreationException if an error occured during publication
      */
     protected void postOnUniBoard(Certificate cert, String endpointUrl) throws CertificateCreationException {
-	logger.log(Level.INFO, "Posting certificate on the UniBoard");
 
 	UniBoardService board;
 	try {

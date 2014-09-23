@@ -11,15 +11,11 @@
  */
 package ch.bfh.unicert.issuer.cryptography;
 
-import ch.bfh.unicert.issuer.CertificateIssuerBean;
 import ch.bfh.unicrypt.helper.factorization.Prime;
-import ch.bfh.unicrypt.helper.factorization.SafePrime;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModElement;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModPrime;
-import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModSafePrime;
 import java.math.BigInteger;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**

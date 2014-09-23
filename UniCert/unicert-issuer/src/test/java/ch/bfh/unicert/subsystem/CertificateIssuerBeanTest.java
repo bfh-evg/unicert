@@ -1,17 +1,13 @@
 package ch.bfh.unicert.subsystem;
 
-/*
- * To change this license header, choose License Headers in Project Properties. To change this template file, choose
- * Tools | Templates and open the template in the editor.
- */
+
 import ch.bfh.unicert.issuer.Certificate;
 import ch.bfh.unicert.issuer.CertificateIssuer;
 import ch.bfh.unicert.issuer.CertificateIssuerMock;
 import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
-import ch.bfh.unicert.issuer.cryptography.FiatShamirChallengeGenerator;
-import ch.bfh.unicert.issuer.cryptography.RemovingLeadingZerosBigIntegerToByteArray;
+import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirChallengeGenerator;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 import ch.bfh.unicert.issuer.util.CertificateHelper;
@@ -160,15 +156,13 @@ public class CertificateIssuerBeanTest {
 
 	String originalMessage = "";
 
-	StringElement message = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII).getElement(originalMessage);
+	StringElement message = StringMonoid.getInstance(Alphabet.UNICODE_BMP).getElement(originalMessage);
 
 	Function func = GeneratorFunction.getInstance(g);
-	//FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(G_q, G_q, Z.getInstance(),
-	//	originalMessage);
 	FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(G_q, G_q,
-		Z.getInstance(), originalMessage,
+		Z.getInstance(), message,
 		HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
-				RemovingLeadingZerosBigIntegerToByteArray.
+				BigIntegerToByteArray.
 				getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName(
 						"UTF-8"))), HashMethod.Mode.RECURSIVE), FiniteByteArrayToBigInteger.
 		getInstance(HashAlgorithm.SHA256.getHashLength()));
@@ -266,8 +260,7 @@ public class CertificateIssuerBeanTest {
 	 */
 	BigInteger d = e.modInverse(PhiN);
 
-	//TODO alphabet???
-	RSASignatureScheme rss = RSASignatureScheme.getInstance(StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII),
+	RSASignatureScheme rss = RSASignatureScheme.getInstance(StringMonoid.getInstance(Alphabet.UNICODE_BMP),
 		ZModPrimePair.getInstance(p, q), HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
 				BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(
 					Charset.forName("UTF-8")))));

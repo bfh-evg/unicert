@@ -49,7 +49,7 @@ public class Certificate {
     private final Map<String, String> extension;
     private String pem;
     
-    private X509Certificate cert;
+    private final X509Certificate cert;
     private final String applicationIdentifier;
     private final String role;
     private final String identityProvider;

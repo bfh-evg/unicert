@@ -11,8 +11,6 @@
  */
 package ch.bfh.unicert.issuer;
 
-import ch.bfh.unicert.issuer.Certificate;
-import ch.bfh.unicert.issuer.CertificateIssuerBean;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 
 /**

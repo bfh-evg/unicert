@@ -15,12 +15,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.math.BigInteger;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Date;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.openssl.PEMWriter;
 
