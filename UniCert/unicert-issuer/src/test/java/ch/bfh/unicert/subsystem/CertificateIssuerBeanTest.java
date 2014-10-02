@@ -7,12 +7,12 @@ import ch.bfh.unicert.issuer.CertificateIssuerMock;
 import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
-import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirChallengeGenerator;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 import ch.bfh.unicert.issuer.util.CertificateHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelper;
 import ch.bfh.unicert.issuer.util.ExtensionOID;
+import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirSigmaChallengeGenerator;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
@@ -26,7 +26,6 @@ import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
-import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZModPrimePair;
 import ch.bfh.unicrypt.math.algebra.general.classes.Pair;
@@ -159,13 +158,12 @@ public class CertificateIssuerBeanTest {
 	StringElement message = StringMonoid.getInstance(Alphabet.UNICODE_BMP).getElement(originalMessage);
 
 	Function func = GeneratorFunction.getInstance(g);
-	FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(G_q, G_q,
-		Z.getInstance(), message,
-		HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
-				BigIntegerToByteArray.
-				getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName(
-						"UTF-8"))), HashMethod.Mode.RECURSIVE), FiniteByteArrayToBigInteger.
-		getInstance(HashAlgorithm.SHA256.getHashLength()));
+        HashMethod hashMethod = HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
+		    BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName("UTF-8"))), HashMethod.Mode.RECURSIVE);
+        FiniteByteArrayToBigInteger byteArrayConverter = FiniteByteArrayToBigInteger.getInstance(
+		    HashAlgorithm.SHA256.getHashLength());
+        FiatShamirSigmaChallengeGenerator scg = FiatShamirSigmaChallengeGenerator.getInstance(G_q, G_q,
+		    Z_q, message, hashMethod, byteArrayConverter);
 	PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
 
 	Triple proof = pips.generate(x, y);

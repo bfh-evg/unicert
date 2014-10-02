@@ -24,7 +24,7 @@ import ch.bfh.unicert.issuer.util.CertificateHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelperImpl;
 import ch.bfh.unicert.issuer.util.ExtensionOID;
-import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirChallengeGenerator;
+import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirSigmaChallengeGenerator;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
@@ -36,7 +36,6 @@ import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
-import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
 import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
 import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
@@ -161,7 +160,6 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	    Element publicKey = rsaGroup.getElement(setup.getPublicKey());
 	    Element signature = rsaGroup.getElement(setup.getSignature());
 
-	    
 	    Element message = rsa.getMessageSpace().getElement(setup.getSignatureOtherInput());
 	    if (!rsa.verify(publicKey, message, signature).getValue()) {
 		logger.log(Level.SEVERE, "Signature invalid");
@@ -182,16 +180,16 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	    Function func = GeneratorFunction.getInstance(setup.getGenerator());
 
 	    StringElement s = StringMonoid.getInstance(Alphabet.UNICODE_BMP).getElement(setup.getProofOtherInput());
-	    FiatShamirChallengeGenerator scg = FiatShamirChallengeGenerator.getInstance(setup.getG_q(), setup.getG_q(),
-		    Z.getInstance(), s, HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
-				    BigIntegerToByteArray.
-				    getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName(
-						    "UTF-8"))), HashMethod.Mode.RECURSIVE), FiniteByteArrayToBigInteger.
-		    getInstance(HashAlgorithm.SHA256.getHashLength()));
+	    HashMethod hashMethod = HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
+		    BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName("UTF-8"))), HashMethod.Mode.RECURSIVE);
+	    FiniteByteArrayToBigInteger byteArrayConverter = FiniteByteArrayToBigInteger.getInstance(
+		    HashAlgorithm.SHA256.getHashLength());
+	    FiatShamirSigmaChallengeGenerator scg = FiatShamirSigmaChallengeGenerator.getInstance(setup.getG_q(), setup.
+		    getG_q(), setup.getZ_q(), s, hashMethod, byteArrayConverter);
 	    PreimageProofSystem pips = PreimageProofSystem.getInstance(scg, func);
 
 	    //verify proof
-	    Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), Z.getInstance().
+	    Triple proof = Triple.getInstance(setup.getG_q().getElement(setup.getProofCommitment()), setup.getZ_q().
 		    getElement(setup.getProofChallenge()), setup.getZ_q().getElement(setup.getProofResponse()));
 	    if (!pips.verify(proof, setup.getPublicKey())) {
 		logger.log(Level.SEVERE, "Proof incorrect");
@@ -204,7 +202,6 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	}
 
-
 	Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
 	Certificate cert = createClientCertificate(
 		idData,
@@ -215,7 +212,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 		applicationIdentifier,
 		role);
 	logger.log(Level.INFO, "Certificate created");
-	
+
 	//post message on UniBoard if corresponding JNDI parameter is defined
 	if (getUniBoardServiceURL() != null) {
 	    postOnUniBoard(cert, getUniBoardServiceURL());
