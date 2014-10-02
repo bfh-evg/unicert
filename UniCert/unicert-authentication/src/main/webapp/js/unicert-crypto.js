@@ -85,15 +85,20 @@
 	    //2. Compute t = g^omega mod p
 	    var t = leemon.powMod(g, omega, p);
 
-	    //3. Compute c = H(publicInput||t||otherInput)
+	    //3. Compute c = H(H(H(publicInput)||H(t))||H(otherInput))
+	    //3.1 Hash of public input
 	    var hashPI = sha256BigInt(publicInput);
 	    //3.2 Hash of commitment
 	    var hashCommitment = sha256BigInt(t);
-	    //3.3 Hash of other input
+	    //3.3 Hash of the hash of public input concatenated with hash of commitment
+	    //(Steps 3.1 to 3.3 are the computation of to the recursive hash of a Pair[publicInput, Commitment] in UniCrypt)
+	    var hashPIAndCommitment = sha256HexStr(hashPI + hashCommitment);
+	    //3.4 Hash of other input
 	    var hashOtherInput = sha256String(otherInput);
-	    //3.4 Hash of all three hashes concatenated
-	    var cStr = sha256HexStr(hashPI + hashCommitment + hashOtherInput);
-	    var c = leemon.str2bigInt(cStr, 16, 1);
+	    //3.5 Hash of hashPIAndCommitment concatenated with hashOtherInput
+	    //(Steps 3.1 to 3.5 are the computation of to the recursive hash of a Pair[Pair[publicInput, Commitment], otherInput] in UniCrypt)
+	    var cStr = sha256HexStr(hashPIAndCommitment + hashOtherInput);
+	    var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), q);
 
 	    //4. Compute s = omega+c*secretInput mod q
 	    var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
@@ -110,9 +115,7 @@
 	    // step 2
 	    var step2 = function(_t) {
 		var t = _t;
-		//3. Compute c = H(publicInput||t||otherInput)
-		var m = [];
-
+		//3. Compute c = H(H(H(publicInput)||H(t))||H(otherInput))
 		//3.1 Hash of public input
 		//TODO remove commented code
 //		console.log("p " + leemon.bigInt2str(p, 10));
@@ -124,15 +127,18 @@
 		//3.2 Hash of commitment
 		var hashCommitment = sha256BigInt(t);
 //		console.log("commitment hashed: " + hashCommitment);
+		//3.3 Hash of the hash of public input concatenated with hash of commitment
+		//(Steps 3.1 to 3.3 are the computation of to the recursive hash of a Pair[publicInput, Commitment] in UniCrypt)
+		var hashPIAndCommitment = sha256HexStr(hashPI + hashCommitment);
 
-		//3.3 Hash of other input
+		//3.4 Hash of other input
 		var hashOtherInput = sha256String(otherInput);
 //		console.log("other input hashed: " + hashOtherInput);
-		//3.4 Hash of all three hashes concatenated
-		var cStr = sha256HexStr(hashPI + hashCommitment + hashOtherInput);
+		//3.5 Hash of hashPIAndCommitment concatenated with hashOtherInput
+		//(Steps 3.1 to 3.5 are the computation of to the recursive hash of a Pair[Pair[publicInput, Commitment], otherInput] in UniCrypt)
+		var cStr = sha256HexStr(hashPIAndCommitment + hashOtherInput);
 //		console.log("Complete hash: " + cStr);
-		var c = leemon.str2bigInt(cStr, 16, 1);
-
+		var c = leemon.mod(leemon.str2bigInt(cStr, 16, 1), q);
 		//4. Compute s = omega+c*secretInput mod q
 		var s = leemon.mod(leemon.add(omega, leemon.multMod(c, secretInput, q)), q);
 
@@ -256,10 +262,10 @@
 		proof.t = leemon.bigInt2str(proof.t, 10);
 		proof.c = leemon.bigInt2str(proof.c, 10);
 		proof.s = leemon.bigInt2str(proof.s, 10);
-
+		console.log("Challenge: "+proof.c);
 		doneCb(proof);
 	    };
-
+	    
 	    this.NIZKPAsync(p, q, g, sk, vk, voterId, nizkpDoneCb, updateCb);
 	}
 
