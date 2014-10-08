@@ -13,7 +13,43 @@
 % use "german.tex" for documents in german and "english.tex" for
 % documents in english
 \inputpath{{listings/}{figures/}}
+%\usepackage{bera}% optional: just to have a nice mono-spaced font
+\usepackage{listings}
+\usepackage{xcolor}
 
+\colorlet{punct}{red!60!black}
+\definecolor{background}{HTML}{EEEEEE}
+\definecolor{delim}{RGB}{20,105,176}
+\colorlet{numb}{magenta!60!black}
+
+\lstdefinelanguage{json}{
+    basicstyle=\normalfont\ttfamily,
+    numbers=left,
+    numberstyle=\scriptsize,
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=lines,
+    backgroundcolor=\color{background},
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {:}{{{\color{punct}{:}}}}{1}
+      {,}{{{\color{punct}{,}}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1},
+}
 
 % Systems
 \newcommand{\univote}{\mbox{UniVote}}
@@ -52,37 +88,40 @@
 
 This document presents the architectural specification of \unicert. \unicert\ is a certification authority, that issues digital certificates used to authenticate users, to sign and/or encrypt messages. \unicert\ provides an interface where the user can authenticate themselves and request a certificate corresponding to their needs. \unicert\ uses \uniboard\ to publish all issued certificates. A general description of what \unicert\ does and how it works is available in document \cite{univote_spec}. 
 
-This document presents the detail certificate issuing process and focuses on architectural and technical specifications. 
+This document presents the detailed certificate issuing process and focuses on architectural and technical specifications. In a \Cref{chap:process}, the components and processes of authentication and issuance of the certificate will be described in more details. \Cref{chap:architecture} describes the architecture of some important classes. Finally, \Cref{chap:specialities} describes some important \unicert\ particularities.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Components and Process}
+\chapter{Components and Processes} \label{chap:process}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-To give an overview of how \unicert works, we give a high-level picture of the architecture and the processes that compose \unicert.
+To give an overview of how \unicert\ works, we give a high-level picture of the architecture and the processes that compose \unicert.
 
 \section{Components}
 
-\unicert is composed of two components. The fist one, the authentication component, has following functions:
+\unicert\ is composed of two components. The fist one, the authentication component called \textit{unicert-authentication}, has following functions:
 \begin{itemize}
 \item authenticate the user
 \item allow the user to generate a key pair and select some options
 \item send all data to issuer component
-\item return the private key (stored locally) and the issued certificate (received from the issuer component) to the user.
+\item return the private key (generated on user side) and the issued certificate (received from the issuer component) to the user.
 \end{itemize}
-The second component, the issuer component, has following functions:
+So, this component proposes a frontend for user interactions and a backend to process the requests coming from the user.
+
+The second component, the issuer component called \textit{unicert-issuer}, has following functions:
 \begin{itemize}
 \item issue the certificate based on the data received
-\item publish the certificate on \uniboard (optional)
+\item publish the certificate on \uniboard
 \item return the certificate to the authentication component
 \end{itemize}
 
-\section{Authentication Process}
+\section{Authentication Process} \label{sec:auth_process}
 
 
-Currently, the authentication component supports two identity providers to authenticate the user, namely SwitchAAI and Google. Since they do not use the same technologies, the flow of the authentication process is slightly different. Following paragraphs describes the process for each of them.
+Currently, the authentication component supports two identity providers to authenticate the user, namely SwitchAAI and Google. Since they do not use the same technologies, the flow of the authentication process is slightly different for these two providers. Following paragraphs describe the process for each of them.
 
-\paragraph*{SwitchAAI authentication} SwitchAAI uses a Shibboleth module of Apache webserver to make the redirection to the authentication webpage and back. \cref{fig:auth_process_switch} shows how the process works.
+\paragraph*{SwitchAAI authentication} SwitchAAI uses a Shibboleth module of Apache webserver to make the redirection to the authentication webpage and back. \Cref{fig:auth_process_switch} shows how the process works. To begin the procedure, the user must invoke a link containing some information about what parameters must be loaded for the authentication and issuance process (described in more details later in \Cref{sec:simplification_ui}). This can for example be done by clicking on a link on the home page of \unicert. This link calls the \textit{ParameterServlet} which loads the required parameters, among others the supported identity providers for authentication. If more than one are supported, page \textit{idpselection.xhtml} is displayed where the user can choose which provider to use.
 
+For the present case, SwitchAAI is selected. Page \textit{switchaai.xhtml} is requested. For this page, the Apache Shibboleth module expects a valid user to be logged in. If it is not the case, the user is redirected to SwitchAAI authentication page. Once the credentials entered and the user successfully authenticated by SwitchAAI, the Apache Shibboleth module verifies the response received from Switch and displays the \textit{switchaai.xhtml} page where the user personal information received from Switch are read. After a few seconds, the user is redirected to the page where the certificate can be requested (\textit{certificate-request.xhtml}).
 
 \begin{figure}[ht]
 \centerline{
@@ -91,7 +130,7 @@ Currently, the authentication component supports two identity providers to authe
 \label{fig:auth_process_switch}
 \end{figure}
 
-\paragraph*{Google authentication} Google uses protocol OAuth to manage the authentication.
+\paragraph*{Google authentication} Google uses protocol OAuth to manage the authentication. Because of this different technology, the process of authentication with Google is slightly different from the one with SwitchAAI. \Cref{fig:auth_process_google} shows how it works. The first steps are identical until the identity provider is chosen (for this case Google). The \textit{ParametersServlet} redirects the user to Google where the authentication process takes place. The response from Google is sent back to the \textit{OAuth2CallbackServlet} which verifies the response from Google and reads the user personal information received. If everything was correct, the user is redirected to the page where the certificate can be requested (\textit{certificate-request.xhtml}).
 \begin{figure}[ht]
 \centerline{
 \includegraphics[width=1.0\textwidth]{figs/authentication_process_google}}
@@ -99,9 +138,20 @@ Currently, the authentication component supports two identity providers to authe
 \label{fig:auth_process_google}
 \end{figure}
 
-\section{Certificate Issuance Process}
+\section{Certificate Issuance Process} \label{sec:issuance_process}
 
-The rest of the process is issuance of the certificate. This works in the same way independently of the identity provider used. The process is shown in \Cref{fig:request_process}
+The rest of the process is issuance of the certificate. This works in the same way independently of the identity provider used. The process is shown in \Cref{fig:request_process}. This whole process takes place on the page \textit{certificate-request.xhtml}. On this page, the user has to provide following information for the certificate they request: 
+\begin{itemize}
+\item type of cryptographic values (currently supported: RSA and discrete logarithm)
+\item cryptographic parameters: size of key for RSA, values $p,q,g$ for discrete logarithm
+\item a private key (generated locally with RSA)
+\item a password to encrypt the private key
+\item application identifier of the application which the certificate is issued for
+\item role in the application the certificate is issued for
+\item the identity function that must be applied on the identity information
+\end{itemize}
+
+The private key is generated on client side in javascript. The public key corresponding to the generated private key is computed together with a signature (or a proof in case of discrete logarithm setup) to prove the knowledge of the private key. Through javascript, the data listed above (except the private key and the password) are sent to the \textit{CertificateRequestServlet}. In this servlet, the user personal information (also called \textit{user data}) that were received during the authentication process (see \Cref{sec:auth_process}) are used in combination with the identity function to generate the \textit{identity data} that will be included in the certificate. All the processes described until here are realized by the \textit{unicert-authentication} component. The data received and the identity data are then transmitted to the \textit{unicert-issuer} component. This second component verifies the data received and issues the certificate as requested, publishes it on \uniboard and returns it to the \textit{unicert-authentication} component which returns it to the user. In parallel, the secret key is encrypted with the password and sent by mail to the user through the \textit{unicert-authentication} component.
 
 \begin{figure}[ht]
 \centerline{
@@ -110,494 +160,260 @@ The rest of the process is issuance of the certificate. This works in the same w
 \label{fig:request_process}
 \end{figure}
 
-%\begin{figure}[ht]
-%\centerline{
-%\includegraphics[width=1.0\textwidth]{figs/chainsofcomp}}
-%\caption{Certificate request process}
-%\label{fig:request_process}
-%\end{figure}
+\chapter{Architecture} \label{chap:architecture}
+This chapter describes in more details some classes and other architecture concepts of the \textit{unicert-authentication} component and of the \textit{unicert-issuer} component.
 
-%\section{Chain of Components}
-%
-%In order to achieve upmost flexibility, the two basic operations of
-%\uniboard\ are represented with \emph{generic} service
-%interfaces, simply called \emph{GetService} and \emph{PostService} (namespaces in text
-%omitted for brevity). That is, each component
-%implements either one or both interfaces.
-%
-%The chains of components (Get-Chain and Post-Chain) are achieved by linking a component
-%to the next one, which in turn is linked to another component.
-%Only the last component in the chain, the \emph{PersistenceService}, is not
-%linked to another component. \fig{fig:chains-of-components}
-%shows a possible structure of the chains. 
-%
-%
-%%\begin{figure}[ht]
-%%\centerline{
-%%\includegraphics[width=1.0\textwidth]{figs/chainsofcomp}}
-%%\caption{Simple setup of the the chains in \uniboard}
-%%\label{fig:chains-of-components}
-%%\end{figure}
-%
-%The service interfaces consists each of one
-%general-purpose method:
-%
-%\begin{lstlisting}[style=javastyle]
-%package ch.bfh.uniboard.service;
-%
-%public interface GetService {
-%    public ResultContainer get(Query query);
-%}
-%\end{lstlisting}
-%
-%\begin{lstlisting}[style=javastyle]
-%package ch.bfh.uniboard.service;
-%
-%public interface PostService {
-%    public Attributes post(byte[] message, Attributes alpha, Attributes beta);
-%}
-%\end{lstlisting}
-%
-%The provided and returned data containers \emph{Attributes},
-%\emph{Query}, and \emph{ResultContainer} are kept as generic as possible, so that to ensure 
-%a good flexibility for the components. The introduction of generic
-%data containers also minimizes the coupling: Components depend on
-%the core classes only, but not on specific classes of other
-%components.
-%
-%The meaning of the data abstractions can be summarized as follows:
-%
-%\begin{itemize}
-%	\item \emph{Attributes:} List of attributes, where each attribute is computed
-%		by the user or a component. These attributes belong either to a message or result.
-%	\item \emph{Query:} Data that originates from an user
-%		for a \emph{get} operation. The \emph{Query} defines the set of posts that are returned as the result.
-%	\item \emph{ResultContainer:} Consists of two parts. First there is a set of posts that satisfies the \emph{Query}, and there are \emph{Attributes} for this result. Every component may add an attribute. The result is set by the final component, the persistence store.
-%\end{itemize}
-%
-%
-%\section{Service Request Delegation}
-%
-%At start-up time, a board is configured by a number
-%of concrete components arranged in a chain of component
-%instances. To service a client, there is at first a \emph{BulletinBoardService}. This service
-%provides the interface for the client.  It forwards the request to the first
-%component, which passes it to the next component. It may also process the
-%service request before passing it to the next
-%component. Consequently, it may also process the
-%response before returning it to the \emph{BulletinBoardService}.
-%
-%The above described behavioral pattern is repeated with
-%every intermediate component. Notice that \emph{synchronous} calls
-%are used between the components.
-%However, asynchronous processing may occur within
-%a component, which will likely be the case for the
-%distributed variant of the board.
-%
-%\section{Handling Service Requests}
-%
-%A \emph{BulletinBoardService} or a component requests a service provided by
-%the downstream component. Basically, the following three
-%processing actions will occur in the downstream component:
-%
-%\begin{enumerate}
-%	\item The received request is processed.
-%	\item The processed request is passed to the downstream
-%		component.
-%	\item The result of the downstream component is
-%		processed and returned to the calling
-%		component (or the application).
-%\end{enumerate}
-%
-%The comments of \fig{fig:chain-of-components} sketch
-%the above described processing actions. The template \cite{Gamma:1995:DPE:186897}
-%of this behavior is predefined in the abstract class Component:
-%
-%\begin{lstlisting}[style=javastyle]
-%package ch.bfh.uniboard.service;
-%
-%public abstract class Component implements Service {
-%    private Service successor;
-%
-%	public final Attributes post(byte[] message, Attributes alpha, Attributes beta) {
-%		Attributes beforePost = this.beforePost(message, alpha, beta);
-%		...
-%		Attributes betaReceived = this.getSuccessor().post(message, alpha, beforePost);
-%		this.afterPost(message, alpha, betaReceived);
-%		return betaReceived;
-%	}
-%    public finalResultContainer get(Query query) {
-%        // analogous to method post() above
-%    }
-%    protected Attributes beforePost(byte[] message, Attributes alpha, Attributes beta) {
-%        return beta;
-%    }
-%    protected void afterPost(byte[] message, Attributes alpha, Attributes beta) {
-%    }
-%    // analogous for methods beforeGet() and afterGet()
-%}
-%\end{lstlisting}
-%
-%Subclasses needing to process a message before passing it
-%to the downstream component merely overwrite method
-%\emph{beforePost()}:
-%
-%\begin{lstlisting}[style=javastyle]
-%package lu.unilu.uniboard.component_x;
-%
-%import ch.bfh.uniboard.service.*;
-%
-%public class Component_X extends Component {
-%    ...
-%    protected Attributes beforePost(byte[] message, Attributes alpha, Attributes beta) {
-%        // process given message and attributes
-%        // (or pass back modified attributes object, not shown)
-%        return beta;
-%    }
-%}
-%\end{lstlisting}
-%
-%Similarly, subclasses overwrite methods \emph{afterPost()},
-%\emph{beforeGet()}, and \emph{afterGet()} in order to implement
-%the desired behavior.
-%
-%
-%\section{Generic Data Container}
-%The generic data containers are not only used to transmit data from component to component, but also for the communication with the users of UniBoard.
-%
-%\subsection{Attributes}
-%Attributes is basically a hashmap which only accepts strings as keys and implementations of the interface "value"(see \fig{fig:value-type}) as values.
-%\subsection{Query}
-%A Query consists of a list of Constraints. Each Constraint identifies an entry in one of the attributes or in the message and limits it's value range.
-%\subsection{ResultContainer}
-%A Resultcontainer holds a list of posts, which did fulfil the corresponding Query, and Attributes.
-%\section{Error Handling}
-%When a error occurs in one of the components the operation is to be halted and all changes are reverted. On a exception every component has to stop passing the message/query down and return a beta/gamma, which indicates that an exception occurred.
-%
-%This beta/gamma is expected to only contain the error attribute. This attribute can either be a rejection, because some requirements weren't fulfilled or an error because the board had some other issues. The keyword for this two cases are "error" and "rejected" and can be found in the \emph{Attributes} class as static references.
-%
-%The value of the attribute is to be expected to be a \emph{StringValue}. This \emph{StringValue} should start with a 7 sign long error code in the form "ZZZ-000", where "ZZZ" is an identifier of the component that did throw the error and "000" a component specific error number.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\chapter{Specific Services}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%In order to implement the desired properties of the public bulletin board,
-% a number of concrete services are required:
-%
-%\begin{itemize}
-%	\item \emph{bfh-webservice} Provides an interface to UniBoard over WebServices.
-%	\item \emph{Property Service} This service provides properties required by the bulletin board. Its
-%		realization is composed of a series of property
-%		implementation, all adhering to the very same
-%		\emph{Service} interface, exploiting the pluggable
-%		layered architecture.
-%	\item \emph{Persistence Service} This service provides
-%		the view to the persistence storage of the postings
-%		sent to \uniboard.
-%\end{itemize}
-%
-%Some details of the \emph{fault tolerance service} will be described
-%in the next chapter. Course views for a \emph{property service}
-%and the \emph{persistence service} are given in the next sections.
-%
-%TODO: Provide details on accessing the bulletin board.
-%
-%\section{bfh-webservice}
-%The module bfh-webservice offers the basic operations introduced in (do Ref) as a webservice.
-%\begin{itemize}
-%	\item $\mathrm{Post}(m,\alpha):\beta$
-%	\item $\mathrm{Get}(Q):R, \gamma$
-%\end{itemize}
-%
-%%\section{A Service Implementing a Property}
-%%
-%%The public bulletin board requires a number of properties. Our
-%%architecture implies that each property is realized within
-%%one component. Since a component requires the service of
-%%the downstream component, a downstream component is
-%%linked with the component automatically; the necessary
-%%code is inherited from the subclass \emph{Component}.
-%%
-%%\fig{fig:authorization-service} shows the structure of
-%%the authorization service.
-%%
-%%\begin{figure}[ht]
-%%\centerline{
-%%\includegraphics[width=1.0\textwidth]{figs/authorization-service}}
-%%\caption{UML class diagram for the illustration of the
-%%authorization service component. Notice that it is derived
-%%from the \emph{Component} class which implies that there
-%%is a downstream component link to this component.}
-%%\label{fig:authorization-service}
-%%\end{figure}
-%%
-%%
-%\section{The Persistence Service}
-%
-%The persistence service provides operations to store and
-%retrieve data. It is a component in the sense that it
-%implements the \emph{Service} interface. However, it
-%does not have any downstream component and, thus, cannot be
-%derived from the \emph{Component} abstraction.
-%
-%\fig{fig:persistence-service} shows the structure of the persistence service
-%component.
-%
-%Data posted and retrieved is called \emph{post}. A post is always constituted of three elements: the \emph{message}, the \emph{alpha attributes} that are post attributes defined by the poster and \emph{beta attributes}, which are attributes defined by the board. The persistence service has to store these three elements.
-%
-%\subsection{Storing the message}
-%
-%Our implementation of the persistence service uses MongoDB as database. MongoDB is a JSON document based database. This means that a post must be transformed in a JSON document previous to saving it. This allows to store a JSON structured \emph{message} in a post without having the board knowing the structure of the message in advance. A message must be given in the form of a byte array, this allowing the poster to store everything in the message. If the poster wants to store a JSON structure as message of the post, the poster has to convert the JSON string to a byte array using UTF-8 encoding, before passing it to the persistence service. When the persistence service receives a post to store, it tries to interpret the message as a JSON string. If it successes, it stores the message in that format, otherwise, it stores it as byte array. \\
-%MongoDB then allows to retrieve a post giving a JSON key and the value it should have. So, a user can retrieve a post by indicating a key used in the message of a post. Therefore, the user must know the structure of the JSON message, but the board doesn't.
-%
-%\subsection{Storing the attributes}
-%
-%The attributes \emph{alpha} and \emph{beta} are of type \emph{Attributes} which is a simple class containing a map storing the attributes as key-value pair. Using MondoDB for storing these attributes offers another advantage: the database can accept an undefined number of attributes since they are also stored as JSON elements.
-%
-%The key of an attribute must be a string. The value however can have different type. An interface called \emph{Value} defines the abstract type of the value, its concrete implementations define the concrete types allowed for an attributes. They are: \emph{StringValue}, \emph{IntegerValue}, \emph{DoubleValue}, \emph{DateValue}, \emph{ByteArrayValue} as shown in \fig{fig:value-type}. All these types are natively supported by MongoDB for storing and querying.
-%
-%
-%\subsection{Querying a post}
-%
-%To retrieve a post, a so-called \emph{Query} object must be submitted to the persistence service. A \emph{Query} is composed of list of \emph{Constraint} objects. These constraints allow to specify conditions that a post must fulfill in order to be returned as result for this query. Different types of constraints are supported as show in \fig{fig:constraints}. Each concrete constraint contains one key to identify which part (for example which attribute) of the post must fulfill the condition, at least one value and a \emph{PostElement} indicator, which specifies whether the key the user is interested in is located in the message, the alpha attributes or the beta attributes. This last element is important since the query strategy of MongoDB requires to indicate the structure of the key searched. For example, if the value we are interested in is identified by the key \emph{subsubkey3}, it is necessary to indicate the path to access to this key (for example: \emph{key.subkey2.subsubkey3}. Since, when storing the post, three different keys are used to separate the message, the alpha attributes and the beta attributes, the persistence service must know in which of this element the indicated key should be found. This information is given through the \emph{PostElement}. The structure of keys can be passed as list of strings, the first element being considered as the root.
-%
-%The value searched must be a subtype of \emph{Value}. The constraints shown in \fig{fig:constraints} are applicable for all these subtypes. \emph{Greater}, \emph{GreaterEquals}, \emph{Less}, \emph{LessEquals} and \emph{Between} base on the alphabetical order for \emph{StringValue} type and the binary value for \emph{ByteArrayValue} type.
-%
-%Multiple constraint can be combined with the \emph{and} operator. This is done by inserting multiple constraints in the list that is passed at creation of the \emph{Query} object.
-%
-%The result returned by the \emph{Get} method is a \emph{ResultContainer} object. This object is formed of the list of posts returned by the database and an empty \emph{Attributes} object.
-% 
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\chapter{Distributed Bulletin Board}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%This chapters explains how a bulletin board is built as
-%a distributed system. The distributed system consists of
-%a set of nodes. Each node is assumed to be configured
-%accordingly.
-%
-%The architectural model also assumes that a message to
-%be published is sent to one (trusted) node. (If the
-%application does not trust a given node then it can
-%choose among the other ones.) The message then is
-%processed by the Byzantine fault tolerant client
-%component \emph{BFTClient}. The BFT client component in turn
-%may use downstream components, and it will have
-%to use peers, the so called Byzantine fault tolerant
-%replica components of sort \emph{BFTReplica}.
-%
-%
-%\section{BFT Client Component}
-%
-%In its first view, a \emph{BFTClient} acts as a component.
-%That is, it subclasses the generic component class
-%\emph{Component}. As such, it may use the service of
-%the successor (local) component. However, it will also
-%initiate an agreement protocol with peer replica
-%components of sort \emph{BFTReplica}. \fig{fig:byzantine-client}
-%shows the static structure of the Byzantine fault tolerant client
-%component.
-%
-%\section{BFT Replica Component}
-%
-%Primarily, a Byzantine fault tolerant replica
-%component of sort \emph{BFTReplica} extends the
-%generic \emph{Component} implementation. In addition,
-%it also implements the \emph{BFTReplica} interface.
-%\fig{fig:byzantine-replica} shows
-%the static structure of the Byzantine fault tolerant replica
-%component.
-% 
-%The communication between the BFT client and the BFT replicas
-%is an implementation detail and, therefore, not discussed here.
-%(It may involve yet another layered architecture and specialized
-%protocols, and it will use whatever communication technology
-%is appropriate.)
-%
-%
-%\section{Deployment View of the Replicated Board}
-%
-%For the replicated configuration, each node is identically
-%configured with a set of required \emph{Component} instances, and
-%with the BFT client and BFT replica component instances.
-%
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\chapter{Implementation Hints}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%Some implementation hints are given here.
-%
-%\section{Namespaces, Names}
-%
-%\begin{quote}
-%	\emph{Note.} The namespace \emph{org.uniboard} is already
-%	used in the domain name system of the Internet. Thus,
-%	we will have to discuss its use here.
-%\end{quote}
-%
-%In order to ease the setup of the code base (project structure,
-%Maven artifacts, names to be defined), certain namespaces must be fixed.
-%The following namespace for the core service abstraction shall
-%be used:
-%
-%\begin{lstlisting}
-%package org.uniboard.core;
-%
-%public interface Service ...
-%public abstract class Component ...
-%public abstract class Request ...
-%public abstract class Response ...
-%public abstract class Query ...
-%public abstract class Result ...
-%\end{lstlisting}
-%
-%Implementations will use additional namespaces such as
-%\emph{lu.unilu.uniboard.component1},
-%\emph{lu.unilu.uniboard.application1},
-%\emph{ch.bfh.uniboard.application2}, or
-%\emph{ch.bfh.uniboard.component2}.
-%
-%Class names can also be concretized by following respective
-%technology conventions. When using EJB, the convention for
-%session bean classes is to use the suffix \emph{Bean}.
-%
-%
-%\section{Access to the Downstream Component}
-%
-%In order to achieve upper-most flexibility, is is mandatory to
-%access the next downstream component by using the \emph{generic}
-%service interface. For example:
-%
-%\begin{lstlisting}
-%package org.uniboard.core;
-%
-%import javax.ejb.EJB;
-%import javax.ejb.LocalBean;
-%import javax.ejb.Stateless;
-%
-%@Stateless
-%@LocalBean
-%public abstract class ComponentBean implements Service {
-%
-%    @EJB
-%    private Service successor; // injected by the EJB container
-%
-%    public Response post(Message message) ... {
-%        Message beforePost = beforePost(message);
-%        Response response = successor.post(beforePost);
-%        Response afterPost = afterPost(response);
-%        return afterPost;
-%    }
-%    ...
-%    protected Message beforePost(Message message) ... {
-%        return message;
-%    }
-%    protected Response afterPost(Response response) ... {
-%        return result;
-%    }
-% }
-%\end{lstlisting}
-%
-%Notice: By giving the component class the name \emph{ComponentBean}
-%we follow the propose name convention of EJB (TODO: Ref.\ to be
-%provided).
-%
-%The injection performed by the container can be configured at
-%deploy-time. If EAR deployment units are used then the original
-%deployment descriptors or annotations can be overridden upon
-%configuring the EAR deployment unit.
-%
-%
-%\section{Skeleton for a Concrete Component}
-%
-%The skeleton of a concrete component looks like:
-%
-%\begin{lstlisting}
-%package ch.bfh.uniboard.authorization;
-%
-%import org.uniboard.core.Service;
-%import org.uniboard.core.ComponentBean;
-%
-%@Stateless
-%@LocalBean
-%public class AuthorizationServiceBean extends ComponentBean {
-%    // overwrite beforePost(), afterPost() accordingly
-%    // overwrite beforeGet(), afterGet() accordingly
-%}
-%\end{lstlisting}
-%
-%Another example:
-%
-%\begin{lstlisting}
-%package lu.unilu.uniboard.byzantine;
-%
-%import org.uniboard.core.Service;
-%import org.uniboard.core.ComponentBean;
-%
-%@Stateless
-%@LocalBean
-%public class BFTClientBean extends ComponentBean {
-%    // overwrite beforePost(), afterPost() accordingly
-%    // overwrite beforeGet(), afterGet() accordingly
-%}
-%\end{lstlisting}
-%
-%
-%\section{A Simple Scheme for Data Containers}
-%
-%Application and components use the generic data containers
-%as described above (TODO Ref.\ to be provided) for the
-%communication of information to components. This is to keep a high
-%degree of flexibility and to reduce the coupling between
-%components.
-%
-%The following flexible scheme for the implementation of generic
-%data containers shall be used:
-%
-%\begin{lstlisting}
-%package org.uniboard.core;
-%
-%import java.util.*;
-%import java.io.Serializable;
-%
-%public class Message implements Serializable {
-%    private Map<String, Object> entries = new HashMap<>();
-%    public void put(String key, Object value) {...}
-%    public Object get(String key) {...}
-%}
-%\end{lstlisting}
-%
-%Keys are strings to be agreed among components and application
-%programmers. (TODO: Envision a pre-defined set of keys.)
-%The types of the values are also
-%agreed among components and application programmers.
-%In order to reduce the
-%coupling, basic types and Java system types should be used.
-%
-%Here is a sketch of code illustrating how components access
-%the information in, for example, a \emph{Message} container:
-%
-%\begin{lstlisting}
-%    // in a component class
-%    @Override
-%    protected Message beforePost(Message message) ... {
-%        String id = (String) message.get("IDENTITY");
-%        byte[] signatureHashValue = (byte[]) message.get("SIGHASH");
-%        ...
-%        // Create new message, fill new message m accordingly...
-%        // Alternatively, the given message object may be updated...
-%        Message m = new Message();
-%        // Add information... Then:
-%        return m;
-%    }
-%\end{lstlisting}
-%
-%The above sketch shows how keys (here \emph{IDENTITY} or \emph{SIGHASH})
-%can be used, and that applications or components must agree on
-%the types of values (here \emph{String} or \emph{byte[]}).
+\section{unicert-authentication}
+
+\textit{unicert-authentication} is a web application composed of two part, the frontend in JSF/XHTML/Javascript and the backend in Java. The interface between these two parts works over servlets and beans, namely \textit{ParametersServlet}, \textit{CertificateRequestServlet} and \textit{SwitchUserDataBean}. Some important concepts related to the interface between the Java backend and the web frontend as well as some other classes will be described in this section.
+
+\subsection{UserData and IdentityFunction}
+
+The format of the user data returned by the identity provider is not the same for all identity providers. The way these data are transmitted to \unicert\ is also different for various identity providers. These facts require a flexible solution to provide support of multiple identity providers and to allow to easily add a new identity provider.
+
+As already mentioned in \Cref{sec:auth_process}, SwitchAAI use a Shibboleth Apache module for the authentication. This technology requires a user to be logged in before displaying a web page. In this concrete case, it is the page \textit{switchaai.xhtml}. If the user is not logged in, a redirection takes place to SwitchAAI login page. After a successful login, the page \textit{switchaai.xhtml} is displayed to the user, and in the background, a bean called \textit{UserDataBean} is invoked to read the user data returned by Switch in the session. These user data are then stored in an object of the class \textit{SwitchAAIUserData}.
+
+For Google, the user data are returned to a servlet called \textit{OAuth2CallbackServlet} after successful login. This servlet stores the user data in a object of the class \textit{GoogleUserData} and creates the \textit{UserDataBean}. Both \textit{SwitchAAIUserData} and \textit{GoogleUserData} inherits from the \textit{UserData} interface but their content is not the same as shown in \Cref{fig:userdata}, .
+
+\begin{figure}[ht]
+\centerline{
+\includegraphics[width=0.6\textwidth]{figs/userdata_class_diagram.png}}
+\caption{Class diagram of user data classes}
+\label{fig:userdata}
+\end{figure}
+
+The \textit{certificate-issuer} component however must know the content of the UserData object in order to be able to extract the data needed in the certificate. Therefore, an identity function is used. There is at least one identity function per identity provider that knows the format of the corresponding user data. So, the GoogleIdentityFunction class knows the fields present in a GoogleUserData object, and the SwitchAAIIdentityFunction knows the content of the SwitchAAIUserData. A concrete IdentityFunction object allows to transform a concrete UserData object into a generic class called \textit{IdentityData} containing the identity information needed for the certificate. This IdentityData object can then be used by the \textit{certificate-issuer} component.
+
+The way how the identity information are extracted from a concrete UserData object is defined in a concrete IdentityFunction object. This process must be adaptable: for example an application could require the e-mail address to appear in certificate, another application could require an other unique identifier, or a third application could require an anonymized form of the e-mail address, and so on. Therefore, multiple IdentityFunction can exist for the same identity provider. In this implementation, there is a standard and an anonymized identity function for each identity provider (\textit{StandardSwitchAAIIdentityFunction}, \textit{StandardGoogleIdentityFunction}, \textit{AnonymizedSwitchAAIIdentityFunction}, \textit{AnonymizedGoogleIdentityFunction}). For SwitchAAI, there is a third variant specially designed for the university of Zürich which uses the student identification number as common name (\textit{ZurichSwitchAAIIdentityFunction}).
+
+The organisation of these classes is shown in \Cref{fig:identity_function_class_diagram}. The \textit{apply} method is the publicly available method extracting the information out of the given UserData object and returning the generated IdentityData object shown in \Cref{fig:identity_data}. Different protected methods are used for this process. \textit{selectCommonName} is responsible for extracting the common name from the UserData. In standard functions, the e-mail address is used. In anonymized function, a hash of the e-mail address is used. In the special function for Zürich, the student identification number is used. \textit{selectUniqueId} is responsible for extracting a unique identifier from the UserData. \textit{putInOtherValues} allows to add information in extensions of the certificate in case it cannot be included in the fields proposed in the IdentityData class. Finally, method \textit{createIdentityData} indicate which fields are put in the IdentityData object. This architecture allows to create subclasses which can overwrite some behaviour of the super class. For example, method \textit{createIdentityData} in anonymized function does not include ''firstname'' and ''surname'' in the IdentityData object as this is done in standard functions.
+
+\begin{figure}[ht]
+\centerline{
+\includegraphics[width=\textwidth]{figs/identity_function_class_diagram.png}}
+\caption{Class diagram of the identity function classes}
+\label{fig:identity_function_class_diagram}
+\end{figure}
+
+\begin{figure}[ht]
+\centerline{
+\includegraphics[width=0.4\textwidth]{figs/IdentityData_class.png}}
+\caption{IdentityData class}
+\label{fig:identity_data}
+\end{figure}
+
+\subsection{Error description}
+
+Errors occurring during the issuance process should be communicated in an understandable way to the user. Exception caught in JSF result in a web page displaying the stack trace. This is not intuitive. An exception thrown in the backend result in an HTTP 500 JSON response with an error code and a default error description. Since the issuance request is done over Ajax, the response is also received through Ajax. The error code is then read in Javascript and the corresponding error description is selected in the language file. This message is then displayed to the user.
+
+\subsection{Javascript cryptography}
+
+In the frontend, some cryptographic computation must be realized in Javascript. It concerns the generation of the key pair and the computation of the signature and proofs sent to the backend. In Javascript, a BigInteger library called Leemon \cite{leemon} is used to represent big integers. The needed cryptographic primitives are implemented on top. Because of the bad performance of Javascript in some browsers, some of these primitives have been implemented in an asynchronous way in order to avoid Javascript time outs.
+
+These signatures/proofs generated are verified in the backend using a library called UniCrypt. So, the generation of the signatures and proofs in Javascript must be completely compatible with UniCrypt. Therefore, hash function SHA-256 is used on both side. Recursive hash method is used on UniCrypt side and the equivalent is generated on Javascript side. Strings are considered encoded in UTF-8 and big integers as big endian. 
+
+\section{unicert-issuer}
+
+\textit{unicert-issuer} is an EJB component responsible for the issuance of the certificate. The main class is the \textit{CertificateIssuer} EJB which checks the data received and issues the certificate. Some other classes used in this process will be described in this section.
+
+\subsection{CryptographicSetup}
+
+The class \textit{CryptographicSetup} is a container for all cryptographic values that are submitted by the user and that must be included in the certificate or verified in the \textit{unicert-issuer} component. Two concrete CryptographicSetup exist: \textit{DiscreteLogSetup} and \textit{RSASetup} as shown in \Cref{fig:cryptographic_setup_class_diagram}. They both include all values that define such a setup and the signature or proof generated in the frontend. Objects of these classes are created by the \textit{unicert-authentication} component on certificate request.
+
+\begin{figure}[ht]
+\centerline{
+\includegraphics[width=\textwidth]{figs/cryptographic_setup_class_diagram.png}}
+\caption{Class diagram of the cryptographic setup classes}
+\label{fig:cryptographic_setup_class_diagram}
+\end{figure}
+
+\subsection{Certificate class}
+
+Certificate class is the Java representation of the X.509 certificate that is issued. The fields that appear in that certificate are stored here together with the PEM format of the issued certificate as shown in \Cref{fig:certificate}. When posting the certificate on \uniboard, a JSON representation of this class is created through the method \textit{toJSON}. This allows \uniboard\ to make query on the content of a certificate. The listing below shows the schema of the generated JSON certificate.
+
+\begin{figure}[ht]
+\centerline{
+\includegraphics[width=0.4\textwidth]{figs/certificate_class.png}}
+\caption{Certificate class}
+\label{fig:certificate}
+\end{figure}
+
+\begin{lstlisting}[language=json,firstnumber=1]
+{
+	"title": "Schema for UniCert certificates",
+	"description": "This schema describes the format of a UniCert certificate in JSON format",
+	"type":"object",
+	"$schema": "http://json-schema.org/draft-04/schema",
+	"properties": {
+		"commonName": {
+			"type": "string",
+			"description": "Common name of certificate owner"
+		},	
+		"uniqueIdentifier": {
+			"type": "string",
+			"description":  "Unique identifier of certificate owner"
+		},
+		"organisation": {
+			"type": "string",
+			"description": "Organisation of certificate owner"
+		},
+		"organisationUnit": {
+			"type": "string",
+			"description": "Organisation unit of certificate owner"
+		},
+		"countryName": {
+			"type": "string",
+			"description": "Country of certificate owner"
+		},
+		"state": {
+			"type": "string",
+			"description": "State of certificate owner"
+		},
+		"locality": {
+			"type": "string",
+			"description": "Locality certificate owner"
+		},
+		"surname": {
+			"type": "string",
+			"description": "Surname of certificate owner"
+		},
+		"givenName": {
+			"type": "string",
+			"description": "Given name of certificate owner"
+		},
+	   	"issuer": {
+			"type": "string",
+			"description": "Issuer of the certificate"
+		},
+		"serialNumber": {
+			"type":"string",
+			"description": "Serial number of the certificate"
+		},
+		"validFrom": {
+			"type": "string",
+			"description": "Date when certificate starts to be valid"
+		},
+		"validUntil": {
+			"type": "string",
+			"description": "Date when certificate stops to be valid"
+		}, 
+		"applicationIdentifier": {
+			"type": "string",
+			"description": "Application the certificate has been issued for"
+		},
+		"role": {
+			"type":"array",
+			"description": "Role inside an application the certificate has been issued for",
+			"items": {
+				"type":"string"
+			}
+		},
+		"identityProvider": {
+			"type": "string",
+			"description": "Identity provider used to verify the identity of the certificate owner"
+		},
+		"pem": {
+			"type": "string",
+			"description": "Certificate in PEM format"
+		}
+	},
+	"required": ["commonName", "issuer", "serialNumber", "validFrom", "validUntil", "identityProvider", "pem" ]
+}
+	
+\end{lstlisting}
+
+
+
+\chapter{UniCert Particularities} \label{chap:specialities}
+This chapter describes in more details some particularities of \unicert.
+
+\section{X.509 Certificate Extensions}
+
+Some special information must be added by \unicert\ in the issued certificate, like the identity provider used for the authentication, the application and the role the certificate is issued for. This information cannot really be included in existing X.509 fields. So, we defined some extensions for each of these elements. In X.509 certificates, an extension must always be identified by an object identifier (OID). The Bern University of Applied Sciences own a group OID: 1.3.6.1.4.1.13305. Following subgroup is reserved for \unicert\: 1.3.6.1.4.1.13305.1.101.x. \Cref{t:oids} presents the elements included in the certificate and their corresponding OIDs. The content of these extensions are always ASN1 strings.
+
+
+\begin{table}[ht]
+
+\centering
+\begin{tabular}{|c|c|}
+  \hline
+  Element & OID\\
+  \hline
+  Identity provider & 1.3.6.1.4.1.13305.1.101.1 \\
+  Application identifier & 1.3.6.1.4.1.13305.1.101.2 \\
+  Role & 1.3.6.1.4.1.13305.1.101.3 \\
+  Language (only for Google) & 1.3.6.1.4.1.13305.1.101.4 \\
+  Test extension & 1.3.6.1.4.1.13305.1.101.999 \\
+  \hline
+\end{tabular}
+\caption{OIDs}
+\label{t:oids}
+\end{table}
+
+\section{JNDI Propreties for \textit{unicert-issuer}}
+
+To work properly, \textit{unicert-issuer} require some configuration values. These values are defined as JNDI properties. \Cref{t:jndi1} shows what are these values. They are stored in a property set called \textit{unicertProps}.
+
+\begin{table}[ht]
+
+\centering
+\begin{tabular}{|l|l|}
+  \hline
+  Property & Description\\
+  \hline
+  keystoreExternal & If the keystore must be loaded from an external location\\
+  keystorePath & Path to the keystore containing the certificate and private key\\ &  of \unicert\ for signing issued certificates\\
+  keystorePass & Password for the keystore \\
+  privateKeyPass & Password used to protect private key of \unicert\ certificate \\
+  issuerId & Name of the issuer of the generated certificates \\
+  validityYears & Time slot in which the certificate is valid (2 years) \\
+  uniboardURL & URL of \uniboard\ webservice (if not indicated, certificates are\\ & not published)\\
+  googleRedirectURI & URL of the callback servlet after Google OAuth2 authentication \\
+  googleClientID & OAuth2 credentials for Google authentication\\
+  googleClientSecret & OAuth2 credentials for Google authentication\\
+  \hline
+\end{tabular}
+\caption{JNDI properties for \textit{unicert-issuer}}
+\label{t:jndi1}
+\end{table}
+
+\section{Simplification of the User Interface}\label{sec:simplification_ui}
+
+As described in \Cref{sec:issuance_process}, when the user requests a certificate, they have to provide, among other, following information:
+
+\begin{itemize}
+\item type of cryptographic values (currently supported: RSA and discrete logarithm)
+\item cryptographic parameters: size of key for RSA, values $p,q,g$ for discrete logarithm
+\item application identifier of the application the certificate is issued for
+\item role in the application the certificate is issued for
+\item the identity function that must be applied on the user's personal information
+\end{itemize}
+
+Most of the time however, these values are the same for a lot of users. For example, when a voter wants to issue a voter certificate for \univote, the cryptographic values, the application identifier (in this case \univote) and the role (in this case \textit{Voter}) are the same for all users that request a certificate. Even the identity function is the same for all voters inside a given election. So, it is unintuitive to ask each user to enter all these data. Therefore, a feature has been implemented allowing to preset all these values. It works with JNDI properties. The administrator can define multiple JNDI property sets giving them a name like ''/unicert/mypropertyset''. In this property set, the administrator can define the properties they want not to be filled by the user. The ones that are not defined must then be filled by the user in the certificate request process. The property set is loaded by the \textit{ParametersServlet} which receives the name of the property set to load through the link on which the user has clicked to start the authentication process, for example ''authenticate?params=mypropertyset''. If no property set is indicated, a default property set is loaded containing only the identity providers supported. All others information must be filled by the user. \Cref{t:jndi2} shows the JNDI properties that can be preset in a property set.
+
+\begin{table}[ht]
+
+\centering
+\begin{tabular}{|l|l|l|l|}
+  \hline
+  Property & Description & Possible values & \\
+  \hline
+  identityProvider & The identity provider to & ''SwitchAAI'', & Mandatory\\ & use for authentication & ''Google'', & \\ & & ''SwitchAAI,Google'' & \\
+  keyType & Cryptographic setup type & ''RSA'', ''DiscreteLog'' & Optional\\
+  keySize & Size of RSA keys & integer & Optional\\
+  primeP & Value of prime p & base 10 representation & Optional\\
+  primeQ & Value of prime q & base 10 representation & Optional\\
+  generator & Value of generator & base 10 representation & Optional\\
+  applicationIdentifier & Application identifier & string & Optional\\
+  role & Role & string & Optional\\
+  identityFunctionIndex & Index of identiy function & integer & Optional\\
+  & to select in dropdown & & \\
+  \hline
+\end{tabular}
+\caption{JNDI properties for presets in user interface}
+\label{t:jndi2}
+\end{table}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliographystyle{plain} \bibliography{arch-spec}
