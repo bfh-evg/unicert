@@ -125,7 +125,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
     @Override
     public Certificate createCertificate(CryptographicSetup cs, IdentityData idData, String applicationIdentifier,
-	    String role)
+	    String[] roles)
 	    throws CertificateCreationException {
 
 	PublicKey pk = null;
@@ -133,7 +133,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	logger.log(Level.INFO, "Certificate requested for {0}", idData.getCommonName());
 
 	//Check if role is realistic
-	if (role == null) {
+	if (roles == null) {
 	    throw new CertificateCreationException("200 Unknow role");
 	}
 
@@ -210,7 +210,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 		pk,
 		expiry,
 		applicationIdentifier,
-		role);
+		roles);
 	logger.log(Level.INFO, "Certificate created");
 
 	//post message on UniBoard if corresponding JNDI parameter is defined
@@ -394,7 +394,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	    PublicKey pk,
 	    Calendar expiry,
 	    String applicationIdentifier,
-	    String role)
+	    String[] roles)
 	    throws CertificateCreationException {
 
 	X509Certificate clientCert;
@@ -403,8 +403,15 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	extension.put(new DERObjectIdentifier(ExtensionOID.APPLICATION_IDENTIFIER.getOID()), new X509Extension(
 		DERBoolean.FALSE, CertificateHelper.stringToDER(applicationIdentifier)));
+	
+	String completeRole = "";
+	for(String role : roles){
+	    completeRole += role +", ";
+	}
+	completeRole = completeRole.substring(0, completeRole.length()-2);
 	extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.FALSE,
-		CertificateHelper.stringToDER(role)));
+		CertificateHelper.stringToDER(completeRole)));
+	
 	extension.put(new DERObjectIdentifier(ExtensionOID.IDENTITY_PROVIDER.getOID()), new X509Extension(
 		DERBoolean.FALSE, CertificateHelper.stringToDER(id.getIdentityProvider())));
 
@@ -500,7 +507,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	return new Certificate(clientCert, id.getCommonName(), id.getUniqueIdentifier(), id.getOrganisation(), id.
 		getOrganisationUnit(), id.getCountryName(),
-		id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), applicationIdentifier, role, id.
+		id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), applicationIdentifier, roles, id.
 		getIdentityProvider(), extensionMap);
 
     }

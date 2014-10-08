@@ -175,7 +175,7 @@ public class CertificateIssuerBeanTest {
 	String applicationId = "testUniCert";
 	String role = "voter";
 
-	Certificate cert = issuer.createCertificate(dls, idData, applicationId, role);
+	Certificate cert = issuer.createCertificate(dls, idData, applicationId, new String[]{role});
 
 	assertEquals(idData.getCommonName(), cert.getCommonName());
 	assertEquals(idData.getUniqueIdentifier(), cert.getUniqueIdentifier());
@@ -279,9 +279,10 @@ public class CertificateIssuerBeanTest {
 	rs.setSignatureOtherInput(originalMessage);
 
 	String applicationId = "testUniCert";
-	String role = "voter";
-
-	Certificate cert = issuer.createCertificate(rs, idData, applicationId, role);
+	String mixer = "mixer";
+	String tallier = "tallier";
+	
+	Certificate cert = issuer.createCertificate(rs, idData, applicationId, new String[]{mixer, tallier});
 
 	assertEquals(idData.getCommonName(), cert.getCommonName());
 	assertEquals(idData.getUniqueIdentifier(), cert.getUniqueIdentifier());
@@ -300,7 +301,7 @@ public class CertificateIssuerBeanTest {
 		ExtensionOID.APPLICATION_IDENTIFIER.getOID()));
 	assertEquals(applicationId, CertificateHelper.DERToString(extension1));
 	DEROctetString extension2 = new DEROctetString(createdX509Cert.getExtensionValue(ExtensionOID.ROLE.getOID()));
-	assertEquals(role, CertificateHelper.DERToString(extension2));
+	assertEquals(mixer+", "+tallier, CertificateHelper.DERToString(extension2));
 	DEROctetString extension3 = new DEROctetString(createdX509Cert.getExtensionValue(ExtensionOID.IDENTITY_PROVIDER.
 		getOID()));
 	assertEquals(idData.getIdentityProvider(), CertificateHelper.DERToString(extension3));
@@ -309,7 +310,7 @@ public class CertificateIssuerBeanTest {
 
 	assertEquals("CN=Certificate Authority", createdX509Cert.getIssuerDN().getName());
 	assertEquals(new RSAPublicKeyImpl(n, keys.getAt(1).getBigInteger()), createdX509Cert.getPublicKey());
-
+	System.out.println(cert.toJSON());
 	assertTrue(cert.toJSON().contains(
 		"{ \"commonName\": \"test@bfh.ch\", \"uniqueIdentifier\": \"234-5678-90\", \"organisation\": \"University of Bern\", \"organisationUnit\": \"CS\", \"issuer\": \"CN=Certificate Authority\", \"serialNumber\": "));
 	assertTrue(cert.toJSON().contains("\"validFrom\": "));

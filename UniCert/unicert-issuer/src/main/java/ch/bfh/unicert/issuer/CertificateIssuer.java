@@ -32,11 +32,11 @@ public interface CertificateIssuer {
      * @param cs Cryptographic setup corresponding to the type of certificate wanted (DSA, RSA)
      * @param idData identity information over the requester
      * @param applicationIdentifier identifier of the application the certificate is issued for
-     * @param role role the certificate is issued for
+     * @param roles roles the certificate is issued for
      * @return a Certificate object containing the X509 certificate
      * @throws CertificateCreationException if the certificate could not be created
      */
     public Certificate createCertificate(CryptographicSetup cs, IdentityData idData,
-            String applicationIdentifier, String role ) throws CertificateCreationException;
+            String applicationIdentifier, String[] roles ) throws CertificateCreationException;
 
 }

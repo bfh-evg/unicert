@@ -51,7 +51,7 @@ public class Certificate {
     
     private final X509Certificate cert;
     private final String applicationIdentifier;
-    private final String role;
+    private final String[] roles;
     private final String identityProvider;
 
     /**
@@ -74,7 +74,7 @@ public class Certificate {
      * If some information does not appear in the certificate, null can be passed
      */
     public Certificate(X509Certificate cert, String commonName, String uniqueId, String organisation, String organisationUnit,
-            String countryName, String state, String locality, String surname, String givenName, String applicationIdentifier, String role, String identityProvider, Map extension) {
+            String countryName, String state, String locality, String surname, String givenName, String applicationIdentifier, String[] roles, String identityProvider, Map extension) {
 
         this.commonName = commonName;
         this.uniqueIdentifier = uniqueId;
@@ -91,7 +91,7 @@ public class Certificate {
         this.validFrom = cert.getNotBefore();
         this.validUntil = cert.getNotAfter();
         this.applicationIdentifier = applicationIdentifier;
-        this.role = role;
+        this.roles = roles;
         this.identityProvider = identityProvider;
         this.extension = extension;
         try {
@@ -223,8 +223,8 @@ public class Certificate {
      * The role the certificate can be used for
      * @return the integer representing the role
      */
-    public String getRole() {
-        return role;
+    public String[] getRoles() {
+        return roles;
     }
 
     /**
@@ -311,8 +311,14 @@ public class Certificate {
         if (this.applicationIdentifier != null) {
             json += "\"applicationIdentifier\": \"" + this.applicationIdentifier + "\", ";
         }
-        if (this.role != null) {
-            json += "\"role\": \"" + this.role + "\", ";
+        if (this.roles != null) {
+	    json += "\"roles\": [";
+	    for(int i=0; i<this.roles.length; i++){
+		json += "\""+this.roles[i] + "\", ";
+	    }
+	    json = json.substring(0, json.length()-2);
+	    json += "], ";
+//            json += "\"role\": \"" + this.role + "\", ";
         }
         if (this.identityProvider != null) {
             json += "\"identityProvider\": \"" + this.identityProvider + "\", ";
