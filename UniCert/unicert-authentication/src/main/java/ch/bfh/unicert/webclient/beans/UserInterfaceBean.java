@@ -40,7 +40,7 @@ public class UserInterfaceBean implements Serializable {
     private boolean showGeneratorField = true;
     private String applicationIdentifier;
     private boolean showApplicationIdentifierField = true;
-    private int role;
+    private String role;
     private boolean showRoleField = true;
     private int identityFunctionIndex;
     private boolean showIdentityFunctionIndexField = true;
@@ -110,7 +110,7 @@ public class UserInterfaceBean implements Serializable {
         this.showApplicationIdentifierField = this.applicationIdentifier==null;
         
         this.role = config.getRole();
-        this.showRoleField = this.role<0;
+        this.showRoleField = this.role==null;
         
         this.identityFunctionIndex = config.getIdentityFunctionIndex();
         this.showIdentityFunctionIndexField = this.identityFunctionIndex<0;
@@ -229,7 +229,7 @@ public class UserInterfaceBean implements Serializable {
      * 
      * @return the role the certificate is issued for
      */
-    public int getRole() {
+    public String getRole() {
         return role;
     }
 

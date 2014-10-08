@@ -208,6 +208,17 @@ public class CertificateRequestServlet extends HttpServlet {
             //Get the role
             String role = request.getParameter(ROLE);
             messageForSignature += role;
+	    String[] roles = null;
+	    //Multiple roles can be defined separated by commas
+	    if(role.contains(",")){
+		//remove space
+		role = role.replace(" ", "");
+		//
+		roles = role.split(",");
+	    } else {
+		roles = new String[1];
+		roles[0] = role;
+	    }
 
             //Set whole signed data in order to be able to verify the signature/proof
             cs.setSignatureOtherInput(messageForSignature);
@@ -215,7 +226,7 @@ public class CertificateRequestServlet extends HttpServlet {
             logger.log(Level.INFO, "Asking to generate certificate");
 
             //Create the certificate
-            Certificate cert = issuer.createCertificate(cs, idData, applicationIdentifier, role);
+            Certificate cert = issuer.createCertificate(cs, idData, applicationIdentifier, roles);
 
             logger.log(Level.INFO, "Returning certificate");
             response.getWriter().printf(cert.toJSON());

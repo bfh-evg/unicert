@@ -36,7 +36,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private String g;
     private String identityProvider;
     private String applicationIdentifier;
-    private int role;
+    private String role;
     private int identityFunctionIndex;
     
 
@@ -78,7 +78,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
         this.identityProvider = retrieveStringProperty(props, "identityProvider");
         this.applicationIdentifier = retrieveStringProperty(props, "applicationIdentifier");
 
-        this.role = retrieveIntegerProperty(props, "role");
+        this.role = retrieveStringProperty(props, "role");
         this.identityFunctionIndex = retrieveIntegerProperty(props, "identityFunctionIndex");
 
     }
@@ -180,7 +180,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     }
 
     @Override
-    public int getRole() {
+    public String getRole() {
         return this.role;
     }
 

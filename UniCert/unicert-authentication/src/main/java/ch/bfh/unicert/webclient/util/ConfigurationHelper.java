@@ -70,7 +70,7 @@ public interface ConfigurationHelper {
      * 
      * @return the role
      */
-    public int getRole();
+    public String getRole();
     
     /**
      * Get the index of the identity function that must be applied to the identity token

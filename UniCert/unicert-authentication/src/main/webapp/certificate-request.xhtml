@@ -130,12 +130,13 @@
                 <div class="row clearfix #{ui.showRoleField()? '' : 'notdisplayed'}">
                     <div class="col1 small">#{msg.role}: </div>
                     <div class="col2">
-                        <select id="role" class="select" name="role" size="1">	
+			<input type="text" id="role" value="#{ui.role}"/>
+                        <!--<select id="role" class="select" name="role" size="1">	
                             <option value="Voter" selected="#{ui.role==1? 'selected' : ''}">#{msg.voterCert}</option> 
                             <option value="Tallier" selected="#{ui.role==2? 'selected' : ''}">#{msg.tallierCert}</option> 
                             <option value="Mixer" selected="#{ui.role==3? 'selected' : ''}">#{msg.mixerCert}</option> 
                             <option value="ElectionAdministration" selected="#{ui.role==4? 'selected' : ''}">#{msg.electionAdminCert}</option> 
-                        </select>
+                        </select>-->
                     </div>
                 </div>
                 <div class="row clearfix #{ui.showIdentityFunctionIndexField()? '' : 'notdisplayed'}">

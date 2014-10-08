@@ -52,6 +52,7 @@ public class UserDataBean implements Serializable {
      * Reads the user values passed by the identity provider. This function is triggered on page load of genkeys.xhtml.
      * It might be called more than once (page reload) so the fields are set only if the values are available in the
      * request.
+     * Only for Switch. For Google, userData is set through setUserData(...)
      *
      * In case of use of additional identity provider, this method must be extended to support them.
      */
