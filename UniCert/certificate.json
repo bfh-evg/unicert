@@ -60,9 +60,12 @@
 			"type": "string",
 			"description": "Application the certificate has been issued for"
 		},
-		"role": {
-			"type": "string",
-			"description": "Role inside an application the certificate has been issued for"
+		"roles": {
+			"type":"array",
+			"description": "Role inside an application the certificate has been issued for",
+			"items": {
+				"type":"string"
+			}
 		},
 		"identityProvider": {
 			"type": "string",
