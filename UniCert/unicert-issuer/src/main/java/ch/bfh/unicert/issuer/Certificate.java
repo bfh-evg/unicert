@@ -12,16 +12,16 @@
 package ch.bfh.unicert.issuer;
 
 import ch.bfh.unicert.issuer.util.CertificateHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.cert.X509Certificate;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Class representing a certificate. Beside PEM structure, additional, redundant
@@ -303,10 +303,10 @@ public class Certificate {
             json += "\"serialNumber\": \"" + this.serialNumber + "\", ";
         }
         if (this.validFrom != null) {
-            json += "\"validFrom\": \"" + formatDate(this.validFrom) + "\", ";
+            json += "\"validFrom\": " + formatDate(this.validFrom) + ", ";
         }
         if (this.validUntil != null) {
-            json += "\"validUntil\": \"" + formatDate(this.validUntil) + "\", ";
+            json += "\"validUntil\": " + formatDate(this.validUntil) + ", ";
         }
         if (this.applicationIdentifier != null) {
             json += "\"applicationIdentifier\": \"" + this.applicationIdentifier + "\", ";
@@ -318,7 +318,6 @@ public class Certificate {
 	    }
 	    json = json.substring(0, json.length()-2);
 	    json += "], ";
-//            json += "\"role\": \"" + this.role + "\", ";
         }
         if (this.identityProvider != null) {
             json += "\"identityProvider\": \"" + this.identityProvider + "\", ";
@@ -338,16 +337,13 @@ public class Certificate {
      * @return the string representing the date in ISO format
      */
     private String formatDate(Date date) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        int year = cal.get(Calendar.YEAR);
-        int month = cal.get(Calendar.MONTH);
-        int day = cal.get(Calendar.DAY_OF_MONTH);
-        int hour = cal.get(Calendar.HOUR_OF_DAY);
-        int min = cal.get(Calendar.MINUTE);
-        int sec = cal.get(Calendar.SECOND);
-        int gmtOffset = cal.get(Calendar.ZONE_OFFSET);
-        int gmtOffsetHour = (int)TimeUnit.HOURS.convert(gmtOffset, TimeUnit.MILLISECONDS);
-        return  "" + year + "-"+String.format("%02d",month)+"-"+String.format("%02d",day)+"T"+String.format("%02d",hour)+":"+String.format("%02d",min)+":"+String.format("%02d",sec)+"+"+String.format("%02d",gmtOffsetHour)+":00";
+	try {
+	    ObjectMapper mapper = new ObjectMapper();
+	    mapper.configure(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS , false);
+	    return mapper.writeValueAsString(date);
+	} catch (JsonProcessingException ex) {
+	    Logger.getLogger(Certificate.class.getName()).log(Level.SEVERE, "Unable to JSONize date", ex);
+	    return "\"\"";
+	}
     }
 }
