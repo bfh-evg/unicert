@@ -9,10 +9,11 @@
  * Distributable under GPL license.
  * See terms of license at gnu.org.
  */
-package ch.bfh.unicert.webclient.beans;
+package ch.bfh.unicert.webclient.servlets;
 
 import ch.bfh.unicert.issuer.util.ConfigurationHelperImpl;
-import ch.bfh.unicert.webclient.beans.util.Google2Api;
+import ch.bfh.unicert.webclient.beans.ParametersBean;
+import ch.bfh.unicert.webclient.util.Google2Api;
 import ch.bfh.unicert.webclient.userdata.IdentityProvider;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -27,29 +28,31 @@ import org.scribe.builder.ServiceBuilder;
 import org.scribe.oauth.OAuthService;
 
 /**
- * Servlet responsible to load JNDI properties allowing to preconfigure the certificate request page with the already
- * defined values
+ * Servlet responsible to manage the authentication process
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 @WebServlet("/authenticate/*")
-public class ParametersServlet extends HttpServlet {
+public class AuthenticationServlet extends HttpServlet {
 
     /**
      * The logger this servlet uses.
      */
-    private static final Logger logger = Logger.getLogger(ParametersServlet.class.getName());
+    private static final Logger logger = Logger.getLogger(AuthenticationServlet.class.getName());
 
     private static final String DEV_MODE = "dev-mode";
+    
     private static final String PROPERTY_SET_IDENTIFIER = "params";
+    private static final String RETURN_URL = "returnlocation";
     private static final String IDENTITY_PROVIDER = "idp";
+    
     private static final String IDP_SELECTION_PAGE = "idpselection.xhtml";
     private static final String SWITCH_AAI_PAGE = "switchaai.xhtml";
-
-    private UserInterfaceBean uiBean;
+    
+    private static final String PARAMETERS = "params";
 
     /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
+     * Processes requests for HTTP <code>GET</code> and <code>POST</code> methods.
      *
      * @param request servlet request
      * @param response servlet response
@@ -64,12 +67,16 @@ public class ParametersServlet extends HttpServlet {
 
 	//Retrieves properties set
 	String propertiesSetIdentifier = request.getParameter(PROPERTY_SET_IDENTIFIER);
+	String returnURL = request.getParameter(RETURN_URL);
+	if(returnURL!=null)
+	    request.getSession().setAttribute(RETURN_URL, returnURL);
 	String idp = request.getParameter(IDENTITY_PROVIDER);
 
 	//Debug mode
 	if (Boolean.parseBoolean(getServletContext().getInitParameter(DEV_MODE))) {
 	    idp = IdentityProvider.SWITCH_AAI.getKey();
-	    uiBean = this.getUIBean(request);
+	    ParametersBean paramBean = new ParametersBean();
+	    request.getSession().setAttribute(PARAMETERS, paramBean);
 	}
 
 	//if idp is not set, this is the first time this method is called, so we get the
@@ -77,22 +84,24 @@ public class ParametersServlet extends HttpServlet {
 	if (idp == null) {
 	    logger.log(Level.INFO, "Retrieve parameters: {0}", propertiesSetIdentifier);
 
-	    uiBean = uiBean = this.getUIBean(request);
+	    ParametersBean paramBean = new ParametersBean();
+	    request.getSession().setAttribute(PARAMETERS, paramBean);
+	    
 	    if (propertiesSetIdentifier != null) {
-		uiBean.setParameterSetIdentifier("/unicert/" + propertiesSetIdentifier);
+		paramBean.setParameterSetIdentifier("/unicert/" + propertiesSetIdentifier);
 	    } else {
-		uiBean.setParameterSetIdentifier("/unicert/default");
+		paramBean.setParameterSetIdentifier("/unicert/default");
 	    }
 
-	    if (!uiBean.isInitialized()) {
+	    if (!paramBean.isInitialized()) {
 		logger.log(Level.SEVERE, "Unable to load properties set");
 		internalServerErrorHandler(response, "Unable to load properties set");
 		return;
 	    }
 
 	    //Redirection to identity provider
-	    if (!uiBean.hasMulitpleIdentityProviders()) {
-		redirectToIdp(uiBean.getIdentityProvider(), request, response);
+	    if (!paramBean.hasMulitpleIdentityProviders()) {
+		redirectToIdp(paramBean.getIdentityProvider(), request, response);
 	    } else {
 		//if multiple identity providers are supported we show a selection page
 		response.sendRedirect(IDP_SELECTION_PAGE);
@@ -194,25 +203,7 @@ public class ParametersServlet extends HttpServlet {
      */
     @Override
     public String getServletInfo() {
-	return "Servlet loading the properties needed in certificate request.";
-    }
-
-    /**
-     * Helper method returning the UserInterfaceBean
-     *
-     * If none is found in the session, one is created and save in the session
-     *
-     * @param request servlet request
-     * @return the UserInterfaceBean
-     */
-    private UserInterfaceBean getUIBean(HttpServletRequest request) {
-	HttpSession session = request.getSession();
-	UserInterfaceBean bean = ((UserInterfaceBean) session.getAttribute("ui"));
-	if (bean == null) {
-	    bean = new UserInterfaceBean();
-	    session.setAttribute("ui", bean);
-	}
-	return bean;
+	return "Servlet managing authentication.";
     }
 
     /**

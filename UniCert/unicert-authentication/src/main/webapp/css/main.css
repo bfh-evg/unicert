@@ -80,8 +80,6 @@ a.raquo, span.raquo	{ background: url('../img/raquo.png') no-repeat 0 0; padding
 /* H E A D E R  A N D  F O O T E R */
 
 #header				{ position: relative; text-align: right; padding-top: 10px; padding-bottom: 10px;}
-#logo				{ display: inline; }
-#logo img			{ width: 150px; padding-top: 2px;}
 
 #lang				{ z-index: 5; position: absolute; top: 10px; right: 0px;}
 
@@ -142,33 +140,6 @@ div.progress-bar img	{ position: absolute; top:0;}
 /* I N D E X */
 
 body.index #header	{ text-align: center; padding-bottom: 30px;}
-body.index #logo	{ display: inline; }
-body.index #logo img{ width: 220px; padding-top: 2px;}
-
-.votingevents li	{ padding-top: 5px; }
-.votingevent-title	{ border-top: 1px solid #ccc; padding-left: 10px; padding-right: 10px; }
-.votingevent-link	{ padding-left: 10px; display: block; }
-.votingevent-link .inactive { text-decoration: underline; color: #dcc; }
-
-#browser-check		{ color: #c00; padding-top: 30px; padding-bottom: 20px; }
-
-#brief-instruction	{ padding-bottom: 20px; }
-#brief-instruction p,
-#brief-instruction ol { text-align: left; }
-#brief-instruction ol { padding-left: 40px; padding-right: 10px; list-style: decimal; }
-#brief-instruction li { padding-bottom: 5px; list-style: decimal; }
-#brief-instruction li:last-child { padding-bottom: 0px; }
-
-#help-box p			{ text-align: left; }
-#help-box form div	{ text-align: center; width: 400px; margin: auto; padding-bottom: 20px;}
-#help-box form span,
-#help-box form input,
-#help-box form textarea { display: block; text-align: left; }
-#help-box form span		{ padding-top: 10px; padding-bottom: 2px;}
-#help-box form span.tiny{ padding-top: 0px; color: #aaa; }
-#help-box form input	{ width: 250px; }
-#help-box form textarea { width: 400px; height: 100px; font-family: "Lucida Sans Unicode", "Lucida Grande", Arial, sans-serif; font-size: 12px;}
-#help-box form button.button	{ min-width: 150px; margin: 20px 5px 10px 5px; }
 
 /* R E G I S T R A T I O N */
 

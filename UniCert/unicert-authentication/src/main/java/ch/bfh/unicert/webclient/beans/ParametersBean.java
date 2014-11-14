@@ -12,19 +12,24 @@ import ch.bfh.unicert.webclient.util.ParametersNotFoundException;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.faces.bean.ManagedBean;
-import javax.faces.bean.SessionScoped;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * This class represents a Bean storing the predefined values
  * in the certificate request page
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
-@ManagedBean(name = "ui")
-@SessionScoped
-public class UserInterfaceBean implements Serializable {
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.FIELD)
+public class ParametersBean implements Serializable {
     
-    private static final Logger logger = Logger.getLogger(UserInterfaceBean.class.getName());
+    private static final Logger logger = Logger.getLogger(ParametersBean.class.getName());
+    
+    private String uniqueUserId;
+    private String email;
+    private String idp;
 
     private String propertySetIdentifier;
     private String identityProvider;
@@ -44,9 +49,9 @@ public class UserInterfaceBean implements Serializable {
     private boolean showRoleField = true;
     private int identityFunctionIndex;
     private boolean showIdentityFunctionIndexField = true;
-    private boolean initialized;
     private boolean hasMulitpleIdentityProviders = false;
     private String[] identityProviders;
+    private boolean initialized;
 
     private ConfigurationHelper config;
     
@@ -117,6 +122,32 @@ public class UserInterfaceBean implements Serializable {
         
         this.initialized = true;
     }
+
+    public String getUniqueUserId() {
+	return uniqueUserId;
+    }
+
+    public void setUniqueUserId(String uniqueUserId) {
+	this.uniqueUserId = uniqueUserId;
+    }
+
+    public String getEmail() {
+	return email;
+    }
+
+    public void setEmail(String email) {
+	this.email = email;
+    }
+
+    public String getIdp() {
+	return idp;
+    }
+
+    public void setIdp(String idp) {
+	this.idp = idp;
+    }
+    
+    
     
     /**
      * Returns the key type

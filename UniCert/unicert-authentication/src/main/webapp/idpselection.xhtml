@@ -31,15 +31,10 @@
     </ui:define>
 
     <ui:define name="content">
-        <div class="progress-bar">
-            <div id="step_1" class="step active">#{msg.genkeysStep1}</div><img src="img/arrow.png" alt="Arrow" />
-            <div id="step_2" class="step">#{msg.genkeysStep2}</div><img src="img/arrow.png" alt="Arrow" />
-            <div id="step_3" class="step">#{msg.genkeysStep3}</div>
-        </div>
         <div id="step_2_content">
             <p>#{msg.chooseIdpText}</p>
 
-            <ui:repeat value="#{ui.identityProviders}" var="idp">
+            <ui:repeat value="#{params.identityProviders}" var="idp">
                 <p>
                     <a href="authenticate?idp=#{idp}" class="raquo">#{idp}</a>
                 </p>

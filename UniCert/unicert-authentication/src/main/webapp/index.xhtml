@@ -24,8 +24,6 @@
     <ui:param name="bodyClass" value="index" />
 
     <ui:define name="head_include_js">
-        <script type="text/javascript" src="js/index.js"></script>
-        <script type="text/javascript" src="js/unicert-util.js"></script>
     </ui:define>
 
     <ui:define name="page_title">
@@ -33,13 +31,7 @@
     </ui:define>
 
     <ui:define name="header">
-        <div id="lang">
-            <h:form>
-                <h:commandLink action="#{languageDetails.setLocale('de')}"><img src="img/DE.png" alt="Deutsch"/></h:commandLink>
-                <h:commandLink action="#{languageDetails.setLocale('fr')}"><img src="img/FR.png" alt="Français"/></h:commandLink>
-                <h:commandLink action="#{languageDetails.setLocale('en')}"><img src="img/EN.png" alt="English"/></h:commandLink>				
-            </h:form>
-        </div>
+        
     </ui:define>
 
     <ui:define name="content">
@@ -48,16 +40,12 @@
             <h1 class="center">#{msg.welcome}</h1>
 
             <p class="block"><h:outputText value="#{msg.introtext}" escape="false" /></p>
-            <p class="block spacer0"><a href="#" class="raquo" onclick="showBriefInstruction();
-                    return false;">#{msg.goInstruction}</a></p>
-            <p class="block spacer0"><a href="#" class="raquo" onclick="showHelp();
-                    return false;">#{msg.goHelpBox}</a></p>
-
+            
             <h3 class="">#{msg.registrationTitle}</h3>
             <p class="block"><h:outputText value="#{msg.registrationText}" escape="false" /></p>
             <div class="block spacer10">
-                <p><a href="authenticate?params=univote-idf1-r1-switch-dsa" class="raquo">#{msg.goRegister}: UniVote, Normal identity function, Voter, SwitchAAI, Discrete Log</a></p>
-                <p><a href="authenticate" class="raquo">#{msg.goRegister}: Custom</a></p>
+                <p><a href="authenticate?params=univote-idf1-r1-switch-dsa&amp;returnlocation=https://urd.bfh.ch/unicert-authentication/certificate-request.xhtml" class="raquo">#{msg.goRegister}: UniVote, Normal identity function, Voter, SwitchAAI, Discrete Log</a></p>
+                <p><a href="authenticate?returnlocation=https://urd.bfh.ch/unicert-authentication/certificate-request.xhtml" class="raquo">#{msg.goRegister}: Custom</a></p>
             </div>
 
 

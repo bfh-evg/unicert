@@ -9,7 +9,7 @@
  * Distributable under GPL license.
  * See terms of license at gnu.org.
  */
-package ch.bfh.unicert.webclient.beans.util;
+package ch.bfh.unicert.webclient.util;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;

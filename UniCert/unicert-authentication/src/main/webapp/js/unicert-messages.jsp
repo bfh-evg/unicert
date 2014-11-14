@@ -16,12 +16,10 @@
  */
 --%>
 <%@page import="java.util.*"%>
-<%@page import="ch.bfh.unicert.webclient.beans.LanguageDetails"%>
 <%@page contentType="text/javascript" pageEncoding="UTF-8"%>
 <%
 	// Get users's locale and the corresponding message resource bundle
-	LanguageDetails languageDetails = (LanguageDetails) request.getSession().getAttribute("languageDetails");
-	ResourceBundle msg = ResourceBundle.getBundle("messages", new Locale(languageDetails.getLocale()));
+	ResourceBundle msg = ResourceBundle.getBundle("messages", new Locale("en"));
 	
 	// Loop through the messages and create a string representing the js object
 	// -> Of course this could be done automatically using a JSON library, but do

@@ -17,7 +17,6 @@
 <%@page import="java.util.regex.Pattern"%>
 <%@page import="ch.bfh.unicert.webclient.beans.UserDataBean"%>
 <%@page import="java.util.*"%>
-<%@page import="ch.bfh.unicert.webclient.beans.LanguageDetails"%>
 <%@page import="javax.mail.*"%>
 <%@page import="javax.mail.internet.*"%>
 <%@page import="javax.activation.*"%>
@@ -35,15 +34,14 @@
 
     // Get users email address
     UserDataBean ud = (UserDataBean) session.getAttribute("userData");
-    if (ud == null || ud.getEmail() == null || ud.getEmail().equals("")) {
+    if (ud == null || ud.getUserData() == null || ud.getUserData().getMail() == null || ud.getUserData().getMail().equals("")) {
         response.sendError(500, "No email address in user session!");
         return;
     }
-    String mailTo = ud.getEmail();
+    String mailTo = ud.getUserData().getMail();
 
     // Get localized messges
-    LanguageDetails languageDetails = (LanguageDetails) session.getAttribute("languageDetails");
-    ResourceBundle msg = ResourceBundle.getBundle("messages", new Locale(languageDetails.getLocale()));
+    ResourceBundle msg = ResourceBundle.getBundle("messages", new Locale("en"));
 
     // Read the secret key from the request
     String secretKey = request.getParameter("sk");

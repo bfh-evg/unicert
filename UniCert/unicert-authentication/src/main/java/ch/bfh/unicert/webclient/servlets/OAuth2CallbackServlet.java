@@ -9,8 +9,9 @@
  * Distributable under GPL license.
  * See terms of license at gnu.org.
  */
-package ch.bfh.unicert.webclient.beans;
+package ch.bfh.unicert.webclient.servlets;
 
+import ch.bfh.unicert.webclient.beans.UserDataBean;
 import ch.bfh.unicert.webclient.userdata.GoogleUserData;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.ByteArrayInputStream;
@@ -37,7 +38,9 @@ import org.scribe.oauth.OAuthService;
 public class OAuth2CallbackServlet extends HttpServlet {
 
     private static final Logger logger = Logger.getLogger(OAuth2CallbackServlet.class.getName());
-    private static final String CERTIFICATE_REQUEST_PAGE = "certificate-request.xhtml";
+//    private static final String CERTIFICATE_REQUEST_PAGE = "certificate-request.xhtml";
+    private static final String CALLBACK_SERVLET = "callback";
+
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
@@ -83,7 +86,7 @@ public class OAuth2CallbackServlet extends HttpServlet {
 	this.getUserDataBean(req).setUserData(ud);
 
 	try {
-	    resp.sendRedirect(CERTIFICATE_REQUEST_PAGE);
+	    resp.sendRedirect(CALLBACK_SERVLET);
 	} catch (IOException ex) {
 	    logger.log(Level.SEVERE, "Unable to redirect after successful Google login: {0}", ex);
 	    try {

@@ -25,11 +25,10 @@
     </f:metadata>
 
     <ui:define name="meta_include">
-        <meta http-equiv="refresh" content="2; url=certificate-request.xhtml" />
+        <meta http-equiv="refresh" content="0; url=callback" />
     </ui:define>
 
     <ui:define name="head_include_js">
-
     </ui:define>
 
     <ui:define name="header">
@@ -37,12 +36,7 @@
     </ui:define>
 
     <ui:define name="content">
-        <div class="progress-bar">
-			<div id="step_1" class="step active">#{msg.genkeysStep1}</div><img src="img/arrow.png" alt="Arrow" />
-			<div id="step_2" class="step">#{msg.genkeysStep2}</div><img src="img/arrow.png" alt="Arrow" />
-			<div id="step_3" class="step">#{msg.genkeysStep3}</div>
-        </div>
-        <div id="step_2_content">#{msg.switchConnectionSuccessText}</div>
+	<div id="step_2_content">#{msg.switchConnectionSuccessText}</div>
     </ui:define>
 
 </ui:composition>

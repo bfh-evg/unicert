@@ -9,16 +9,17 @@
  * Distributable under GPL license.
  * See terms of license at gnu.org.
  */
-package ch.bfh.unicert.webclient.beans;
+package ch.bfh.unicert.webclient.servlets;
 
 import ch.bfh.unicert.issuer.Certificate;
-import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.CertificateIssuer;
 import ch.bfh.unicert.issuer.CertificateIssuerMock;
+import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
+import ch.bfh.unicert.webclient.beans.UserDataBean;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedGoogleIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.IdentityFunctionNotApplicableException;
@@ -28,6 +29,7 @@ import ch.bfh.unicert.webclient.identityfunction.ZurichSwitchAAIIdentityFunction
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -93,6 +95,9 @@ public class CertificateRequestServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+	for(Entry<String,String[]> e : request.getParameterMap().entrySet()){
+	    logger.log(Level.INFO, e.getKey() + ": "+ e.getValue()[0]);
+	}
         // Set character encoding of the response.
         response.setCharacterEncoding("UTF-8");
 

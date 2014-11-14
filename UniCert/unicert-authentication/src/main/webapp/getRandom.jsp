@@ -1,5 +1,5 @@
 <%@page import="java.math.BigInteger"%>
-<%@page import="ch.bfh.unicert.webclient.beans.util.RandomDistribution"%>
+<%@page import="ch.bfh.unicert.webclient.util.RandomDistribution"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%><%
 	
 	byte[] random = RandomDistribution.getRandomValue(256/8);

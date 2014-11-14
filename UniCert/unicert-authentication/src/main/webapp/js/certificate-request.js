@@ -52,9 +52,9 @@ var msgName;
 $(document).ready(function() {
 
     // Get voter data
-    requester.id = document.getElementById('requester-id').value;
-    requester.email = document.getElementById('requester-email').value;
-    requester.idp = document.getElementById('requester-idp').value;
+    requester.id = document.getElementById('requester-id');
+    requester.email = document.getElementById('requester-email');
+    requester.idp = document.getElementById('requester-idp');
 
     // Get DOM elements
     elements.step2 = document.getElementById('step_2');
@@ -77,6 +77,7 @@ $(document).ready(function() {
     elements.cryptoSetupType = document.getElementById('crypto_setup_type');
     elements.cryptoSetupSize = document.getElementById('crypto_setup_size');
     elements.identity_function = document.getElementById('identity_function');
+    elements.mail = document.getElementById('mail');
 
     elements.rsaOptions = document.getElementById('rsa_options');
     elements.dlogOptions = document.getElementById('dlog_options');
@@ -90,23 +91,15 @@ $(document).ready(function() {
 
     // Register events (button's onclick are registered inline)
     $(elements.secretKey).click(function() {
-        this.select();
+	this.select();
     })
     $([elements.password, elements.password2]).keyup(function() {
-        checkPasswords()
+	checkPasswords()
     });
 
-
-    // 1. Check if voter.id is available, otherwise user is not authorised
-    if (requester.id == '') {
-        $.blockUI({message: '<p>' + msg.userNotAuthorised + '</p>'});
-        setTimeout(function() {
-            location.href = HOME_SITE
-        }, 5000);
-        return;
-    }
-
     init();
+
+
 
 });
 
@@ -122,24 +115,136 @@ function init() {
     publicKey = null;
     modulo = null;
     elements.secretKey.value = "";
-    //if cryptoSetupType has a default value (is not shown)
-    if (hasClass(elements.cryptoSetupType.parentNode.parentNode, "notdisplayed")) {
-        //enable generateKey button
-        elements.generateKeyButton.disabled = false;
-        //if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
-        if (hasClass(elements.p.parentNode.parentNode, "notdisplayed") || hasClass(elements.q.parentNode.parentNode, "notdisplayed") || hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
-            updateKeysOptions();
-        }
-    }
-    
-    if(requester.idp == "SwitchAAI"){
-        elements.identity_function.remove(4);
-        elements.identity_function.remove(3);
-    } else if (requester.idp == "Google"){
-        elements.identity_function.remove(2);
-        elements.identity_function.remove(1);
-        elements.identity_function.remove(0);
-    }
+
+    $.ajax({
+	url: "/unicert-authentication/parameters/",
+	type: 'POST',
+	contentType: "application/json",
+	accept: "application/json",
+	cache: false,
+	dataType: 'json',
+	timeout: 10000,
+	success: function(data) {
+	    
+	    if (data == null || data == undefined) {
+		$.unblockUI();
+		$.blockUI({message: '<p>' + msg.dataRetrievalError + '</p>'});
+		setTimeout(function() {
+		    location.href = HOME_SITE
+		}, 5000);
+		return;
+	    }
+
+	    requester.idp.value = data.idp;
+	    requester.id.value = data.uniqueUserId;
+	    requester.email.value = data.email;
+	    $(elements.mail).html(data.email);
+
+
+	    if (requester.idp.value == "SwitchAAI") {
+		elements.identity_function.remove(4);
+		elements.identity_function.remove(3);
+	    } else if (requester.idp.value == "Google") {
+		elements.identity_function.remove(2);
+		elements.identity_function.remove(1);
+		elements.identity_function.remove(0);
+	    }
+
+	    if (!data.showKeyTypeField) {
+		elements.cryptoSetupType.value = data.keyType;
+		elements.generateKeyButton.disabled = false;
+		//if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
+		if (data.showPrimePField || data.showPrimeQField || data.showGeneratorField) {
+		    updateKeysOptions();
+		}
+	    } else {
+		$(elements.cryptoSetupType.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+
+	    if (!data.showKeySizeField) {
+		elements.cryptoSetupSize.value = data.keySize;
+	    } else {
+		$(elements.cryptoSetupSize.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+//		if (data.showPrimePField || data.showPrimeQField || data.showPrimeGField) {
+//		    $(elements.dlogOptions).removeClass("notdisplayed");
+//		}
+	    if (!data.showPrimePField) {
+		elements.p.value = data.primeP;
+	    } else {
+		$(elements.p.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+
+	    if (!data.showPrimeQField) {
+		elements.q.value = data.primeQ;
+	    } else {
+		$(elements.q.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+
+	    if (!data.showGeneratorField) {
+		elements.g.value = data.generator;
+	    } else {
+		$(elements.g.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+
+	    //if cryptoSetupType has a default value (is not shown)
+	    if (hasClass(elements.cryptoSetupType.parentNode.parentNode, "notdisplayed")) {
+		//if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
+		if (hasClass(elements.p.parentNode.parentNode, "notdisplayed") || hasClass(elements.q.parentNode.parentNode, "notdisplayed") || hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
+		    updateKeysOptions();
+		}
+	    }
+
+
+	    if (data.showApplicationIdentifierField || data.showRoleField || data.showIdentityFunctionIndexField) {
+		$("#substep_2_3").removeClass("notdisplayed");
+	    }
+
+	    if (!data.showApplicationIdentifierField && !data.showRoleField && !data.showIdentityFunctionIndexField) {
+		$("#substep_2_4 > .substep_nr").html("3");
+	    }
+
+	    if (!data.showApplicationIdentifierField) {
+		elements.application.value = data.applicationIdentifier;
+	    } else {
+		$(elements.application.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+
+	    if (!data.showRoleField) {
+		elements.role.value = data.role;
+	    } else {
+		$(elements.role.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+
+	    if (!data.showIdentityFunctionIndexField) {
+		elements.identity_function.value = "" + data.identityFunctionIndex;
+	    } else {
+		$(elements.identity_function.parentNode.parentNode).removeClass("notdisplayed");
+	    }
+	    $.unblockUI();
+
+	    // Check if voter.id is available, otherwise user is not authorised
+	    if (requester.id.value == '') {
+		$.blockUI({message: '<p>' + msg.userNotAuthorised + '</p>'});
+		setTimeout(function() {
+		    location.href = HOME_SITE
+		}, 5000);
+		return;
+	    }
+
+	},
+	error: function(data) {
+
+	    $.unblockUI();
+	    $.blockUI({message: '<p>' + msg.dataRetrievalError + '</p>'});
+	    setTimeout(function() {
+		    location.href = HOME_SITE
+		}, 5000);
+	}
+    });
+
+    // Block UI while processing
+    $.blockUI({message: '<p id="blockui-processing">' + msg.processing + '.</p>'});
 }
 
 function hasClass(element, cls) {
@@ -147,25 +252,25 @@ function hasClass(element, cls) {
 }
 
 function updateKeysOptions() {
-    if (elements.cryptoSetupType.value == "RSA") {
-        //only shows cryptoSetupSize when not set
-        if (!hasClass(elements.cryptoSetupSize.parentNode.parentNode, "notdisplayed")) {
-            $(elements.rsaOptions).show("slow");
-        }
-        $(elements.dlogOptions).hide("slow");
-        elements.generateKeyButton.disabled = false;
-    } else if (elements.cryptoSetupType.value == "DiscreteLog") {
-        if (!hasClass(elements.p.parentNode.parentNode, "notdisplayed") ||
-                !hasClass(elements.q.parentNode.parentNode, "notdisplayed") ||
-                !hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
-            $(elements.dlogOptions).show("slow");
-        }
-        $(elements.rsaOptions).hide("slow");
-        elements.generateKeyButton.disabled = false;
+    if (elements.cryptoSetupType.value === "RSA") {
+	//only shows cryptoSetupSize when not set
+	if (!hasClass(elements.cryptoSetupSize.parentNode.parentNode, "notdisplayed")) {
+	    $(elements.rsaOptions).show("slow");
+	}
+	$(elements.dlogOptions).hide("slow");
+	elements.generateKeyButton.disabled = false;
+    } else if (elements.cryptoSetupType.value === "DiscreteLog") {
+	if (!hasClass(elements.p.parentNode.parentNode, "notdisplayed") ||
+		!hasClass(elements.q.parentNode.parentNode, "notdisplayed") ||
+		!hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
+	    $(elements.dlogOptions).show("slow");
+	}
+	$(elements.rsaOptions).hide("slow");
+	elements.generateKeyButton.disabled = false;
     } else {
-        $(elements.rsaOptions).hide("slow");
-        $(elements.dlogOptions).hide("slow");
-        elements.generateKeyButton.disabled = true;
+	$(elements.rsaOptions).hide("slow");
+	$(elements.dlogOptions).hide("slow");
+	elements.generateKeyButton.disabled = true;
     }
 }
 /**
@@ -180,68 +285,68 @@ function generateKeyPair() {
 
     // Done callback of verification key computation
     var doneCbDlog = function(vk) {
-        // Store keys
-        secretKey = sk;
-        publicKey = vk;
+	// Store keys
+	secretKey = sk;
+	publicKey = vk;
 
-        // Display secret key to the voter and unblock UI
-        elements.secretKey.value = leemon.bigInt2str(secretKey, 64);
+	// Display secret key to the voter and unblock UI
+	elements.secretKey.value = leemon.bigInt2str(secretKey, 64);
 
 
-        $.unblockUI();
+	$.unblockUI();
 
-        // Enable/disable next substep
-        $(elements.substep211).animate({opacity: 1}, 500);
-        $(elements.substep22).animate({opacity: 1}, 500);
-        elements.password.disabled = false;
-        elements.password2.disabled = false;
-        
+	// Enable/disable next substep
+	$(elements.substep211).animate({opacity: 1}, 500);
+	$(elements.substep22).animate({opacity: 1}, 500);
+	elements.password.disabled = false;
+	elements.password2.disabled = false;
+
     };
 
     // Done callback of keys computation
     var doneCbRSA = function(keys) {
 
-        secretKey = keys[0];
-        publicKey = keys[1];
-        modulo = keys[2];
+	secretKey = keys[0];
+	publicKey = keys[1];
+	modulo = keys[2];
 
 
-        elements.secretKey.value = leemon.bigInt2str(secretKey, 64);
+	elements.secretKey.value = leemon.bigInt2str(secretKey, 64);
 
-        $.unblockUI();
+	$.unblockUI();
 
-        // Enable/disable next substep
-        $(elements.substep211).animate({opacity: 1}, 500);
-        $(elements.substep22).animate({opacity: 1}, 500);
-        elements.password.disabled = false;
-        elements.password2.disabled = false;
-        
+	// Enable/disable next substep
+	$(elements.substep211).animate({opacity: 1}, 500);
+	$(elements.substep22).animate({opacity: 1}, 500);
+	elements.password.disabled = false;
+	elements.password2.disabled = false;
+
     };
 
     // Update callback of verification key computation
     var updateCb = function() {
-        $('#blockui-processing').append('.');
+	$('#blockui-processing').append('.');
     };
 
     // Generate the keys
     if (elements.cryptoSetupType.value == "RSA") {
-        type = "RSA";
-        size = parseInt(elements.cryptoSetupSize.value);
-        ucCrypto.generateRSASecretKey(size, doneCbRSA, updateCb);
+	type = "RSA";
+	size = parseInt(elements.cryptoSetupSize.value);
+	ucCrypto.generateRSASecretKey(size, doneCbRSA, updateCb);
     } else if (elements.cryptoSetupType.value == "DiscreteLog") {
-        if (elements.p.value == "" || elements.q.value == "" || elements.g.value == "") {
-            $.unblockUI();
-            $.blockUI({message: '<p>' + msg.missingValuePQG + '</p>',
-                timeout: 5000});
-            return;
-        }
-        type = "DLOG";
-        p = leemon.str2bigInt(elements.p.value, 10, 1);
-        q = leemon.str2bigInt(elements.q.value, 10, 1);
-        g = leemon.str2bigInt(elements.g.value, 10, 1);
-        sk = ucCrypto.generateDLOGSecretKey(q);
-        // Compute verification key based on secret key
-        ucCrypto.computeVerificationKeyAsync(p, g, sk, doneCbDlog, updateCb);
+	if (elements.p.value == "" || elements.q.value == "" || elements.g.value == "") {
+	    $.unblockUI();
+	    $.blockUI({message: '<p>' + msg.missingValuePQG + '</p>',
+		timeout: 5000});
+	    return;
+	}
+	type = "DLOG";
+	p = leemon.str2bigInt(elements.p.value, 10, 1);
+	q = leemon.str2bigInt(elements.q.value, 10, 1);
+	g = leemon.str2bigInt(elements.g.value, 10, 1);
+	sk = ucCrypto.generateDLOGSecretKey(q);
+	// Compute verification key based on secret key
+	ucCrypto.computeVerificationKeyAsync(p, g, sk, doneCbDlog, updateCb);
     }
 
 }
@@ -255,19 +360,19 @@ function checkPasswords() {
     var pw = elements.password.value;
     var pw2 = elements.password2.value;
     if (pw == pw2 && pw != '') {
-        $(elements.passwordCheckIcon).addClass('ok');
-        $(elements.substep23).stop(true, true).animate({opacity: 1}, 500);
-        $(elements.substep24).stop(true, true).animate({opacity: 1}, 500);
-        elements.retreiveSecretKeyButton.disabled = false;
-        elements.role.disabled = false;
-        elements.identity_function.disabled = false;
+	$(elements.passwordCheckIcon).addClass('ok');
+	$(elements.substep23).stop(true, true).animate({opacity: 1}, 500);
+	$(elements.substep24).stop(true, true).animate({opacity: 1}, 500);
+	elements.retreiveSecretKeyButton.disabled = false;
+	elements.role.disabled = false;
+	elements.identity_function.disabled = false;
     } else {
-        $(elements.passwordCheckIcon).removeClass('ok');
-        $(elements.substep23).stop(true, true).animate({opacity: 0.2}, 500);
-        $(elements.substep24).stop(true, true).animate({opacity: 0.2}, 500);
-        elements.retreiveSecretKeyButton.disabled = true;
-        elements.role.disabled = true;
-        elements.identity_function.disabled = true;
+	$(elements.passwordCheckIcon).removeClass('ok');
+	$(elements.substep23).stop(true, true).animate({opacity: 0.2}, 500);
+	$(elements.substep24).stop(true, true).animate({opacity: 0.2}, 500);
+	elements.retreiveSecretKeyButton.disabled = true;
+	elements.role.disabled = true;
+	elements.identity_function.disabled = true;
     }
 }
 
@@ -288,111 +393,111 @@ function completeCertRequest(byMail) {
 
     // Done callback of certificate creation
     var createCertDoneCb = function(cert) {
-        // Store cert
-        certificate = cert;
+	// Store cert
+	certificate = cert;
 
-        var skC;
-       
-        if (type == "RSA") {
-            // (3) Hand out secret key to the voter (size one time pad = size(n) + PRE/POST-Fix)
-            var sk = leemon.bigInt2str(secretKey, 64);
-            // encrypt secret key with users password
-            skC = ucCrypto.encryptSecretKey(sk, pw);
-        } else if (type == "DLOG") {
-            
-            // (3) Hand out secret key to the voter
-            var sk = leemon.bigInt2str(secretKey, 64);
-            // encrypt secret key with users password
-            skC = ucCrypto.encryptSecretKey(sk, pw);
-        }
+	var skC;
+
+	if (type == "RSA") {
+	    // (3) Hand out secret key to the voter (size one time pad = size(n) + PRE/POST-Fix)
+	    var sk = leemon.bigInt2str(secretKey, 64);
+	    // encrypt secret key with users password
+	    skC = ucCrypto.encryptSecretKey(sk, pw);
+	} else if (type == "DLOG") {
+
+	    // (3) Hand out secret key to the voter
+	    var sk = leemon.bigInt2str(secretKey, 64);
+	    // encrypt secret key with users password
+	    skC = ucCrypto.encryptSecretKey(sk, pw);
+	}
 
 
-        if (byMail) {
-            // Send secret key to the voter by mail (asynchronous)
-            retreiveSecretKeyByMail(
-                    skC,
-                    function() {
-                        // Done -> go to step 3
-                        $.unblockUI();
-                        gotoStep3();
-                    },
-                    function() {
-                        // Error
-                        $.unblockUI();
-                        $.blockUI({
-                            message: '<p>' + msg.sendSecretKeyFailed + '</p>',
-                            timeout: 5000});
-                    });
+	if (byMail) {
+	    // Send secret key to the voter by mail (asynchronous)
+	    retreiveSecretKeyByMail(
+		    skC,
+		    function() {
+			// Done -> go to step 3
+			$.unblockUI();
+			gotoStep3();
+		    },
+		    function() {
+			// Error
+			$.unblockUI();
+			$.blockUI({
+			    message: '<p>' + msg.sendSecretKeyFailed + '</p>',
+			    timeout: 5000});
+		    });
 
-        } else {
-            // File download of secret key
-            retreiveSecretKeyBySaveas(skC);
-            // finally go to step 3
-            $.unblockUI();
-            gotoStep3();
-        }
+	} else {
+	    // File download of secret key
+	    retreiveSecretKeyBySaveas(skC);
+	    // finally go to step 3
+	    $.unblockUI();
+	    gotoStep3();
+	}
 
     };
 
     // Error callback fo certificate creation
     var createCertErrorCb = function(request, status, error) {
 
-        var message = "";
+	var message = "";
 
-        try {
-            var json = JSON.parse(request.responseText);
-            if (json.error != "") {
-                msgName = "msg.error" + json.error;
-                message = eval(window['msgName']);
-            } else {
-                message = msg.errorundefined;
-            }
-        } catch (err) {
-            message = msg.errorundefined;
-        }
+	try {
+	    var json = JSON.parse(request.responseText);
+	    if (json.error != "") {
+		msgName = "msg.error" + json.error;
+		message = eval(window['msgName']);
+	    } else {
+		message = msg.errorundefined;
+	    }
+	} catch (err) {
+	    message = msg.errorundefined;
+	}
 
 
-        $.unblockUI();
-        $.blockUI({
-            message: '<p>' + msg.createCertificateFailed + " " + message + '</p>',
-            timeout: 5000});
+	$.unblockUI();
+	$.blockUI({
+	    message: '<p>' + msg.createCertificateFailed + " " + message + '</p>',
+	    timeout: 5000});
     };
 
     // Update callback of verification key proof computation
     var computeUpdateCb = function() {
-        $('#blockui-processing').append('.');
+	$('#blockui-processing').append('.');
     };
 
     // Done callback of verification key proof computation for DLog
     var computeProofDoneCb = function(proof) {
-        // (2) Send verification key to CA and get the certificate
-        ucCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
-                elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
+	// (2) Send verification key to CA and get the certificate
+	ucCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
+		elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     };
 
     // Done callback of verification key signature computation for RSA
     var computeSignatureDoneCb = function(signature) {
-        console.log("sig: "+leemon.bigInt2str(signature,10));
+	console.log("sig: " + leemon.bigInt2str(signature, 10));
 
-        // (2) Send verification key to CA and get the certificate
-        ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, leemon.bigInt2str(signature, 10),
-                elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
+	// (2) Send verification key to CA and get the certificate
+	ucCA.createRSACertificate(elements.cryptoSetupSize.value, modulo, elements.identity_function.value, publicKey, leemon.bigInt2str(signature, 10),
+		elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     };
 
     // (1) Compute verification key proof / signature
-    var valuesToSign = requester.idp + SEPARATOR + requester.email + SEPARATOR + requester.id;
+    var valuesToSign = requester.idp.value + SEPARATOR + requester.email.value + SEPARATOR + requester.id.value;
     valuesToSign = valuesToSign + SEPARATOR + elements.cryptoSetupType.value + SEPARATOR + elements.cryptoSetupSize.value;
     valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(publicKey, 10);
 
     $.blockUI({message: '<p id="blockui-processing">' + msg.processing + '...</p>'});
     if (type == "RSA") {
-        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(modulo, 10);
-        valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
-        ucCrypto.computeSignatureAsync(secretKey, publicKey, modulo, valuesToSign, computeSignatureDoneCb, computeUpdateCb);
+	valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(modulo, 10);
+	valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
+	ucCrypto.computeSignatureAsync(secretKey, publicKey, modulo, valuesToSign, computeSignatureDoneCb, computeUpdateCb);
     } else if (type == "DLOG") {
-        valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(p, 10) + SEPARATOR + leemon.bigInt2str(q, 10) + SEPARATOR + leemon.bigInt2str(g, 10);
-        valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
-        ucCrypto.computeVerificationKeyProofAsync(p, q, g, secretKey, publicKey, valuesToSign, computeProofDoneCb, computeUpdateCb);
+	valuesToSign = valuesToSign + SEPARATOR + leemon.bigInt2str(p, 10) + SEPARATOR + leemon.bigInt2str(q, 10) + SEPARATOR + leemon.bigInt2str(g, 10);
+	valuesToSign = valuesToSign + SEPARATOR + elements.identity_function.value + SEPARATOR + elements.application.value + SEPARATOR + elements.role.value;
+	ucCrypto.computeVerificationKeyProofAsync(p, q, g, secretKey, publicKey, valuesToSign, computeProofDoneCb, computeUpdateCb);
     }
 }
 
@@ -418,18 +523,18 @@ function retreiveSecretKeyByMail(skC, doneCb, errorCb) {
     // Success callback of sending secret key.
     // data holds a message and the to-address (data.message, data.to)
     var successCb = function(data) {
-        // Right now just call the done callback
-        doneCb();
+	// Right now just call the done callback
+	doneCb();
     };
 
     // Ajax call to send the secret key by mail.
     $.ajax({
-        type: "POST",
-        url: 'sendSecretKey.jsp',
-        data: {sk: skC, to: document.getElementById("alternate_mail").value, appid: elements.application.value, role: elements.role.value, idp: requester.idp, pem: certificate.pem},
-        dataType: 'json',
-        success: successCb,
-        error: errorCb
+	type: "POST",
+	url: 'sendSecretKey.jsp',
+	data: {sk: skC, to: document.getElementById("alternate_mail").value, appid: elements.application.value, role: elements.role.value, idp: requester.idp.value, pem: certificate.pem},
+	dataType: 'json',
+	success: successCb,
+	error: errorCb
     });
 }
 
@@ -472,8 +577,8 @@ function inspectCert() {
     html += '<button class="button" onclick="downloadCertificate()">' + msg.certDownload + '</button></p></div>';
 
     $.blockUI({
-        message: html,
-        css: {width: '60%', left: '20%', top: '50px'}
+	message: html,
+	css: {width: '60%', left: '20%', top: '50px'}
     });
 }
 
@@ -494,32 +599,32 @@ function downloadCertificate() {
  */
 function downloadFile(data, filename) {
     if (window.saveas) {
-        // Do it straight forward if saveas is supported
-        var keyBlob = new BlobBuilder();
-        keyBlob.append(data);
-        window.saveAs(keyBlob.getBlob(), filename);
+	// Do it straight forward if saveas is supported
+	var keyBlob = new BlobBuilder();
+	keyBlob.append(data);
+	window.saveAs(keyBlob.getBlob(), filename);
     } else {
-        // Do a server roundtrip if saveas is not supported
-        // -> create a form and submit it
-        var form = document.createElement('form');
-        form.style.display = 'none';
-        form.method = 'post';
-        form.action = 'saveas.jsp';
+	// Do a server roundtrip if saveas is not supported
+	// -> create a form and submit it
+	var form = document.createElement('form');
+	form.style.display = 'none';
+	form.method = 'post';
+	form.action = 'saveas.jsp';
 
-        var n = document.createElement('input');
-        n.type = 'hidden';
-        n.name = 'name';
-        n.value = filename;
-        form.appendChild(n);
+	var n = document.createElement('input');
+	n.type = 'hidden';
+	n.name = 'name';
+	n.value = filename;
+	form.appendChild(n);
 
-        var d = document.createElement('input');
-        d.type = "hidden";
-        d.name = 'data';
-        d.value = data;
-        form.appendChild(d);
+	var d = document.createElement('input');
+	d.type = "hidden";
+	d.name = 'data';
+	d.value = data;
+	form.appendChild(d);
 
-        document.body.appendChild(form);
-        form.submit();
+	document.body.appendChild(form);
+	form.submit();
     }
 }
 
@@ -543,33 +648,33 @@ window.saveAs || (window.saveAs = (window.navigator.msSaveBlob ? function(b, n) 
     window.URL || (window.URL = window.webkitURL);
 
     if (!window.URL || !("download" in document.createElement('a'))) {
-        return false;
+	return false;
     }
 
     return function(blob, name) {
-        var url = URL.createObjectURL(blob);
+	var url = URL.createObjectURL(blob);
 
-        // Test for download link support
-        if ("download" in document.createElement('a')) {
+	// Test for download link support
+	if ("download" in document.createElement('a')) {
 
-            var a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', name);
+	    var a = document.createElement('a');
+	    a.setAttribute('href', url);
+	    a.setAttribute('download', name);
 
-            // Create Click event
-            var clickEvent = document.createEvent("MouseEvent");
-            clickEvent.initMouseEvent("click", true, true, window, 0,
-                    event.screenX, event.screenY, event.clientX, event.clientY,
-                    event.ctrlKey, event.altKey, event.shiftKey, event.metaKey,
-                    0, null);
+	    // Create Click event
+	    var clickEvent = document.createEvent("MouseEvent");
+	    clickEvent.initMouseEvent("click", true, true, window, 0,
+		    event.screenX, event.screenY, event.clientX, event.clientY,
+		    event.ctrlKey, event.altKey, event.shiftKey, event.metaKey,
+		    0, null);
 
-            // dispatch click event to simulate download
-            a.dispatchEvent(clickEvent);
-        }
-        else {
-            // fallover, open resource in new tab.
-            window.open(url, '_blank', '');
-        }
+	    // dispatch click event to simulate download
+	    a.dispatchEvent(clickEvent);
+	}
+	else {
+	    // fallover, open resource in new tab.
+	    window.open(url, '_blank', '');
+	}
     };
 })());
 

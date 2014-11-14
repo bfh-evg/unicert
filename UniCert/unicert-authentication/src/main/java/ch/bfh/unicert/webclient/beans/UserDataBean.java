@@ -80,42 +80,6 @@ public class UserDataBean implements Serializable {
     }
 
     /**
-     * Provides the unique identifier of the user of the current session read from the identity provider
-     *
-     * @return the unique identifier
-     */
-    public String getUniqueIdentifier() {
-	if (ud != null) {
-	    return this.ud.getUniqueIdentifier();
-	}
-	return null;
-    }
-
-    /**
-     * Provides the email address of the user of the current session read from the identity provider
-     *
-     * @return
-     */
-    public String getEmail() {
-	if (ud != null) {
-	    return this.ud.getMail();
-	}
-	return null;
-    }
-
-    /**
-     * Provides the name of the identity provider used for authentication
-     *
-     * @return
-     */
-    public String getIdentityProvider() {
-	if (ud != null) {
-	    return this.ud.getIdentityProvider();
-	}
-	return null;
-    }
-
-    /**
      * Provides the user data of the user of the current session read from the identity provider
      *
      * @return

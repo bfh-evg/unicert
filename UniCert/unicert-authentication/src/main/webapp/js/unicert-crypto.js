@@ -130,8 +130,10 @@
 		//3.3 Hash of the hash of public input concatenated with hash of commitment
 		//(Steps 3.1 to 3.3 are the computation of to the recursive hash of a Pair[publicInput, Commitment] in UniCrypt)
 		var hashPIAndCommitment = sha256HexStr(hashPI + hashCommitment);
-
+//		console.log("pi and commitment hashed: " + hashPIAndCommitment);
+		
 		//3.4 Hash of other input
+//		console.log("other input " + otherInput);
 		var hashOtherInput = sha256String(otherInput);
 //		console.log("other input hashed: " + hashOtherInput);
 		//3.5 Hash of hashPIAndCommitment concatenated with hashOtherInput
@@ -262,7 +264,9 @@
 		proof.t = leemon.bigInt2str(proof.t, 10);
 		proof.c = leemon.bigInt2str(proof.c, 10);
 		proof.s = leemon.bigInt2str(proof.s, 10);
-		console.log("Challenge: "+proof.c);
+//		console.log("commitment: "+proof.t);
+//		console.log("response: "+proof.s);
+//		console.log("Challenge: "+proof.c);
 		doneCb(proof);
 	    };
 	    

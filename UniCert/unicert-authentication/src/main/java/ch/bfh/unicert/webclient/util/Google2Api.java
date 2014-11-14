@@ -1,4 +1,4 @@
-package ch.bfh.unicert.webclient.beans.util;
+package ch.bfh.unicert.webclient.util;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

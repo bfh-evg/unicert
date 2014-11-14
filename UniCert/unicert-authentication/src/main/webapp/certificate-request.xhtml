@@ -34,9 +34,9 @@
         <h2 class="center">#{msg.certrequest}</h2>
 
         <form name="properties">
-            <input type="hidden" id="requester-id" value="#{userData.uniqueIdentifier}" />
-            <input type="hidden" id="requester-email" value="#{userData.email}" />
-            <input type="hidden" id="requester-idp" value="#{userData.identityProvider}" />
+            <input type="hidden" id="requester-id"/>
+            <input type="hidden" id="requester-email"/>
+            <input type="hidden" id="requester-idp"/>
         </form>
     </ui:define>
 
@@ -55,44 +55,44 @@
             <div id="substep_2_1" class="substep clearfix"><div class="substep_nr">1</div>
                 <p>#{msg.genkeysSubstep21Text}</p>
 
-                <div class="row clearfix #{ui.showKeyTypeField()? '' : 'notdisplayed'}">
+                <div class="row clearfix notdisplayed">
                     <div class="col1 small"><label for="crypto_setup_type">#{msg.keytype}: </label></div>
                     <div class="col2">
                         <select id="crypto_setup_type" class="select" name="crypto_setup_type" size="1" onchange="updateKeysOptions()">	
                             <option value="">#{msg.pleaseSelect}</option> 
-                            <option value="RSA" selected="#{ui.keyType=='RSA'? 'selected' : ''}">RSA</option> 
-                            <option value="DiscreteLog" selected="#{ui.keyType=='DiscreteLog'? 'selected' : ''}">Discrete Logarithm</option> 
+                            <option value="RSA" >RSA</option> 
+                            <option value="DiscreteLog" >Discrete Logarithm</option> 
                         </select>
                     </div>
                 </div>
                 <div id="rsa_options" class="row clearfix hidden">
-                    <div class="#{ui.showKeySizeField()? '' : 'notdisplayed'}">
+                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.keysize}: </div>
                         <div class="col2">
                             <select id="crypto_setup_size" class="select" name="crypto_setup_size" size="1">	
-                                <option value="1024" selected="#{ui.keySize=='1024'? 'selected=' : ''}">1024</option> 
-                                <option value="2048" selected="#{ui.keySize=='2048'? 'selected' : ''}">2048</option> 
+                                <option value="1024">1024</option> 
+                                <option value="2048">2048</option> 
                             </select>
                         </div>
                     </div>
                 </div>
-                <div id="dlog_options" class="row clearfix hidden #{ui.showPrimePField() || ui.showPrimeQField() || ui.showGeneratorField()? '' : 'notdisplayed'}">
-                    <div class="#{ui.showPrimePField()? '' : 'notdisplayed'}">
+                <div id="dlog_options" class="row clearfix hidden">
+                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.valuep}: </div>
                         <div class="col2">
-                            <input type="text" id="p" value="#{ui.primeP}"/>
+                            <input type="text" id="p" />
                         </div>
                     </div>
-                    <div class="#{ui.showPrimeQField()? '' : 'notdisplayed'}">
+                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.valueq}: </div>
                         <div class="col2">
-                            <input type="text" id="q" value="#{ui.primeQ}"/>
+                            <input type="text" id="q" />
                         </div>
                     </div>
-                    <div class="#{ui.showGeneratorField()? '' : 'notdisplayed'}">
+                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.valueg}: </div>
                         <div class="col2">
-                            <input type="text" id="g" value="#{ui.generator}"/>
+                            <input type="text" id="g" />
                         </div>
                     </div>
                 </div>
@@ -118,48 +118,43 @@
                     </div>
                 </form>
             </div>
-            <div id="substep_2_3" class="substep clearfix #{ui.showApplicationIdentifierField()|| ui.showRoleField() || ui.showIdentityFunctionIndexField()? '' : 'notdisplayed'}">
+            <div id="substep_2_3" class="substep clearfix notdisplayed">
                 <div class="substep_nr">3</div>
                 <p>#{msg.genCertSubstep23Text}</p>
-                <div class="row clearfix #{ui.showApplicationIdentifierField()? '' : 'notdisplayed'}">
+                <div class="row clearfix notdisplayed">
                     <div class="col1 small">#{msg.application}: </div>
                     <div class="col2">
-                        <input type="text" id="application" value="#{ui.applicationIdentifier}"/>
+                        <input type="text" id="application"/>
                     </div>
                 </div>
-                <div class="row clearfix #{ui.showRoleField()? '' : 'notdisplayed'}">
+                <div class="row clearfix notdisplayed">
                     <div class="col1 small">#{msg.role}: </div>
                     <div class="col2">
-			<input type="text" id="role" value="#{ui.role}"/>
-                        <!--<select id="role" class="select" name="role" size="1">	
-                            <option value="Voter" selected="#{ui.role==1? 'selected' : ''}">#{msg.voterCert}</option> 
-                            <option value="Tallier" selected="#{ui.role==2? 'selected' : ''}">#{msg.tallierCert}</option> 
-                            <option value="Mixer" selected="#{ui.role==3? 'selected' : ''}">#{msg.mixerCert}</option> 
-                            <option value="ElectionAdministration" selected="#{ui.role==4? 'selected' : ''}">#{msg.electionAdminCert}</option> 
-                        </select>-->
+			<input type="text" id="role"/>
                     </div>
                 </div>
-                <div class="row clearfix #{ui.showIdentityFunctionIndexField()? '' : 'notdisplayed'}">
+                <div class="row clearfix notdisplayed">
                     <div class="col1 small">#{msg.identityFunction}: </div>
                     <div class="col2">
                         <select id="identity_function" class="select" name="identity_function" size="1">	
-                            <option value="1" selected="#{ui.identityFunctionIndex==1? 'selected' : ''}">#{msg.idFStandardSwitch}</option> 
-                            <option value="2" selected="#{ui.identityFunctionIndex==2? 'selected' : ''}">#{msg.idFAnonymizedSwitch}</option> 
-                            <option value="3" selected="#{ui.identityFunctionIndex==3? 'selected' : ''}">#{msg.idFZurichSwitch}</option> 
-                            <option value="4" selected="#{ui.identityFunctionIndex==4? 'selected' : ''}">#{msg.idFStandardGoogle}</option> 
-                            <option value="5" selected="#{ui.identityFunctionIndex==5? 'selected' : ''}">#{msg.idFAnonymizedGoogle}</option> 
+                            <option value="1">#{msg.idFStandardSwitch}</option> 
+                            <option value="2">#{msg.idFAnonymizedSwitch}</option> 
+                            <option value="3">#{msg.idFZurichSwitch}</option> 
+                            <option value="4">#{msg.idFStandardGoogle}</option> 
+                            <option value="5">#{msg.idFAnonymizedGoogle}</option> 
                         </select>
                     </div>
                 </div>
             </div>
 
-            <div id="substep_2_4" class="substep clearfix"><div class="substep_nr">
-                    #{!ui.showApplicationIdentifierField() and !ui.showRoleField() and !ui.showIdentityFunctionIndexField() ? '3' : '4'}
+            <div id="substep_2_4" class="substep clearfix">
+		<div class="substep_nr">
+                    4
                 </div>
                 <p>#{msg.genkeysSubstep24Text}</p>
                 <div class="col2only">
                     <table>
-                        <tr><td><button id="retreive_secretkey_bu" class="button" onclick="completeCertRequest(true);">#{msg.retreiveSecretKey}</button></td><td>&#160;<span class="small">#{msg.to} #{userData.email}</span></td></tr>
+                        <tr><td><button id="retreive_secretkey_bu" class="button" onclick="completeCertRequest(true);">#{msg.retreiveSecretKey}</button></td><td>&#160;<span class="small">#{msg.to} <span id="mail"></span></span></td></tr>
                         <tr><td></td><td>&#160;<span class="small">#{msg.andText} </span><input type="text" id="alternate_mail" value="#{msg.optionalMail}"/></td></tr>
                     </table>  
                     <c:if test="${initParam['dev-mode'] == 'true'}">
