@@ -35,8 +35,8 @@
 	<dependency>
 	    <groupId>ch.bfh.unicert</groupId>
 	    <artifactId>unicert-issuer</artifactId>
-	    <version>${project.version}</version>
-	    <scope>provided</scope>
+	    <version>1.0-SNAPSHOT</version>
+	    <type>jar</type>
 	</dependency>
 	<dependency>
 	    <groupId>ch.bfh.unicrypt</groupId>
