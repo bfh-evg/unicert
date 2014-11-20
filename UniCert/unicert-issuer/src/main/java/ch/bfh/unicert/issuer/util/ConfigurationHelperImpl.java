@@ -21,10 +21,13 @@ import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,6 +61,10 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private String googleClientID;
     private String googleClientSecret;
     private String googleClientRedirectURI;
+    private String uniboardSection;
+    private X509Certificate boardCertificate;
+    private String boardId;
+    private SignatureHelper signatureHelper;
 
     /**
      * Private constructor, used internally only.
@@ -136,8 +143,20 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
      * @inheritDoc
      */
     @Override
+    public String getUniBoardSection() {
+	return this.uniboardSection;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    @Override
     public String getGoogleRedirectURI() {
 	return this.googleClientRedirectURI;
+    }
+
+    public SignatureHelper getSignatureHelper() {
+	return signatureHelper;
     }
 
     public void init() throws CertificateCreationException {
@@ -159,12 +178,14 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
 
 	//Load simple properties
 	this.issuerId = retrieveStringProperty(props, "issuerId");
+	this.boardId = retrieveStringProperty(props, "boardId");
 	this.uniboardURL = retrieveStringProperty(props, "uniboardURL");
 	this.validityYears = retrieveIntegerProperty(props, "validityYears");
 
 	this.googleClientID = retrieveStringProperty(props, "googleClientID");
 	this.googleClientSecret = retrieveStringProperty(props, "googleClientSecret");
 	this.googleClientRedirectURI = retrieveStringProperty(props, "googleRedirectURI");
+	this.uniboardSection = retrieveStringProperty(props, "uniboardSection");
 
 	//Load keystore with private key for the manager
 	InputStream in;
@@ -177,7 +198,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
 		    "Could not instantiate JKS key store. Exception: {0}", new Object[]{ex});
 	    throw new CertificateCreationException("200 Failed to load keystore");
 	}
-	
+
 	if (isExternal) {
 	    try {
 		File file = new File(keyStorePath);
@@ -224,7 +245,37 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
 	    throw new CertificateCreationException("200 Failed to load keystore");
 	}
 
-	// load the key entry from the keystore
+	// retrieve certificate of the board
+	try {
+	    this.boardCertificate = (X509Certificate) caKs.getCertificate(boardId);
+	    PublicKey pk = this.boardCertificate.getPublicKey();
+	    String algo = pk.getAlgorithm();
+	    if (algo.equals("RSA")) {
+		try {
+		    RSAPublicKey rsaPubKey = (RSAPublicKey) pk;
+		    this.signatureHelper = new RSASignatureHelper(rsaPubKey);
+		} catch (RuntimeException ex) {
+		}
+	    } else if (algo.equals("DSA")) {
+		try {
+		    DSAPublicKey dsaPubKey = (DSAPublicKey) pk;
+		    this.signatureHelper = new SchnorrSignatureHelper(dsaPubKey);
+		} catch (RuntimeException ex) {
+		}
+	    } else if (algo.equals("EC")) {
+		try {
+		    //TODO
+		} catch (RuntimeException ex) {
+		}
+	    }
+	} catch (KeyStoreException | NullPointerException ex) {
+	    logger.log(Level.SEVERE,
+		    "Could not retrieve UniBoard certificate from key store {0}. Exception: {1}",
+		    new Object[]{keyStorePath, ex});
+	    throw new CertificateCreationException("200 Failed to load keystore");
+	}
+
+	// load the private key entry of issuer from the keystore
 	Key key = null;
 	try {
 	    key = caKs.getKey(this.issuerId, privateKeyPass.toCharArray());
@@ -309,4 +360,5 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
 	}
 	return Boolean.valueOf(propertyValue);
     }
+
 }

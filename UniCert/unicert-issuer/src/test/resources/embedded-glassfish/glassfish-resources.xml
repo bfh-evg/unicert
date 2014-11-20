@@ -10,6 +10,7 @@
         <property name="keystorePass" value="123456" />
         <property name="privateKeyPass" value="123456" />
         <property name="issuerId" value="certificateauthority" />
+        <property name="boardId" value="certificateauthority" />
         <property name="validityYears" value="2" />
         <property name="uniboardURL" value="http://localhost:8080/UniBoardService/UniBoardServiceImpl?wsdl" />
         

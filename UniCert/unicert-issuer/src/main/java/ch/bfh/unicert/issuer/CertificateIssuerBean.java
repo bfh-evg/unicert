@@ -14,8 +14,14 @@ package ch.bfh.unicert.issuer;
 import ch.bfh.uniboard.UniBoardService;
 import ch.bfh.uniboard.UniBoardService_Service;
 import ch.bfh.uniboard.data.AttributesDTO;
-import ch.bfh.uniboard.data.AttributesDTO.AttributeDTO;
-import ch.bfh.uniboard.data.StringValueDTO;
+import ch.bfh.uniboard.data.TransformException;
+import ch.bfh.uniboard.data.Transformer;
+import ch.bfh.uniboard.service.Attributes;
+import ch.bfh.uniboard.service.ByteArrayValue;
+import ch.bfh.uniboard.service.DateValue;
+import ch.bfh.uniboard.service.IntegerValue;
+import ch.bfh.uniboard.service.StringValue;
+import ch.bfh.uniboard.service.Value;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
@@ -28,16 +34,23 @@ import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirS
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
+import ch.bfh.unicrypt.helper.MathUtil;
+import ch.bfh.unicrypt.helper.array.classes.DenseArray;
 import ch.bfh.unicrypt.helper.converter.classes.ConvertMethod;
 import ch.bfh.unicrypt.helper.converter.classes.biginteger.FiniteByteArrayToBigInteger;
 import ch.bfh.unicrypt.helper.converter.classes.bytearray.BigIntegerToByteArray;
+import ch.bfh.unicrypt.helper.converter.classes.bytearray.ByteArrayToByteArray;
 import ch.bfh.unicrypt.helper.converter.classes.bytearray.StringToByteArray;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
+import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayMonoid;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
+import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
+import ch.bfh.unicrypt.math.algebra.general.classes.Pair;
 import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
+import ch.bfh.unicrypt.math.algebra.general.classes.Tuple;
 import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
 import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
@@ -58,6 +71,8 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -66,6 +81,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.Startup;
@@ -120,6 +136,19 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
     private static final int MIN_RSA_SIZE = 1010;
     private static final int MIN_DLOG_SIZE = 1010;
+
+    private static final String ATTRIBUTE_NAME_PUBLICKEY = "publickey";
+    private static final String ATTRIBUTE_NAME_SIG = "signature";
+    private static final String GROUPED = "group";
+    private static final String SECTIONED = "section";
+
+    protected static final HashMethod HASH_METHOD = HashMethod.getInstance(
+	    HashAlgorithm.SHA256,
+	    ConvertMethod.getInstance(
+		    BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN),
+		    ByteArrayToByteArray.getInstance(false),
+		    StringToByteArray.getInstance(Charset.forName("UTF-8"))),
+	    HashMethod.Mode.RECURSIVE);
 
     private static final Logger logger = Logger.getLogger(CertificateIssuerBean.class.getName());
 
@@ -181,7 +210,8 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	    StringElement s = StringMonoid.getInstance(Alphabet.UNICODE_BMP).getElement(setup.getProofOtherInput());
 	    HashMethod hashMethod = HashMethod.getInstance(HashAlgorithm.SHA256, ConvertMethod.getInstance(
-		    BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.forName("UTF-8"))), HashMethod.Mode.RECURSIVE);
+		    BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN), StringToByteArray.getInstance(Charset.
+			    forName("UTF-8"))), HashMethod.Mode.RECURSIVE);
 	    FiniteByteArrayToBigInteger byteArrayConverter = FiniteByteArrayToBigInteger.getInstance(
 		    HashAlgorithm.SHA256.getHashLength());
 	    FiatShamirSigmaChallengeGenerator scg = FiatShamirSigmaChallengeGenerator.getInstance(setup.getG_q(), setup.
@@ -205,8 +235,8 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	Calendar expiry = getExpiryDate(getConfigurationHelper().getValidityYears());
 	Certificate cert = createClientCertificate(
 		idData,
-		getIssuerCertificate(),
-		createIssuerCipherParams(getIssuerPrivateRSAKey()),
+		getConfigurationHelper().getIssuerCertificate(),
+		createIssuerCipherParams(getConfigurationHelper().getPrivateRSAKey()),
 		pk,
 		expiry,
 		applicationIdentifier,
@@ -214,8 +244,10 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	logger.log(Level.INFO, "Certificate created");
 
 	//post message on UniBoard if corresponding JNDI parameter is defined
-	if (getUniBoardServiceURL() != null) {
-	    postOnUniBoard(cert, getUniBoardServiceURL());
+	if (getConfigurationHelper().getUniBoardServiceURL() != null) {
+	    postOnUniBoard(cert, getConfigurationHelper().getUniBoardServiceURL(), getConfigurationHelper().
+		    getUniBoardSection(), (RSAPublicKey) getConfigurationHelper().getIssuerCertificate().getPublicKey(),
+		    getConfigurationHelper().getPrivateRSAKey());
 	}
 
 	return cert;
@@ -227,9 +259,14 @@ public class CertificateIssuerBean implements CertificateIssuer {
      *
      * @param cert the certificate to publish
      * @param endpointUrl the url to access UniBoard
+     * @param section the section on UniBoard where the post must be published
+     * @param publicKey the public key that must be sent with the post
+     * @param privateKey the private key used to create post signature
      * @throws CertificateCreationException if an error occured during publication
      */
-    protected void postOnUniBoard(Certificate cert, String endpointUrl) throws CertificateCreationException {
+    protected void postOnUniBoard(Certificate cert, String endpointUrl, String section, RSAPublicKey publicKey,
+	    RSAPrivateCrtKey privateKey) throws
+	    CertificateCreationException {
 
 	UniBoardService board;
 	try {
@@ -245,25 +282,131 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	    throw new CertificateCreationException("230 Unable to connect to UniBoard to publish certificate");
 	}
 
-	//TODO add signature and authorization
-	List<AttributeDTO> attributes = new ArrayList();
-	attributes.add(new AttributeDTO("section", new StringValueDTO("unicert")));
-	attributes.add(new AttributeDTO("group", new StringValueDTO("certificate")));
-	AttributesDTO alpha = new AttributesDTO(attributes);
+	byte[] message = cert.toJSON().getBytes();
+	Attributes alpha = new Attributes();
+	alpha.add(SECTIONED, new StringValue(section));
+	alpha.add(GROUPED, new StringValue("certificate"));
 
-	AttributesDTO beta = board.post(cert.toJSON().getBytes(), alpha);
+	Element element = createMessageElement(message, alpha);
+	ZMod n = ZMod.getInstance(publicKey.getModulus());
+	RSASignatureScheme rsa = RSASignatureScheme.getInstance(element.getSet(), n, HASH_METHOD);
+	Element rsaPrivateKeyElement = rsa.getSignatureKeySpace().getElement(privateKey.getPrivateExponent());
+	Element signature = rsa.sign(rsaPrivateKeyElement, element);
 
-	if (beta.getAttribute().isEmpty()) {
-	    logger.log(Level.WARNING, "UniBoard response was empty");
-	} else if (beta.getAttribute().get(0).getKey().equals("rejected") || beta.getAttribute().get(0).getKey().equals(
-		"error")) {
-	    logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{beta.
-		getAttribute().get(0).getKey(),
-		((StringValueDTO) beta.getAttribute().get(0).getValue()).getValue()});
+	alpha.add(ATTRIBUTE_NAME_SIG, new StringValue(signature.getBigInteger().toString(10)));
+	BigInteger pair = MathUtil.pair(publicKey.getPublicExponent(), publicKey.getModulus());
+	alpha.add(ATTRIBUTE_NAME_PUBLICKEY, new StringValue(pair.toString(10)));
+
+	AttributesDTO alphaDTO;
+	Attributes beta;
+	try {
+	    alphaDTO = Transformer.convertAttributesToDTO(alpha);
+	    beta = Transformer.convertAttributesDTOtoAttributes(board.post(message, alphaDTO));
+	} catch (TransformException ex) {
+	    logger.log(Level.SEVERE, "DTO conversion error: {1}", new Object[]{ex});
 	    throw new CertificateCreationException("230 UniBoard rejected post");
 	}
 
+	if (beta.getKeys().contains("rejected") || beta.getKeys().contains("error")) {
+	    String errorKey = beta.getEntries().iterator().next().getKey();
+	    String error = ((StringValue) beta.getValue(errorKey).getValue()).getValue();
+	    logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{
+		errorKey, error});
+	    throw new CertificateCreationException("230 UniBoard rejected post: " + error);
+	} else {
+	    String boardSig = ((StringValue) beta.getValue("boardSignature")).getValue();
+	    Element postElement = createMessageElement(message, alpha, beta);
+	    
+	    //Verify signature
+	    if(!getConfigurationHelper().getSignatureHelper().verify(postElement, new BigInteger(boardSig, 10))){
+		throw new CertificateCreationException("230 UniBoard rejected post: Board signature is corrupt.");
+	    }
+	}
+
 	logger.log(Level.INFO, "Certificate posted on UniBoard");
+    }
+
+    protected Element createMessageElement(byte[] message, Attributes alpha) {
+	StringMonoid stringSpace = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+	Z z = Z.getInstance();
+	ByteArrayMonoid byteSpace = ByteArrayMonoid.getInstance();
+	Element messageElement = byteSpace.getElement(message);
+	List<Element> alphaElements = new ArrayList<>();
+	//iterate over alpha until one reaches the property = signature
+	for (Map.Entry<String, Value> e : alpha.getEntries()) {
+	    if (e.getKey().equals(ATTRIBUTE_NAME_SIG)) {
+		break;
+	    }
+	    Element tmp;
+	    if (e.getValue() instanceof ByteArrayValue) {
+		tmp = byteSpace.getElement(((ByteArrayValue) e.getValue()).getValue());
+		alphaElements.add(tmp);
+	    } else if (e.getValue() instanceof DateValue) {
+		TimeZone timeZone = TimeZone.getTimeZone("UTC");
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		dateFormat.setTimeZone(timeZone);
+		String stringDate = dateFormat.format(((DateValue) e.getValue()).getValue());
+		tmp = stringSpace.getElement(stringDate);
+		alphaElements.add(tmp);
+	    } else if (e.getValue() instanceof IntegerValue) {
+		tmp = z.getElement(((IntegerValue) e.getValue()).getValue());
+		alphaElements.add(tmp);
+	    } else if (e.getValue() instanceof StringValue) {
+		tmp = stringSpace.getElement(((StringValue) e.getValue()).getValue());
+		alphaElements.add(tmp);
+	    } else {
+		logger.log(Level.SEVERE, "Unsupported Value type.");
+	    }
+	}
+	DenseArray immuElements = DenseArray.getInstance(alphaElements);
+	Element alphaElement = Tuple.getInstance(immuElements);
+	return Pair.getInstance(messageElement, alphaElement);
+    }
+
+    protected Element createMessageElement(byte[] message, Attributes alpha, Attributes beta) {
+	ByteArrayMonoid byteSpace = ByteArrayMonoid.getInstance();
+	Element messageElement = byteSpace.getElement(message);
+	List<Element> alphaElements = new ArrayList<>();
+	for (Map.Entry<String, Value> e : alpha.getEntries()) {
+	    Element element = this.createValueElement(e.getValue());
+	    if (element != null) {
+		alphaElements.add(element);
+	    }
+	}
+	DenseArray alphaDenseElements = DenseArray.getInstance(alphaElements);
+	Element alphaElement = Tuple.getInstance(alphaDenseElements);
+	List<Element> betaElements = new ArrayList<>();
+	for (Map.Entry<String, Value> e : beta.getEntries()) {
+	    Element element = this.createValueElement(e.getValue());
+	    if (element != null) {
+		betaElements.add(element);
+	    }
+	}
+	DenseArray beteDenseElements = DenseArray.getInstance(betaElements);
+	Element betaElement = Tuple.getInstance(beteDenseElements);
+	return Tuple.getInstance(messageElement, alphaElement, betaElement);
+    }
+
+    protected Element createValueElement(Value value) {
+	StringMonoid stringSpace = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
+	Z z = Z.getInstance();
+	ByteArrayMonoid byteSpace = ByteArrayMonoid.getInstance();
+	if (value instanceof ByteArrayValue) {
+	    return byteSpace.getElement(((ByteArrayValue) value).getValue());
+	} else if (value instanceof DateValue) {
+	    TimeZone timeZone = TimeZone.getTimeZone("UTC");
+	    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+	    dateFormat.setTimeZone(timeZone);
+	    String stringDate = dateFormat.format(((DateValue) value).getValue());
+	    return stringSpace.getElement(stringDate);
+	} else if (value instanceof IntegerValue) {
+	    return z.getElement(((IntegerValue) value).getValue());
+	} else if (value instanceof StringValue) {
+	    return stringSpace.getElement(((StringValue) value).getValue());
+	} else {
+	    logger.log(Level.SEVERE, "Unsupported Value type.");
+	    return null;
+	}
     }
 
     /**
@@ -323,34 +466,6 @@ public class CertificateIssuerBean implements CertificateIssuer {
     }
 
     /**
-     * Retrieves and returns the certificate of the issuer.
-     *
-     * @return the issuer certificate
-     * @throws CertificateCreationException if there is an error
-     */
-    private X509Certificate getIssuerCertificate() throws CertificateCreationException {
-	return getConfigurationHelper().getIssuerCertificate();
-    }
-
-    /**
-     * Retrieves the RSA private key from the configuration helper.
-     *
-     * @return RSA private key
-     */
-    private RSAPrivateCrtKey getIssuerPrivateRSAKey() {
-	return getConfigurationHelper().getPrivateRSAKey();
-    }
-
-    /**
-     * Retrieves the URL of UniBoard
-     *
-     * @return an url
-     */
-    private String getUniBoardServiceURL() {
-	return getConfigurationHelper().getUniBoardServiceURL();
-    }
-
-    /**
      * Given a private RSA key creates an object containing all relevant cipher parameters.
      *
      * @param rsaPrivKey a RSA private key
@@ -403,15 +518,15 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	extension.put(new DERObjectIdentifier(ExtensionOID.APPLICATION_IDENTIFIER.getOID()), new X509Extension(
 		DERBoolean.FALSE, CertificateHelper.stringToDER(applicationIdentifier)));
-	
+
 	String completeRole = "";
-	for(String role : roles){
-	    completeRole += role +", ";
+	for (String role : roles) {
+	    completeRole += role + ", ";
 	}
-	completeRole = completeRole.substring(0, completeRole.length()-2);
+	completeRole = completeRole.substring(0, completeRole.length() - 2);
 	extension.put(new DERObjectIdentifier(ExtensionOID.ROLE.getOID()), new X509Extension(DERBoolean.FALSE,
 		CertificateHelper.stringToDER(completeRole)));
-	
+
 	extension.put(new DERObjectIdentifier(ExtensionOID.IDENTITY_PROVIDER.getOID()), new X509Extension(
 		DERBoolean.FALSE, CertificateHelper.stringToDER(id.getIdentityProvider())));
 
@@ -453,9 +568,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	    if (id.getLocality() != null && !id.getLocality().equals("")) {
 		x509NameString += ", L=" + id.getLocality();
 	    }
-	    //Remove non-ascii char since they are not supported
-	    //x509NameString = x509NameString.replaceAll("[^\\x00-\\x7F]", "");
-
+	    
 	    X509Name x509Name = new X509Name(x509NameString);
 
 	    V3TBSCertificateGenerator certGen = new V3TBSCertificateGenerator();

@@ -28,7 +28,7 @@ public interface ConfigurationHelper {
      * @return an x509 certificate
      */
     public X509Certificate getIssuerCertificate();
-
+    
     /**
      * Returns the private RSA key of the issuer for signing.
      *
@@ -67,4 +67,16 @@ public interface ConfigurationHelper {
      * @return the URI where Google must redirect after the authentication
      */
     public String getGoogleRedirectURI();
+    
+    /**
+     * Returns the section where the certificate must be posted on UniBoard
+     * @return the section as String
+     */ 
+    public String getUniBoardSection();
+    
+    /**
+     * Returns a helper object for the verification of the board signature
+     * @return a signautre Helper object
+     */
+    public SignatureHelper getSignatureHelper();
 }

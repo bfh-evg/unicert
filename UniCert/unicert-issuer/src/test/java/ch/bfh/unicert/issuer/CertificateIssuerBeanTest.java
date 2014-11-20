@@ -1,9 +1,6 @@
-package ch.bfh.unicert.subsystem;
+package ch.bfh.unicert.issuer;
 
 
-import ch.bfh.unicert.issuer.Certificate;
-import ch.bfh.unicert.issuer.CertificateIssuer;
-import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
