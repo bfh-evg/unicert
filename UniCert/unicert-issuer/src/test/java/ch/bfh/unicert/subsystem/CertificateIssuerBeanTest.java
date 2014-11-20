@@ -3,7 +3,6 @@ package ch.bfh.unicert.subsystem;
 
 import ch.bfh.unicert.issuer.Certificate;
 import ch.bfh.unicert.issuer.CertificateIssuer;
-import ch.bfh.unicert.issuer.CertificateIssuerMock;
 import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;

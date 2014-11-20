@@ -9,8 +9,10 @@
  * Distributable under GPL license.
  * See terms of license at gnu.org.
  */
-package ch.bfh.unicert.issuer;
+package ch.bfh.unicert.subsystem;
 
+import ch.bfh.unicert.issuer.Certificate;
+import ch.bfh.unicert.issuer.CertificateIssuerBean;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 
 /**
