@@ -139,6 +139,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
     private static final String ATTRIBUTE_NAME_PUBLICKEY = "publickey";
     private static final String ATTRIBUTE_NAME_SIG = "signature";
+    private static final String ATTRIBUTE_NAME_BOARD_SIG = "boardSignature";
     private static final String GROUPED = "group";
     private static final String SECTIONED = "section";
 
@@ -309,7 +310,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	if (beta.getKeys().contains("rejected") || beta.getKeys().contains("error")) {
 	    String errorKey = beta.getEntries().iterator().next().getKey();
-	    String error = ((StringValue) beta.getValue(errorKey).getValue()).getValue();
+	    String error = (String) beta.getValue(errorKey).getValue();
 	    logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{
 		errorKey, error});
 	    throw new CertificateCreationException("230 UniBoard rejected post: " + error);
@@ -377,6 +378,8 @@ public class CertificateIssuerBean implements CertificateIssuer {
 	Element alphaElement = Tuple.getInstance(alphaDenseElements);
 	List<Element> betaElements = new ArrayList<>();
 	for (Map.Entry<String, Value> e : beta.getEntries()) {
+	    if(e.getKey().equals(ATTRIBUTE_NAME_BOARD_SIG))
+		break;
 	    Element element = this.createValueElement(e.getValue());
 	    if (element != null) {
 		betaElements.add(element);

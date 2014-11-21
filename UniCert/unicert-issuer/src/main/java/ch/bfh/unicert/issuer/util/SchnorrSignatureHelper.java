@@ -71,7 +71,7 @@ public class SchnorrSignatureHelper implements SignatureHelper {
 	GStarModPrime g_q = GStarModPrime.getInstance(modulus, orderFactor);
 		GStarModElement g = g_q.getElement(generator);
 	SchnorrSignatureScheme schnorr = SchnorrSignatureScheme.getInstance(message.getSet(), g, HASH_METHOD);
-	Element signature = schnorr.getSignatureSpace().getElement(signatureBI);
+	Element signature = schnorr.getSignatureSpace().getElementFrom(signatureBI);
 	
 	Element publicKeyElement = schnorr.getVerificationKeySpace().getElement(publicKey);
 	
