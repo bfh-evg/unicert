@@ -28,7 +28,6 @@ import ch.bfh.unicert.webclient.identityfunction.ZurichSwitchAAIIdentityFunction
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -92,17 +91,12 @@ public class CertificateRequestServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
 	    throws ServletException, IOException {
 
-	for (Entry<String, String[]> e : request.getParameterMap().entrySet()) {
-	    logger.log(Level.INFO, e.getKey() + ": " + e.getValue()[0]);
-	}
 	// Set character encoding of the response.
 	response.setCharacterEncoding("UTF-8");
 
 	/*
 	 *************** CERTIFICATE GENERATION ***************
 	 */
-	logger.log(Level.INFO, "Certificate requested");
-
 	CertificateIssuer issuer;
 	try {
 	    issuer = getIssuerRef();
@@ -116,11 +110,9 @@ public class CertificateRequestServlet extends HttpServlet {
 	UserData ud = getUserData(request);
 	if (ud == null) {
 	    handleNoSecurityContext(response);
-	    logger.log(Level.INFO, "Got request without SWITCHaai security context");
+	    logger.log(Level.SEVERE, "Got request without SWITCHaai security context");
 	    return;
 	}
-
-	logger.log(Level.INFO, "User data initialized");
 
 	String messageForSignature = ud.getIdentityProvider() + SEPARATOR + ud.getMail() + SEPARATOR
 		+ ud.getUniqueIdentifier() + SEPARATOR;
@@ -171,8 +163,6 @@ public class CertificateRequestServlet extends HttpServlet {
 		    return;
 	    }
 
-	    logger.log(Level.INFO, "Crypto setup initialized");
-
 	    //Get the selected Identity Function
 	    int functionId = Integer.parseInt(request.getParameter(IDENTITY_FUNCTION));
 	    messageForSignature += functionId + SEPARATOR;
@@ -201,8 +191,6 @@ public class CertificateRequestServlet extends HttpServlet {
 		    return;
 	    }
 
-	    logger.log(Level.INFO, "Identity function applied");
-
 	    //Get the application identifier
 	    String applicationIdentifier = request.getParameter(APP_IDENTIFIER);
 	    messageForSignature += applicationIdentifier + SEPARATOR;
@@ -225,12 +213,9 @@ public class CertificateRequestServlet extends HttpServlet {
 	    //Set whole signed data in order to be able to verify the signature/proof
 	    cs.setSignatureOtherInput(messageForSignature);
 
-	    logger.log(Level.INFO, "Asking to generate certificate");
-
 	    //Create the certificate
 	    Certificate cert = issuer.createCertificate(cs, idData, applicationIdentifier, roles);
 
-	    logger.log(Level.INFO, "Returning certificate");
 	    response.getWriter().printf(cert.toJSON());
 
 	} catch (CertificateCreationException ex) {
