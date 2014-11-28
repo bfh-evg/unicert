@@ -86,7 +86,7 @@
 \chapter{Introduction}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-This document presents the architectural specification of \unicert. \unicert\ is a certification authority, that issues digital certificates used to authenticate users, to sign and/or encrypt messages. \unicert\ provides an interface where the user can authenticate themselves and request a certificate corresponding to their needs. \unicert\ uses \uniboard\ to publish all issued certificates. A general description of what \unicert\ does and how it works is available in document \cite{univote_spec}. 
+This document presents the architectural specification of \unicert. \unicert\ is a certification authority, that issues digital certificates used to authenticate users, to sign and/or encrypt messages. \unicert\ provides an interface where the user can authenticate themselves and request predefined parameters that must appear in the certificate they will ask \unicert\ to issue. \unicert\ uses \uniboard\ to publish all issued certificates. A general description of what \unicert\ does and how it works is available in document \cite{univote_spec}. 
 
 This document presents the detailed certificate issuing process and focuses on architectural and technical specifications. In a \Cref{chap:process}, the components and processes of authentication and issuance of the certificate will be described in more details. \Cref{chap:architecture} describes the architecture of some important classes. Finally, \Cref{chap:specialities} describes some important \unicert\ particularities.
 
@@ -101,42 +101,53 @@ To give an overview of how \unicert\ works, we give a high-level picture of the 
 \unicert\ is composed of two components. The fist one, the authentication component called \textit{unicert-authentication}, has following functions:
 \begin{itemize}
 \item authenticate the user
-\item allow the user to generate a key pair and select some options
+\item allow the user to get predefined parameters that must appear in a certificate
 \item send all data to issuer component
 \item return the private key (generated on user side) and the issued certificate (received from the issuer component) to the user.
 \end{itemize}
-So, this component proposes a frontend for user interactions and a backend to process the requests coming from the user.
+The application using \unicert\ is responsible for generating the key pair and choosing other values to certify. \unicert\ provides only a test user interface for these tasks.
 
 The second component, the issuer component called \textit{unicert-issuer}, has following functions:
 \begin{itemize}
 \item issue the certificate based on the data received
-\item publish the certificate on \uniboard
+\item post the certificate on \uniboard
 \item return the certificate to the authentication component
 \end{itemize}
 
 \section{Authentication Process} \label{sec:auth_process}
 
 
-Currently, the authentication component supports two identity providers to authenticate the user, namely SwitchAAI and Google. Since they do not use the same technologies, the flow of the authentication process is slightly different for these two providers. Following paragraphs describe the process for each of them.
+Currently, the authentication component supports two identity providers to authenticate the user, namely SwitchAAI and Google. Even they do not use the same technologies, the flow of the authentication process is similar. Their concrete implementation differ however slightly. The authentication process shows in \Cref{fig:auth_process} is described below.
 
-\paragraph*{SwitchAAI authentication} SwitchAAI uses a Shibboleth module of Apache webserver to make the redirection to the authentication webpage and back. \Cref{fig:auth_process_switch} shows how the process works. To begin the procedure, the user must invoke a link containing some information about what parameters must be loaded for the authentication and issuance process (described in more details later in \Cref{sec:simplification_ui}). This can for example be done by clicking on a link on the home page of \unicert. This link calls the \textit{ParameterServlet} which loads the required parameters, among others the supported identity providers for authentication. If more than one are supported, page \textit{idpselection.xhtml} is displayed where the user can choose which provider to use.
+To begin the procedure, the user asks the application using \unicert\ to authenticate themselves. The application calls the \textit{AuthenticationServlet} of \textit{unicert-authentication} providing the identifier of a parameter set and the return url that will by called by \textit{unicert-authentication} at the end of the authentication process to go back to the application. \textit{AuthenticationServlet} reads the parameter set provided (purpose of this set will be described in \Cref{sec:param_request}) and saves it in the session together with the return url. If multiple identity providers are defined in the parameter set, \textit{unicert-authentication} shows the \textit{idpselection.xhtml} page where the user can choose the desired identity providers. \textit{AuthenticationServlet} then makes a redirect on identity provider authentication page where the user can process to the login. If the login process is successful, the identity provider returns user attributes to \textit{SwitchAAICallbackServlet} (in case of SwitchAAI) or \textit{OAuth2CallbackServlet} (in case of Google). Theses servlets save the user attributes in the session and call the \textit{CallbackServlet}. This servlet call the 
+return url passing the session id back to the application.
 
-For the present case, SwitchAAI is selected. Page \textit{switchaai.xhtml} is requested. For this page, the Apache Shibboleth module expects a valid user to be logged in. If it is not the case, the user is redirected to SwitchAAI authentication page. Once the credentials entered and the user successfully authenticated by SwitchAAI, the Apache Shibboleth module verifies the response received from Switch and displays the \textit{switchaai.xhtml} page where the user personal information received from Switch are read. After a few seconds, the user is redirected to the page where the certificate can be requested (\textit{certificate-request.xhtml}).
+At the end of the authentication process, the application has an authenticated session on \textit{unicert-authentication} for this user.
+
+%\paragraph*{SwitchAAI authentication} SwitchAAI uses a Shibboleth module of Apache webserver to make the redirection to the authentication webpage and back. \Cref{fig:auth_process_switch} shows how the process works. To begin the procedure, the user must invoke a link containing some information about what parameters must be loaded for the authentication and issuance process (described in more details later in \Cref{sec:simplification_ui}). This can for example be done by clicking on a link on the home page of \unicert. This link calls the \textit{ParameterServlet} which loads the required parameters, among others the supported identity providers for authentication. If more than one are supported, page \textit{idpselection.xhtml} is displayed where the user can choose which provider to use.
+
+%For the present case, SwitchAAI is selected. Page \textit{switchaai.xhtml} is requested. For this page, the Apache Shibboleth module expects a valid user to be logged in. If it is not the case, the user is redirected to SwitchAAI authentication page. Once the credentials entered and the user successfully authenticated by SwitchAAI, the Apache Shibboleth module verifies the response received from Switch and displays the \textit{switchaai.xhtml} page where the user personal information received from Switch are read. After a few seconds, the user is redirected to the page where the certificate can be requested (\textit{certificate-request.xhtml}).
 
 \begin{figure}[ht]
 \centerline{
-\includegraphics[width=1.0\textwidth]{figs/authentication_process_switch}}
-\caption{Authentication process with SwitchAAI}
-\label{fig:auth_process_switch}
+\includegraphics[width=1.0\textwidth]{figs/authentication_process}}
+\caption{Authentication process}
+\label{fig:auth_process}
 \end{figure}
 
-\paragraph*{Google authentication} Google uses protocol OAuth to manage the authentication. Because of this different technology, the process of authentication with Google is slightly different from the one with SwitchAAI. \Cref{fig:auth_process_google} shows how it works. The first steps are identical until the identity provider is chosen (for this case Google). The \textit{ParametersServlet} redirects the user to Google where the authentication process takes place. The response from Google is sent back to the \textit{OAuth2CallbackServlet} which verifies the response from Google and reads the user personal information received. If everything was correct, the user is redirected to the page where the certificate can be requested (\textit{certificate-request.xhtml}).
-\begin{figure}[ht]
-\centerline{
-\includegraphics[width=1.0\textwidth]{figs/authentication_process_google}}
-\caption{Authentication process with Google OAuth}
-\label{fig:auth_process_google}
-\end{figure}
+%\paragraph*{Google authentication} Google uses protocol OAuth to manage the authentication. Because of this different technology, the process of authentication with Google is slightly different from the one with SwitchAAI. \Cref{fig:auth_process_google} shows how it works. The first steps are identical until the identity provider is chosen (for this case Google). The \textit{ParametersServlet} redirects the user to Google where the authentication process takes place. The response from Google is sent back to the \textit{OAuth2CallbackServlet} which verifies the response from Google and reads the user personal information received. If everything was correct, the user is redirected to the page where the certificate can be requested (\textit{certificate-request.xhtml}).
+%\begin{figure}[ht]
+%\centerline{
+%\includegraphics[width=1.0\textwidth]{figs/authentication_process_google}}
+%\caption{Authentication process with Google OAuth}
+%\label{fig:auth_process_google}
+%\end{figure}
+
+\section{Parameters Request}\label{sec:param_request}
+
+Once the user authenticated, the application can propose them to generate the key pair and indicate some parameters that must appear in the certificate. Since, most of the time however, these parameters are the same for a lot of users, \unicert\ allows to predefine parameter sets containing these parameters, so that the user must not define them themselves.
+
+These parameters can be retrieved form the \textit{ParametersServlet}. Therefore, the application must provide the session id received at then end of the authentication process, since these parameters are stored in the user session. The application can then fill the user interface with these parameters in order to simplify the certificate request for the user. More details about these parameters sets can be found in \Cref{sec:simplification_ui}.
 
 \section{Certificate Issuance Process} \label{sec:issuance_process}
 
@@ -413,6 +424,7 @@ Most of the time however, these values are the same for a lot of users. For exam
 \caption{JNDI properties for presets in user interface}
 \label{t:jndi2}
 \end{table}
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
