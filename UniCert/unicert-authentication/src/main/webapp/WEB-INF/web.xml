@@ -31,8 +31,16 @@
         <servlet-class>ch.bfh.unicert.webclient.servlets.CertificateRequestServlet</servlet-class>
     </servlet>
     <servlet>
+        <servlet-name>SwitchAAICallbackServlet</servlet-name>
+        <servlet-class>ch.bfh.unicert.webclient.servlets.SwitchAAICallbackServlet</servlet-class>
+    </servlet>
+    <servlet>
         <servlet-name>ParametersServlet</servlet-name>
         <servlet-class>ch.bfh.unicert.webclient.servlets.ParametersServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>CallbackServlet</servlet-name>
+        <servlet-class>ch.bfh.unicert.webclient.servlets.CallbackServlet</servlet-class>
     </servlet>
     <servlet>
         <servlet-name>AuthenticationServlet</servlet-name>

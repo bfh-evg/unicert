@@ -531,7 +531,7 @@ function retreiveSecretKeyByMail(skC, doneCb, errorCb) {
     $.ajax({
 	type: "POST",
 	url: 'sendSecretKey.jsp',
-	data: {sk: skC, to: document.getElementById("alternate_mail").value, appid: elements.application.value, role: elements.role.value, idp: requester.idp.value, pem: certificate.pem},
+	data: {sk: skC, to: requester.email.value, to2: document.getElementById("alternate_mail").value, appid: elements.application.value, role: elements.role.value, idp: requester.idp.value, pem: certificate.pem},
 	dataType: 'json',
 	success: successCb,
 	error: errorCb

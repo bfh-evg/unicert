@@ -11,9 +11,6 @@
  */
 package ch.bfh.unicert.webclient.userdata;
 
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.faces.bean.SessionScoped;
 
 /**
@@ -36,125 +33,26 @@ public class SwitchAAIUserData implements UserData {
 
     private static final long serialVersionUID = 1L;
 
-    // SWITCHaai has two different sets of parameter names for
-    // test environments and production envionments.
-    // This is the production set. The other ones are in subclass
-    /**
-     * Swiss education UID.
-     */
-    public static final String E_UID = "uniqueID";
     public String swissEducationUID;
-
-    /**
-     * Shibboleth Person UID.
-     */
-    public static final String P_UID = "uid";
     public String personUID;
-    /**
-     * Persistent ID.
-     */
-    public static final String P_ID = "persistent-id";
     public String persistentId;
-
-    /**
-     * Card number.
-     */
-    public static final String P_CARD_NO = "cardUID";
     public String cardUID;
-
-    /**
-     * Swiss education matriculation number.
-     */
-    public static final String P_MAT_NUMBER = "matriculationNumber";
     public String matriculationNumber;
-
-    /**
-     * Internet organization name.
-     */
-    public static final String P_EMP_NUMBER = "employeeNumber";
     public String employeeNumber;
-
-    /**
-     * Given name.
-     */
-    public static final String P_GIVENNAME = "givenName";
     public String givenName;
-
-    /**
-     * Surname.
-     */
-    public static final String P_SURNAME = "surname";
     public String surname;
-
-    /**
-     * E-mail.
-     */
-    public static final String P_MAIL = "mail";
     public String mail;
-
-    /**
-     * Study branch.
-     */
-    public static final String S_BRANCH = "studyBranch1";
     public String studyBranch;
-
-    /**
-     * Study level.
-     */
-    public static final String S_LEVEL = "studyLevel";
     public String studyLevel;
-
-    /**
-     * Staff category.
-     */
-    public static final String S_CATECORY = "staffCategory";
     public String staffCategory;
-
-    /**
-     * Organization name.
-     */
-    public static final String O_NAME = "homeOrganization";
     public String homeOrganization;
-
-    /**
-     * Affiliation name.
-     */
-    public static final String O_AFFILIATION = "affiliation";
     public String affiliation;
-
-    /**
-     * Organization type.
-     */
-    public static final String O_TYPE = "homeOrganizationType";
     public String homeOrganizationType;
-
-    /**
-     * Organization DN.
-     */
-    public static final String O_DN = "org-dn";
     public String orgDN;
 
     /**
-     * The logger this class uses.
-     */
-    private static final Logger logger = Logger.getLogger(SwitchAAIUserData.class.getName());
-
-    /**
      * Constructs a UserData instance, given some initial parameters. Notice
      * that, depending on the context, some of the parameters can be null.
-     *
-     */
-    /**
-     * Constructs a UserData instance, given some initial parameters. Notice
-     * that, depending on the context, some of the parameters can be null.
-     * @param attributesMap  the HTTP request object parameter map
-     */
-    public SwitchAAIUserData(Map<String, Object> attributesMap) {
-        initializeUserData(attributesMap);
-    }
-
-    /**
-     * For dev only
      * @param swissEducationUID
      * @param personUID
      * @param persistentId
@@ -264,77 +162,5 @@ public class SwitchAAIUserData implements UserData {
 
     public String getOrgDN() {
         return orgDN;
-    }
-
-    /**
-     * Tries to initialized this instance from data obtained from SWITCHaai.
-     * Sets 'initialized' to true if it can at least initialized the fields
-     * 'voterId' and 'email'.
-     *
-     * @param attributesMap the HTTP request object parameter map
-     */
-    protected void initializeUserData(Map<String, Object> attributesMap) {
-
-        // Swiss education unique id
-        this.swissEducationUID = readAttribute(attributesMap, E_UID, "education uid");
-        
-        // Person UID
-        this.personUID = readAttribute(attributesMap, P_UID, "person uid");
-        
-        // Persistent ID
-        this.persistentId = readAttribute(attributesMap, P_ID, "persistent id");
-        
-        // Card Nr
-        this.cardUID = readAttribute(attributesMap, P_CARD_NO, "card nr");
-        
-        // Matricule Nr
-        this.matriculationNumber = readAttribute(attributesMap, P_MAT_NUMBER, "matricule nr");
-        
-        //Employee Nr
-        this.employeeNumber = readAttribute(attributesMap, P_EMP_NUMBER, "employee nr");
-        
-        //Given name
-        this.givenName = readAttribute(attributesMap, P_GIVENNAME, "given name");
-        
-        //Employee Nr
-        this.surname = readAttribute(attributesMap, P_SURNAME, "surname");
-        
-        // E-mail address
-        this.mail = readAttribute(attributesMap, P_MAIL, "e-mail address");
-        
-        //Study branch
-        this.studyBranch = readAttribute(attributesMap, S_BRANCH, "study branch");
-        
-        //Study level
-        this.studyLevel = readAttribute(attributesMap, S_LEVEL, "study level");
-        
-        //Staff category
-        this.staffCategory = readAttribute(attributesMap, S_CATECORY, "staff category");
-                
-        //Home organisation
-        this.homeOrganization = readAttribute(attributesMap, O_NAME, "home organisation");
-        
-        //Affiliation
-        this.affiliation = readAttribute(attributesMap, O_AFFILIATION, "affiliation");
-         
-        //Affiliation
-        this.homeOrganizationType = readAttribute(attributesMap, O_TYPE, "organisation type");
-         
-        //Affiliation
-        this.orgDN = readAttribute(attributesMap, O_DN, "organisation distinguished name");
-        
-    }
-    
-    private String readAttribute(Map<String, Object> attributesMap, String attribute, String comment){
-        
-        String value = (String) attributesMap.get(attribute);
-        if (value != null) {
-            logger.log(Level.INFO, "Retrieved for {2}: name={0}, value={1}",
-                    new Object[]{attribute, value, comment});
-        } else {
-            // Cannot initialize -- giving up.
-            logger.log(Level.SEVERE, "Cannot initialize {0} -- giving up.", comment);
-        }
-        return value;
     }
 }

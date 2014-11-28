@@ -15,7 +15,6 @@
 <%@page import="java.text.MessageFormat"%>
 <%@page import="java.util.regex.Matcher"%>
 <%@page import="java.util.regex.Pattern"%>
-<%@page import="ch.bfh.unicert.webclient.beans.UserDataBean"%>
 <%@page import="java.util.*"%>
 <%@page import="javax.mail.*"%>
 <%@page import="javax.mail.internet.*"%>
@@ -32,20 +31,13 @@
     // Line break used in email
     final String MAIL_LB = "\n";
 
-    // Get users email address
-    UserDataBean ud = (UserDataBean) session.getAttribute("userData");
-    if (ud == null || ud.getUserData() == null || ud.getUserData().getMail() == null || ud.getUserData().getMail().equals("")) {
-        response.sendError(500, "No email address in user session!");
-        return;
-    }
-    String mailTo = ud.getUserData().getMail();
-
     // Get localized messges
     ResourceBundle msg = ResourceBundle.getBundle("messages", new Locale("en"));
 
     // Read the secret key from the request
     String secretKey = request.getParameter("sk");
-    String mailTo2 = request.getParameter("to");
+    String mailTo = request.getParameter("to");
+    String mailTo2 = request.getParameter("to2");
     String confirmationTo = mailTo;
 
         // Configure smtp server -- see Configuration instructions.

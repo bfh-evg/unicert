@@ -12,7 +12,7 @@
 package ch.bfh.unicert.webclient.servlets;
 
 import ch.bfh.unicert.webclient.beans.ParametersBean;
-import ch.bfh.unicert.webclient.beans.UserDataBean;
+import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,12 +42,12 @@ public class CallbackServlet extends HttpServlet {
 	String sessionId = session.getId();
 	
 	//Add the needed identity data to the set of parameters stored in the session
-	UserDataBean udb = (UserDataBean) session.getAttribute("userData");
+	UserData udb = (UserData) session.getAttribute("userData");
 	ParametersBean pb = (ParametersBean) session.getAttribute("params");
 	
-	pb.setEmail(udb.getUserData().getMail());
-	pb.setUniqueUserId(udb.getUserData().getUniqueIdentifier());
-	pb.setIdp(udb.getUserData().getIdentityProvider());
+	pb.setEmail(udb.getMail());
+	pb.setUniqueUserId(udb.getUniqueIdentifier());
+	pb.setIdp(udb.getIdentityProvider());
 	
 	try {
 	    resp.sendRedirect(returnurl+"?JSESSIONID="+sessionId);

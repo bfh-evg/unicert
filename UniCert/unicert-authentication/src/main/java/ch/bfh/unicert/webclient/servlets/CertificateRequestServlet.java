@@ -18,7 +18,6 @@ import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
-import ch.bfh.unicert.webclient.beans.UserDataBean;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedGoogleIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.IdentityFunctionNotApplicableException;
@@ -107,7 +106,9 @@ public class CertificateRequestServlet extends HttpServlet {
 	}
 
 	// Do we have an authenticated session?
-	UserData ud = getUserData(request);
+	HttpSession session = request.getSession();
+	UserData ud = (UserData)session.getAttribute("userData");
+	
 	if (ud == null) {
 	    handleNoSecurityContext(response);
 	    logger.log(Level.SEVERE, "Got request without SWITCHaai security context");
@@ -294,24 +295,6 @@ public class CertificateRequestServlet extends HttpServlet {
 	}
 
 	return issuer;
-    }
-
-    /**
-     * Given a HTTP request object, determines if there is a session, and if so then populate a user data object.
-     * Returns null if the user data object cannot be fully populated.
-     *
-     * @param request the HTTP request object
-     * @return a fully populated user data object, or null
-     */
-    private UserData getUserData(HttpServletRequest request) {
-	HttpSession session = request.getSession();
-	UserDataBean bean = ((UserDataBean) session.getAttribute("userData"));
-	if (bean == null) {
-	    logger.log(Level.INFO, "No existing UserDataBean, creating one");
-	    bean = new UserDataBean();
-	    session.setAttribute("userData", bean);
-	}
-	return bean.getUserData();
     }
 
     /**

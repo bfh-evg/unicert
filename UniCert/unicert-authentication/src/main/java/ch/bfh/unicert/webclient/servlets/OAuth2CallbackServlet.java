@@ -11,7 +11,6 @@
  */
 package ch.bfh.unicert.webclient.servlets;
 
-import ch.bfh.unicert.webclient.beans.UserDataBean;
 import ch.bfh.unicert.webclient.userdata.GoogleUserData;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.ByteArrayInputStream;
@@ -38,7 +37,6 @@ import org.scribe.oauth.OAuthService;
 public class OAuth2CallbackServlet extends HttpServlet {
 
     private static final Logger logger = Logger.getLogger(OAuth2CallbackServlet.class.getName());
-//    private static final String CERTIFICATE_REQUEST_PAGE = "certificate-request.xhtml";
     private static final String CALLBACK_SERVLET = "callback";
 
 
@@ -83,7 +81,8 @@ public class OAuth2CallbackServlet extends HttpServlet {
 	UserData ud = new GoogleUserData(profile.getString("id"), profile.getString("email"), profile.getBoolean(
 		"verified_email"), profile.getString("name"), profile.getString("given_name"), 
 		profile.getString("family_name"), profile.getString("locale"), null);
-	this.getUserDataBean(req).setUserData(ud);
+	HttpSession session = req.getSession();
+	session.setAttribute("userData", ud);
 
 	try {
 	    resp.sendRedirect(CALLBACK_SERVLET);
@@ -105,23 +104,6 @@ public class OAuth2CallbackServlet extends HttpServlet {
     @Override
     public String getServletInfo() {
 	return "Callback servlet for Google authentication.";
-    }
-
-    /**
-     * Given a HTTP request object, determines if there is a session, and if so then populate a user data object.
-     * Returns null if the user data object cannot be fully populated.
-     *
-     * @param request the HTTP request object
-     * @return a fully populated user data object, or null
-     */
-    private UserDataBean getUserDataBean(HttpServletRequest request) {
-	HttpSession session = request.getSession();
-	UserDataBean bean = ((UserDataBean) session.getAttribute("userData"));
-	if (bean == null) {
-	    bean = new UserDataBean();
-	    session.setAttribute("userData", bean);
-	}
-	return bean;
     }
 
     /**

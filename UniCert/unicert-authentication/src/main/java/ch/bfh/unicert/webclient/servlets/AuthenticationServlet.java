@@ -47,7 +47,7 @@ public class AuthenticationServlet extends HttpServlet {
     private static final String IDENTITY_PROVIDER = "idp";
     
     private static final String IDP_SELECTION_PAGE = "idpselection.xhtml";
-    private static final String SWITCH_AAI_PAGE = "switchaai.xhtml";
+    private static final String SWITCH_AAI_PAGE = "switchaai";
     
     private static final String PARAMETERS = "params";
 
