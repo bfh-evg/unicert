@@ -224,7 +224,7 @@ public class CertificateRequestServlet extends HttpServlet {
 	    internalServerErrorHandler(response, ex.getMessage());
 	} catch (NullPointerException | NumberFormatException ex) {
 	    internalServerErrorHandler(response, "101 Missing parameters");
-	    logger.log(Level.SEVERE, "Missing parameters: {0}", ex.getMessage());
+	    logger.log(Level.SEVERE, "Missing parameters: {1} {0}", new Object[]{ex.getMessage(), ex.getClass()});
 	} catch (IdentityFunctionNotApplicableException ex) {
 	    internalServerErrorHandler(response, ex.getMessage());
 	    logger.log(Level.SEVERE, ex.getMessage());

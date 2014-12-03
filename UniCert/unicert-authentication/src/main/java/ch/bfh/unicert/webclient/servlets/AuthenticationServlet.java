@@ -12,7 +12,6 @@
 package ch.bfh.unicert.webclient.servlets;
 
 import ch.bfh.unicert.issuer.util.ConfigurationHelperImpl;
-import ch.bfh.unicert.webclient.beans.ParametersBean;
 import ch.bfh.unicert.webclient.util.Google2Api;
 import ch.bfh.unicert.webclient.userdata.IdentityProvider;
 import java.io.IOException;
@@ -41,15 +40,13 @@ public class AuthenticationServlet extends HttpServlet {
     private static final Logger logger = Logger.getLogger(AuthenticationServlet.class.getName());
 
     private static final String DEV_MODE = "dev-mode";
-    
+
     private static final String PROPERTY_SET_IDENTIFIER = "params";
     private static final String RETURN_URL = "returnlocation";
     private static final String IDENTITY_PROVIDER = "idp";
-    
-    private static final String IDP_SELECTION_PAGE = "idpselection.xhtml";
+
     private static final String SWITCH_AAI_PAGE = "switchaai";
-    
-    private static final String PARAMETERS = "params";
+
 
     /**
      * Processes requests for HTTP <code>GET</code> and <code>POST</code> methods.
@@ -67,47 +64,17 @@ public class AuthenticationServlet extends HttpServlet {
 
 	//Retrieves properties set
 	String propertiesSetIdentifier = request.getParameter(PROPERTY_SET_IDENTIFIER);
+	request.getSession().setAttribute(PROPERTY_SET_IDENTIFIER, propertiesSetIdentifier);
 	String returnURL = request.getParameter(RETURN_URL);
-	if(returnURL!=null)
-	    request.getSession().setAttribute(RETURN_URL, returnURL);
+	request.getSession().setAttribute(RETURN_URL, returnURL);
+	
 	String idp = request.getParameter(IDENTITY_PROVIDER);
 
-	//Debug mode
-	if (Boolean.parseBoolean(getServletContext().getInitParameter(DEV_MODE))) {
-	    idp = IdentityProvider.SWITCH_AAI.getKey();
-	    ParametersBean paramBean = new ParametersBean();
-	    request.getSession().setAttribute(PARAMETERS, paramBean);
-	}
-
-	//if idp is not set, this is the first time this method is called, so we get the
-	//JNDI properties
+	//if idp is not set, throw error
 	if (idp == null) {
-	    logger.log(Level.INFO, "Retrieve parameters: {0}", propertiesSetIdentifier);
-
-	    ParametersBean paramBean = new ParametersBean();
-	    request.getSession().setAttribute(PARAMETERS, paramBean);
-	    
-	    if (propertiesSetIdentifier != null) {
-		paramBean.setParameterSetIdentifier("/unicert/" + propertiesSetIdentifier);
-	    } else {
-		paramBean.setParameterSetIdentifier("/unicert/default");
-	    }
-
-	    if (!paramBean.isInitialized()) {
-		logger.log(Level.SEVERE, "Unable to load properties set");
-		internalServerErrorHandler(response, "Unable to load properties set");
-		return;
-	    }
-
-	    //Redirection to identity provider
-	    if (!paramBean.hasMulitpleIdentityProviders()) {
-		redirectToIdp(paramBean.getIdentityProvider(), request, response);
-	    } else {
-		//if multiple identity providers are supported we show a selection page
-		response.sendRedirect(IDP_SELECTION_PAGE);
-	    }
+	    logger.log(Level.SEVERE, "Identity provider not set");
+	    internalServerErrorHandler(response, "Identity provider not set");
 	} else {
-	    //used when user clicks on a link in idpselection.xhtml
 	    redirectToIdp(idp, request, response);
 	}
 
@@ -122,18 +89,13 @@ public class AuthenticationServlet extends HttpServlet {
      */
     private void redirectToIdp(String identityProvider, HttpServletRequest request, HttpServletResponse response) throws
 	    IOException {
-	if (identityProvider == null) {
-	    logger.log(Level.SEVERE, "Identity provider not set");
-	    internalServerErrorHandler(response, "Identity provider not set");
-	    return;
-	}
 
 	//Redirection to IDP
 	logger.log(Level.INFO, "Redirect to IDP");
-	if (identityProvider.equals(IdentityProvider.SWITCH_AAI.getKey())) {
+	if (identityProvider.toLowerCase().equals(IdentityProvider.SWITCH_AAI.getKey().toLowerCase())) {
 	    //SWITCH AAI
 	    response.sendRedirect(SWITCH_AAI_PAGE);
-	} else if (identityProvider.equals(IdentityProvider.GOOGLE.getKey())) {
+	} else if (identityProvider.toLowerCase().equals(IdentityProvider.GOOGLE.getKey().toLowerCase())) {
 	    //GOOGLE OAUTH
 	    //Load general configuration (this is the Config of the subsystem, not from the client!)
 	    String clientID;
@@ -142,7 +104,7 @@ public class AuthenticationServlet extends HttpServlet {
 	    if (Boolean.parseBoolean(getServletContext().getInitParameter(DEV_MODE))) {
 		clientID = "176426429385-8m2uv9d3o62nmnsf338000g0m1bakave.apps.googleusercontent.com";
 		clientSecret = "hdK91UZQXwjreMZo3_xnQaWu ";
-		redirectUri = "http://localhost:8080/unicert-authentication/oauth2callback";
+		redirectUri = "http://urd.bfh.ch/unicert-authentication/oauth2callback";
 	    } else {
 		clientID = ConfigurationHelperImpl.getInstance().getGoogleClientID();
 		clientSecret = ConfigurationHelperImpl.getInstance().getGoogleClientSecret();

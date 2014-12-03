@@ -34,9 +34,10 @@
         <h2 class="center">#{msg.certrequest}</h2>
 
         <form name="properties">
-            <input type="hidden" id="requester-id"/>
-            <input type="hidden" id="requester-email"/>
-            <input type="hidden" id="requester-idp"/>
+            <input type="hidden" id="requester-id" value="#{param.id}"/>
+            <input type="hidden" id="requester-email" value="#{param.mail}"/>
+            <input type="hidden" id="requester-idp" value="#{param.idp}"/>
+	    <input type="hidden" id="paramset" value="#{param.params}"/>
         </form>
     </ui:define>
 
@@ -55,7 +56,7 @@
             <div id="substep_2_1" class="substep clearfix"><div class="substep_nr">1</div>
                 <p>#{msg.genkeysSubstep21Text}</p>
 
-                <div class="row clearfix notdisplayed">
+                <div class="row clearfix">
                     <div class="col1 small"><label for="crypto_setup_type">#{msg.keytype}: </label></div>
                     <div class="col2">
                         <select id="crypto_setup_type" class="select" name="crypto_setup_type" size="1" onchange="updateKeysOptions()">	
@@ -66,35 +67,27 @@
                     </div>
                 </div>
                 <div id="rsa_options" class="row clearfix hidden">
-                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.keysize}: </div>
                         <div class="col2">
                             <select id="crypto_setup_size" class="select" name="crypto_setup_size" size="1">	
                                 <option value="1024">1024</option> 
                                 <option value="2048">2048</option> 
                             </select>
-                        </div>
                     </div>
                 </div>
                 <div id="dlog_options" class="row clearfix hidden">
-                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.valuep}: </div>
                         <div class="col2">
                             <input type="text" id="p" />
                         </div>
-                    </div>
-                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.valueq}: </div>
                         <div class="col2">
                             <input type="text" id="q" />
                         </div>
-                    </div>
-                    <div class="notdisplayed">
                         <div class="col1 small">#{msg.valueg}: </div>
                         <div class="col2">
                             <input type="text" id="g" />
                         </div>
-                    </div>
                 </div>
                 <div class="col2only">
                     <button id="generate_key_bu" class="button" onclick="generateKeyPair();">#{msg.genkeysButton}</button>
@@ -118,22 +111,22 @@
                     </div>
                 </form>
             </div>
-            <div id="substep_2_3" class="substep clearfix notdisplayed">
+            <div id="substep_2_3" class="substep clearfix">
                 <div class="substep_nr">3</div>
                 <p>#{msg.genCertSubstep23Text}</p>
-                <div class="row clearfix notdisplayed">
+                <div class="row clearfix">
                     <div class="col1 small">#{msg.application}: </div>
                     <div class="col2">
                         <input type="text" id="application"/>
                     </div>
                 </div>
-                <div class="row clearfix notdisplayed">
+                <div class="row clearfix">
                     <div class="col1 small">#{msg.role}: </div>
                     <div class="col2">
 			<input type="text" id="role"/>
                     </div>
                 </div>
-                <div class="row clearfix notdisplayed">
+                <div class="row clearfix">
                     <div class="col1 small">#{msg.identityFunction}: </div>
                     <div class="col2">
                         <select id="identity_function" class="select" name="identity_function" size="1">	

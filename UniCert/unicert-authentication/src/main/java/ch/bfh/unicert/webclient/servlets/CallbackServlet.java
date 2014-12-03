@@ -11,7 +11,6 @@
  */
 package ch.bfh.unicert.webclient.servlets;
 
-import ch.bfh.unicert.webclient.beans.ParametersBean;
 import ch.bfh.unicert.webclient.userdata.UserData;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -33,6 +32,7 @@ public class CallbackServlet extends HttpServlet {
 
     private static final Logger logger = Logger.getLogger(CallbackServlet.class.getName());
     private static final String RETURN_URL = "returnlocation";
+    private static final String PROPERTY_SET_IDENTIFIER = "params";
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
@@ -40,17 +40,14 @@ public class CallbackServlet extends HttpServlet {
 	
 	String returnurl = (String) req.getSession().getAttribute(RETURN_URL);
 	String sessionId = session.getId();
+	String propertiesSetIdentifier = (String) req.getSession().getAttribute(PROPERTY_SET_IDENTIFIER);
 	
 	//Add the needed identity data to the set of parameters stored in the session
-	UserData udb = (UserData) session.getAttribute("userData");
-	ParametersBean pb = (ParametersBean) session.getAttribute("params");
-	
-	pb.setEmail(udb.getMail());
-	pb.setUniqueUserId(udb.getUniqueIdentifier());
-	pb.setIdp(udb.getIdentityProvider());
-	
+	UserData ud = (UserData) session.getAttribute("userData");
+
 	try {
-	    resp.sendRedirect(returnurl+"?JSESSIONID="+sessionId);
+	    resp.sendRedirect(returnurl+"?JSESSIONID="+sessionId+"&params="+propertiesSetIdentifier+"&mail="+ud.getMail()
+		+"&id="+ud.getUniqueIdentifier() + "&idp="+ud.getIdentityProvider());
 	} catch (IOException ex) {
 	    logger.log(Level.SEVERE, "Unable to redirect after successful Google login: {0}", ex);
 	    try {

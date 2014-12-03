@@ -49,7 +49,7 @@ var msgName;
 /**
  * Initialisation on document ready.
  */
-$(document).ready(function() {
+$(document).ready(function () {
 
     // Get voter data
     requester.id = document.getElementById('requester-id');
@@ -90,10 +90,10 @@ $(document).ready(function() {
     elements.generateKeyButton = document.getElementById('generate_key_bu');
 
     // Register events (button's onclick are registered inline)
-    $(elements.secretKey).click(function() {
+    $(elements.secretKey).click(function () {
 	this.select();
     })
-    $([elements.password, elements.password2]).keyup(function() {
+    $([elements.password, elements.password2]).keyup(function () {
 	checkPasswords()
     });
 
@@ -116,135 +116,143 @@ function init() {
     modulo = null;
     elements.secretKey.value = "";
 
-    $.ajax({
-	url: "/unicert-authentication/parameters/",
-	type: 'POST',
-	contentType: "application/json",
-	accept: "application/json",
-	cache: false,
-	dataType: 'json',
-	timeout: 10000,
-	success: function(data) {
-	    
-	    if (data == null || data == undefined) {
-		$.unblockUI();
-		$.blockUI({message: '<p>' + msg.dataRetrievalError + '</p>'});
-		setTimeout(function() {
-		    location.href = HOME_SITE
-		}, 5000);
-		return;
-	    }
+    $(elements.mail).html(requester.email.value);
 
-	    requester.idp.value = data.idp;
-	    requester.id.value = data.uniqueUserId;
-	    requester.email.value = data.email;
-	    $(elements.mail).html(data.email);
+    if (requester.idp.value == "SwitchAAI") {
+	elements.identity_function.remove(4);
+	elements.identity_function.remove(3);
+    } else if (requester.idp.value == "Google") {
+	elements.identity_function.remove(2);
+	elements.identity_function.remove(1);
+	elements.identity_function.remove(0);
+    }
 
-
-	    if (requester.idp.value == "SwitchAAI") {
-		elements.identity_function.remove(4);
-		elements.identity_function.remove(3);
-	    } else if (requester.idp.value == "Google") {
-		elements.identity_function.remove(2);
-		elements.identity_function.remove(1);
-		elements.identity_function.remove(0);
-	    }
-
-	    if (!data.showKeyTypeField) {
-		elements.cryptoSetupType.value = data.keyType;
-		elements.generateKeyButton.disabled = false;
-		//if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
-		if (data.showPrimePField || data.showPrimeQField || data.showGeneratorField) {
-		    updateKeysOptions();
-		}
-	    } else {
-		$(elements.cryptoSetupType.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-
-	    if (!data.showKeySizeField) {
-		elements.cryptoSetupSize.value = data.keySize;
-	    } else {
-		$(elements.cryptoSetupSize.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-//		if (data.showPrimePField || data.showPrimeQField || data.showPrimeGField) {
-//		    $(elements.dlogOptions).removeClass("notdisplayed");
+//    $.ajax({
+//	url: "/unicert-authentication/parameters/",
+//	type: 'POST',
+//	contentType: "application/json",
+//	accept: "application/json",
+//	cache: false,
+//	dataType: 'json',
+//	timeout: 10000,
+//	success: function (data) {
+//
+//	    if (data == null || data == undefined) {
+//		$.unblockUI();
+//		$.blockUI({message: '<p>' + msg.dataRetrievalError + '</p>'});
+//		setTimeout(function () {
+//		    location.href = HOME_SITE
+//		}, 5000);
+//		return;
+//	    }
+//
+//	    $(elements.mail).html(requester.email.value);
+//
+//
+//	    if (requester.idp.value == "SwitchAAI") {
+//		elements.identity_function.remove(4);
+//		elements.identity_function.remove(3);
+//	    } else if (requester.idp.value == "Google") {
+//		elements.identity_function.remove(2);
+//		elements.identity_function.remove(1);
+//		elements.identity_function.remove(0);
+//	    }
+//
+//	    if (!data.showKeyTypeField) {
+//		elements.cryptoSetupType.value = data.keyType;
+//		elements.generateKeyButton.disabled = false;
+//		//if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
+//		if (data.showPrimePField || data.showPrimeQField || data.showGeneratorField) {
+//		    updateKeysOptions();
 //		}
-	    if (!data.showPrimePField) {
-		elements.p.value = data.primeP;
-	    } else {
-		$(elements.p.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-
-	    if (!data.showPrimeQField) {
-		elements.q.value = data.primeQ;
-	    } else {
-		$(elements.q.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-
-	    if (!data.showGeneratorField) {
-		elements.g.value = data.generator;
-	    } else {
-		$(elements.g.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-
-	    //if cryptoSetupType has a default value (is not shown)
-	    if (hasClass(elements.cryptoSetupType.parentNode.parentNode, "notdisplayed")) {
-		//if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
-		if (hasClass(elements.p.parentNode.parentNode, "notdisplayed") || hasClass(elements.q.parentNode.parentNode, "notdisplayed") || hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
-		    updateKeysOptions();
-		}
-	    }
-
-
-	    if (data.showApplicationIdentifierField || data.showRoleField || data.showIdentityFunctionIndexField) {
-		$("#substep_2_3").removeClass("notdisplayed");
-	    }
-
-	    if (!data.showApplicationIdentifierField && !data.showRoleField && !data.showIdentityFunctionIndexField) {
-		$("#substep_2_4 > .substep_nr").html("3");
-	    }
-
-	    if (!data.showApplicationIdentifierField) {
-		elements.application.value = data.applicationIdentifier;
-	    } else {
-		$(elements.application.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-
-	    if (!data.showRoleField) {
-		elements.role.value = data.role;
-	    } else {
-		$(elements.role.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-
-	    if (!data.showIdentityFunctionIndexField) {
-		elements.identity_function.value = "" + data.identityFunctionIndex;
-	    } else {
-		$(elements.identity_function.parentNode.parentNode).removeClass("notdisplayed");
-	    }
-	    $.unblockUI();
-
-	    // Check if voter.id is available, otherwise user is not authorised
-	    if (requester.id.value == '') {
-		$.blockUI({message: '<p>' + msg.userNotAuthorised + '</p>'});
-		setTimeout(function() {
-		    location.href = HOME_SITE
-		}, 5000);
-		return;
-	    }
-
-	},
-	error: function(data) {
-
-	    $.unblockUI();
-	    $.blockUI({message: '<p>' + msg.dataRetrievalError + '</p>'});
-	    setTimeout(function() {
-		    location.href = HOME_SITE
-		}, 5000);
-	}
-    });
+//	    } else {
+//		$(elements.cryptoSetupType.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+//
+//	    if (!data.showKeySizeField) {
+//		elements.cryptoSetupSize.value = data.keySize;
+//	    } else {
+//		$(elements.cryptoSetupSize.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+////		if (data.showPrimePField || data.showPrimeQField || data.showPrimeGField) {
+////		    $(elements.dlogOptions).removeClass("notdisplayed");
+////		}
+//	    if (!data.showPrimePField) {
+//		elements.p.value = data.primeP;
+//	    } else {
+//		$(elements.p.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+//
+//	    if (!data.showPrimeQField) {
+//		elements.q.value = data.primeQ;
+//	    } else {
+//		$(elements.q.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+//
+//	    if (!data.showGeneratorField) {
+//		elements.g.value = data.generator;
+//	    } else {
+//		$(elements.g.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+//
+//	    //if cryptoSetupType has a default value (is not shown)
+//	    if (hasClass(elements.cryptoSetupType.parentNode.parentNode, "notdisplayed")) {
+//		//if p,q or g does not have a default value, trigger the same event as when cryptoSetupType is chosen
+//		if (hasClass(elements.p.parentNode.parentNode, "notdisplayed") || hasClass(elements.q.parentNode.parentNode, "notdisplayed") || hasClass(elements.g.parentNode.parentNode, "notdisplayed")) {
+//		    updateKeysOptions();
+//		}
+//	    }
+//
+//
+//	    if (data.showApplicationIdentifierField || data.showRoleField || data.showIdentityFunctionIndexField) {
+//		$("#substep_2_3").removeClass("notdisplayed");
+//	    }
+//
+//	    if (!data.showApplicationIdentifierField && !data.showRoleField && !data.showIdentityFunctionIndexField) {
+//		$("#substep_2_4 > .substep_nr").html("3");
+//	    }
+//
+//	    if (!data.showApplicationIdentifierField) {
+//		elements.application.value = data.applicationIdentifier;
+//	    } else {
+//		$(elements.application.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+//
+//	    if (!data.showRoleField) {
+//		elements.role.value = data.role;
+//	    } else {
+//		$(elements.role.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+//
+//	    if (!data.showIdentityFunctionIndexField) {
+//		elements.identity_function.value = "" + data.identityFunctionIndex;
+//	    } else {
+//		$(elements.identity_function.parentNode.parentNode).removeClass("notdisplayed");
+//	    }
+//	    $.unblockUI();
+//
+//	    // Check if voter.id is available, otherwise user is not authorised
+//	    if (requester.id.value == '') {
+//		$.blockUI({message: '<p>' + msg.userNotAuthorised + '</p>'});
+//		setTimeout(function () {
+//		    location.href = HOME_SITE
+//		}, 5000);
+//		return;
+//	    }
+//
+//	},
+//	error: function (data) {
+//
+//	    $.unblockUI();
+//	    $.blockUI({message: '<p>' + msg.dataRetrievalError + '</p>'});
+//	    setTimeout(function () {
+//		location.href = HOME_SITE
+//	    }, 5000);
+//	}
+//    });
 
     // Block UI while processing
-    $.blockUI({message: '<p id="blockui-processing">' + msg.processing + '.</p>'});
+//    $.blockUI({message: '<p id="blockui-processing">' + msg.processing + '.</p>'});
 }
 
 function hasClass(element, cls) {
@@ -284,7 +292,7 @@ function generateKeyPair() {
     var sk = null;
 
     // Done callback of verification key computation
-    var doneCbDlog = function(vk) {
+    var doneCbDlog = function (vk) {
 	// Store keys
 	secretKey = sk;
 	publicKey = vk;
@@ -304,7 +312,7 @@ function generateKeyPair() {
     };
 
     // Done callback of keys computation
-    var doneCbRSA = function(keys) {
+    var doneCbRSA = function (keys) {
 
 	secretKey = keys[0];
 	publicKey = keys[1];
@@ -324,7 +332,7 @@ function generateKeyPair() {
     };
 
     // Update callback of verification key computation
-    var updateCb = function() {
+    var updateCb = function () {
 	$('#blockui-processing').append('.');
     };
 
@@ -392,7 +400,7 @@ function completeCertRequest(byMail) {
     var pw = elements.password.value;
 
     // Done callback of certificate creation
-    var createCertDoneCb = function(cert) {
+    var createCertDoneCb = function (cert) {
 	// Store cert
 	certificate = cert;
 
@@ -416,12 +424,12 @@ function completeCertRequest(byMail) {
 	    // Send secret key to the voter by mail (asynchronous)
 	    retreiveSecretKeyByMail(
 		    skC,
-		    function() {
+		    function () {
 			// Done -> go to step 3
 			$.unblockUI();
 			gotoStep3();
 		    },
-		    function() {
+		    function () {
 			// Error
 			$.unblockUI();
 			$.blockUI({
@@ -440,7 +448,7 @@ function completeCertRequest(byMail) {
     };
 
     // Error callback fo certificate creation
-    var createCertErrorCb = function(request, status, error) {
+    var createCertErrorCb = function (request, status, error) {
 
 	var message = "";
 
@@ -464,19 +472,19 @@ function completeCertRequest(byMail) {
     };
 
     // Update callback of verification key proof computation
-    var computeUpdateCb = function() {
+    var computeUpdateCb = function () {
 	$('#blockui-processing').append('.');
     };
 
     // Done callback of verification key proof computation for DLog
-    var computeProofDoneCb = function(proof) {
+    var computeProofDoneCb = function (proof) {
 	// (2) Send verification key to CA and get the certificate
 	ucCA.createDLogCertificate(elements.cryptoSetupSize.value, p, q, g, elements.identity_function.value, publicKey, proof,
 		elements.application.value, elements.role.value, createCertDoneCb, createCertErrorCb);
     };
 
     // Done callback of verification key signature computation for RSA
-    var computeSignatureDoneCb = function(signature) {
+    var computeSignatureDoneCb = function (signature) {
 	console.log("sig: " + leemon.bigInt2str(signature, 10));
 
 	// (2) Send verification key to CA and get the certificate
@@ -522,7 +530,7 @@ function retreiveSecretKeyByMail(skC, doneCb, errorCb) {
 
     // Success callback of sending secret key.
     // data holds a message and the to-address (data.message, data.to)
-    var successCb = function(data) {
+    var successCb = function (data) {
 	// Right now just call the done callback
 	doneCb();
     };
@@ -639,9 +647,9 @@ var BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBl
 // ... or opens it in a new tab (FireFox)
 // @author Andrew Dodson
 // @copyright MIT, BSD. Free to clone, modify and distribute for commercial and personal use.
-window.saveAs || (window.saveAs = (window.navigator.msSaveBlob ? function(b, n) {
+window.saveAs || (window.saveAs = (window.navigator.msSaveBlob ? function (b, n) {
     return window.navigator.msSaveBlob(b, n);
-} : false) || window.webkitSaveAs || window.mozSaveAs || window.msSaveAs || (function() {
+} : false) || window.webkitSaveAs || window.mozSaveAs || window.msSaveAs || (function () {
 
 
     // URL's
@@ -651,7 +659,7 @@ window.saveAs || (window.saveAs = (window.navigator.msSaveBlob ? function(b, n) 
 	return false;
     }
 
-    return function(blob, name) {
+    return function (blob, name) {
 	var url = URL.createObjectURL(blob);
 
 	// Test for download link support
