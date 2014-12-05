@@ -71,6 +71,7 @@
 
 \begin{versionhistory}
 	\vhEntry{0.1}{September 10, 2014}{Philémon von Bergen}{Initial draft.}
+	\vhEntry{0.2}{December 2, 2014}{Philémon von Bergen}{Review after user interface suppression}
 \end{versionhistory}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -98,12 +99,12 @@ To give an overview of how \unicert\ works, we give a high-level picture of the 
 
 \section{Components}
 
-\unicert\ is composed of two components. The fist one, the authentication component called \textit{unicert-authentication}, has following functions:
+\unicert\ is composed of two components. The first one, the authentication component called \textit{unicert-authentication}, has following functions:
 \begin{itemize}
 \item authenticate the user
-\item allow the user to get predefined parameters that must appear in a certificate
-\item send all data to issuer component
-\item return the private key (generated on user side) and the issued certificate (received from the issuer component) to the user.
+%\item allow the user to get predefined parameters that must appear in a certificate
+\item received certificate request data and send them to issuer component
+\item return the issued certificate (received from the issuer component) to the user.
 \end{itemize}
 The application using \unicert\ is responsible for generating the key pair and choosing other values to certify. \unicert\ provides only a test user interface for these tasks.
 
@@ -119,8 +120,7 @@ The second component, the issuer component called \textit{unicert-issuer}, has f
 
 Currently, the authentication component supports two identity providers to authenticate the user, namely SwitchAAI and Google. Even they do not use the same technologies, the flow of the authentication process is similar. Their concrete implementation differ however slightly. The authentication process shows in \Cref{fig:auth_process} is described below.
 
-To begin the procedure, the user asks the application using \unicert\ to authenticate themselves. The application calls the \textit{AuthenticationServlet} of \textit{unicert-authentication} providing the identifier of a parameter set and the return url that will by called by \textit{unicert-authentication} at the end of the authentication process to go back to the application. \textit{AuthenticationServlet} reads the parameter set provided (purpose of this set will be described in \Cref{sec:param_request}) and saves it in the session together with the return url. If multiple identity providers are defined in the parameter set, \textit{unicert-authentication} shows the \textit{idpselection.xhtml} page where the user can choose the desired identity providers. \textit{AuthenticationServlet} then makes a redirect on identity provider authentication page where the user can process to the login. If the login process is successful, the identity provider returns user attributes to \textit{SwitchAAICallbackServlet} (in case of SwitchAAI) or \textit{OAuth2CallbackServlet} (in case of Google). Theses servlets save the user attributes in the session and call the \textit{CallbackServlet}. This servlet call the 
-return url passing the session id back to the application.
+To begin the procedure, the user asks the application using \unicert\ to authenticate themselves. The application calls the \textit{AuthenticationServlet} of \textit{unicert-authentication} providing the identifier of the identity provider, the return url that will by called by \textit{unicert-authentication} at the end of the authentication process to go back to the application and optionally an additional parameter. \textit{AuthenticationServlet} saves the return url and the additional parameter in the session and makes a redirect on selected identity provider's authentication page where the user can process to the login. If the login process is successful, the identity provider returns user attributes to \textit{SwitchAAICallbackServlet} (in case of SwitchAAI) or \textit{OAuth2CallbackServlet} (in case of Google). Theses servlets save the user attributes in the session and call the \textit{CallbackServlet}. This servlet call the return url saved in the session, though some information back to the application (session id, e-mail of user, unique id of user, and the additional parameter passed when requesting the authentication page).
 
 At the end of the authentication process, the application has an authenticated session on \textit{unicert-authentication} for this user.
 
@@ -143,48 +143,112 @@ At the end of the authentication process, the application has an authenticated s
 %\label{fig:auth_process_google}
 %\end{figure}
 
-\section{Parameters Request}\label{sec:param_request}
-
-Once the user authenticated, the application can propose them to generate the key pair and indicate some parameters that must appear in the certificate. Since, most of the time however, these parameters are the same for a lot of users, \unicert\ allows to predefine parameter sets containing these parameters, so that the user must not define them themselves.
-
-These parameters can be retrieved form the \textit{ParametersServlet}. Therefore, the application must provide the session id received at then end of the authentication process, since these parameters are stored in the user session. The application can then fill the user interface with these parameters in order to simplify the certificate request for the user. More details about these parameters sets can be found in \Cref{sec:simplification_ui}.
+%\section{Parameters Request}\label{sec:param_request}
+%
+%Once the user authenticated, the application can propose them to generate the key pair and indicate some parameters that must appear in the certificate. Since, most of the time however, these parameters are the same for a lot of users, \unicert\ allows to predefine parameter sets containing these parameters, so that the user must not define them themselves.
+%
+%These parameters can be retrieved form the \textit{ParametersServlet}. Therefore, the application must provide the session id received at then end of the authentication process, since these parameters are stored in the user session. The application can then fill the user interface with these parameters in order to simplify the certificate request for the user. More details about these parameters sets can be found in \Cref{sec:simplification_ui}.
 
 \section{Certificate Issuance Process} \label{sec:issuance_process}
 
-The rest of the process is issuance of the certificate. This works in the same way independently of the identity provider used. The process is shown in \Cref{fig:request_process}. This whole process takes place on the page \textit{certificate-request.xhtml}. On this page, the user has to provide following information for the certificate they request: 
+The rest of the process is issuance of the certificate. This works in the same way independently of the identity provider used. The process is shown in \Cref{fig:request_process}. The application using \unicert\ must provide following information to request a certificate: 
 \begin{itemize}
 \item type of cryptographic values (currently supported: RSA and discrete logarithm)
 \item cryptographic parameters: size of key for RSA, values $p,q,g$ for discrete logarithm
-\item a private key (generated locally with RSA)
-\item a password to encrypt the private key
+\item a private key (generated locally and not sent to the server)
+\item a public key corresponding to the private key
+\item a password to encrypt the private key (not send to the server)
 \item application identifier of the application which the certificate is issued for
 \item role in the application the certificate is issued for
 \item the identity function that must be applied on the identity information
+\item a cryptographic proof or signature demonstrating knowledge of the private key
 \end{itemize}
 
-The private key is generated on client side in javascript. The public key corresponding to the generated private key is computed together with a signature (or a proof in case of discrete logarithm setup) to prove the knowledge of the private key. Through javascript, the data listed above (except the private key and the password) are sent to the \textit{CertificateRequestServlet}. In this servlet, the user personal information (also called \textit{user data}) that were received during the authentication process (see \Cref{sec:auth_process}) are used in combination with the identity function to generate the \textit{identity data} that will be included in the certificate. All the processes described until here are realized by the \textit{unicert-authentication} component. The data received and the identity data are then transmitted to the \textit{unicert-issuer} component. This second component verifies the data received and issues the certificate as requested, publishes it on \uniboard and returns it to the \textit{unicert-authentication} component which returns it to the user. In parallel, the secret key is encrypted with the password and sent by mail to the user through the \textit{unicert-authentication} component.
+The generation of the private key is responsibility of the application or the user. The public key corresponding to the generated private key must be computed together with a signature (or a proof in case of discrete logarithm setup) to prove the knowledge of the private key. The data listed above (except the private key and the password) must then be sent to the \textit{CertificateRequestServlet}. In this servlet, the user's personal information (also called \textit{user data}) that were received during the authentication process (see \Cref{sec:auth_process}) are used in combination with the provided identity function to generate the \textit{identity data} that will be included in the certificate. This process is realized by the \textit{unicert-authentication} component. The data received and the identity data are then transmitted to the \textit{unicert-issuer} component. This second component verifies the data received and issues the certificate as requested, publishes it on \uniboard and returns it to the \textit{unicert-authentication} component which sends it back to the application. 
 
 \begin{figure}[ht]
 \centerline{
-\includegraphics[width=1.0\textwidth]{figs/certificate_request_process}}
+\includegraphics[width=1.0\textwidth]{figs/certificate_request_process2}}
 \caption{Process of requesting a certificate}
 \label{fig:request_process}
 \end{figure}
 
-\chapter{Architecture} \label{chap:architecture}
-This chapter describes in more details some classes and other architecture concepts of the \textit{unicert-authentication} component and of the \textit{unicert-issuer} component.
+\chapter{Architecture and Interface} \label{chap:architecture}
+This chapter describes the interface of \textit{unicert-authentication} and provide explanations on some classes and the architecture concepts of both \textit{unicert-authentication} and \textit{unicert-issuer} components.
 
 \section{unicert-authentication}
 
-\textit{unicert-authentication} is a web application composed of two part, the frontend in JSF/XHTML/Javascript and the backend in Java. The interface between these two parts works over servlets and beans, namely \textit{ParametersServlet}, \textit{CertificateRequestServlet} and \textit{SwitchUserDataBean}. Some important concepts related to the interface between the Java backend and the web frontend as well as some other classes will be described in this section.
+\textit{unicert-authentication} is a web application, but all the tasks are done in the Java part in servlets, namely the \textit{AuthenticationServlet}, \textit{CertificateRequestServlet} and \textit{CallbackServlet}. Some important concepts related to the data that must be sent to \unicert\ to request a certificate will be described here.
+
+\subsection{Interface}
+
+This subsection describes the data that must be sent to \textit{unicert-authentication} for the authentication phase and the certificate request phase.
+
+\paragraph*{Authentication process}
+
+For the authentication request, information displayed in \Cref{t:authreq} must be sent. \Cref{t:authresp} shows the information returned after successful authentication.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|l|}
+  \hline
+  Key & Format & Description\\
+  \hline
+  idp & "switchaai"/"google" & Key of the identity provider to use for authentication\\
+  returnurl & URL & Url to call after successful authentication\\
+  params & String (optional) & Additional parameter that must be past when\\ & & calling return url\\
+  \hline
+\end{tabular}
+\caption{Information to send with authentication request}
+\label{t:authreq}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|l|}
+  \hline
+  Key & Format & Description\\
+  \hline
+  JSESSIONID & String & Id of the session on the server\\
+  params & String & Parameter sent with of authentication request \\
+  mail & E-mail & Email address of user returned by\\ & & the identity provider\\
+  id & String & Unique identifier of user returned by\\ & & the identity provider\\
+  idp & "SwitchAAI" or "Google" & The identity provider used for authentication\\
+  \hline
+\end{tabular}
+\caption{Information sent after successful authentication}
+\label{t:authresp}
+\end{table}
+
+\paragraph*{Certificate request}
+
+For the certificate request, some information must be provided. For a RSA certificate, information displayed in \Cref{t:rsa} must be sent, for a discrete logarithm certificate \Cref{t:dlog} shows them.
+
+//TODO !!!
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|l|}
+  \hline
+  Key & Format & Description\\
+  \hline
+  idp & "switchaai"/"google" & Key of the identity provider to use for authentication\\
+  returnurl & URL & Url to call after successful authentication\\
+  params & String (optional) & Additional parameter that must be past when\\ & & calling return url\\
+  \hline
+\end{tabular}
+\caption{Information to send with authentication request}
+\label{t:rsa}
+\end{table}
+
+
 
 \subsection{UserData and IdentityFunction}
 
 The format of the user data returned by the identity provider is not the same for all identity providers. The way these data are transmitted to \unicert\ is also different for various identity providers. These facts require a flexible solution to provide support of multiple identity providers and to allow to easily add a new identity provider.
 
-As already mentioned in \Cref{sec:auth_process}, SwitchAAI use a Shibboleth Apache module for the authentication. This technology requires a user to be logged in before displaying a web page. In this concrete case, it is the page \textit{switchaai.xhtml}. If the user is not logged in, a redirection takes place to SwitchAAI login page. After a successful login, the page \textit{switchaai.xhtml} is displayed to the user, and in the background, a bean called \textit{UserDataBean} is invoked to read the user data returned by Switch in the session. These user data are then stored in an object of the class \textit{SwitchAAIUserData}.
+SwitchAAI use a Shibboleth Apache module for the authentication. This technology requires a user to be logged in before displaying a web page or accessing a servlet. In this concrete case, it is the page \textit{AuthenticationServlet}. If the user is not logged in when calling the address of this servlet, a redirection takes place to SwitchAAI login page. After a successful login, the servlet \textit{SwitchAAICallbackServlet} is called, where the user's identity are read. These user data are then stored in the session in an object of the class \textit{SwitchAAIUserData}.
 
-For Google, the user data are returned to a servlet called \textit{OAuth2CallbackServlet} after successful login. This servlet stores the user data in a object of the class \textit{GoogleUserData} and creates the \textit{UserDataBean}. Both \textit{SwitchAAIUserData} and \textit{GoogleUserData} inherits from the \textit{UserData} interface but their content is not the same as shown in \Cref{fig:userdata}, .
+For Google, the user data are returned to a servlet called \textit{OAuth2CallbackServlet} after successful login. This servlet stores the user data in a object of the class \textit{GoogleUserData} in the session. Both \textit{SwitchAAIUserData} and \textit{GoogleUserData} inherits from the \textit{UserData} interface but their content is not the same as shown in \Cref{fig:userdata}, .
 
 \begin{figure}[ht]
 \centerline{
@@ -193,11 +257,11 @@ For Google, the user data are returned to a servlet called \textit{OAuth2Callbac
 \label{fig:userdata}
 \end{figure}
 
-The \textit{certificate-issuer} component however must know the content of the UserData object in order to be able to extract the data needed in the certificate. Therefore, an identity function is used. There is at least one identity function per identity provider that knows the format of the corresponding user data. So, the GoogleIdentityFunction class knows the fields present in a GoogleUserData object, and the SwitchAAIIdentityFunction knows the content of the SwitchAAIUserData. A concrete IdentityFunction object allows to transform a concrete UserData object into a generic class called \textit{IdentityData} containing the identity information needed for the certificate. This IdentityData object can then be used by the \textit{certificate-issuer} component.
+The \textit{certificate-issuer} component, however, must know the content and structure of the UserData object in order to be able to extract the data needed in the certificate. Therefore, an identity function is used. There is at least one identity function per identity provider that knows the format of the corresponding user data. So, the GoogleIdentityFunction class knows the fields present in a GoogleUserData object, and the SwitchAAIIdentityFunction knows the content of the SwitchAAIUserData. These IdentityFunction objects allows to transform a concrete UserData object into a generic class called \textit{IdentityData} containing the identity information needed for the certificate. This IdentityData object can then be used by the \textit{certificate-issuer} component.
 
 The way how the identity information are extracted from a concrete UserData object is defined in a concrete IdentityFunction object. This process must be adaptable: for example an application could require the e-mail address to appear in certificate, another application could require an other unique identifier, or a third application could require an anonymized form of the e-mail address, and so on. Therefore, multiple IdentityFunction can exist for the same identity provider. In this implementation, there is a standard and an anonymized identity function for each identity provider (\textit{StandardSwitchAAIIdentityFunction}, \textit{StandardGoogleIdentityFunction}, \textit{AnonymizedSwitchAAIIdentityFunction}, \textit{AnonymizedGoogleIdentityFunction}). For SwitchAAI, there is a third variant specially designed for the university of Zürich which uses the student identification number as common name (\textit{ZurichSwitchAAIIdentityFunction}).
 
-The organisation of these classes is shown in \Cref{fig:identity_function_class_diagram}. The \textit{apply} method is the publicly available method extracting the information out of the given UserData object and returning the generated IdentityData object shown in \Cref{fig:identity_data}. Different protected methods are used for this process. \textit{selectCommonName} is responsible for extracting the common name from the UserData. In standard functions, the e-mail address is used. In anonymized function, a hash of the e-mail address is used. In the special function for Zürich, the student identification number is used. \textit{selectUniqueId} is responsible for extracting a unique identifier from the UserData. \textit{putInOtherValues} allows to add information in extensions of the certificate in case it cannot be included in the fields proposed in the IdentityData class. Finally, method \textit{createIdentityData} indicate which fields are put in the IdentityData object. This architecture allows to create subclasses which can overwrite some behaviour of the super class. For example, method \textit{createIdentityData} in anonymized function does not include ''firstname'' and ''surname'' in the IdentityData object as this is done in standard functions.
+The organisation of these classes is shown in \Cref{fig:identity_function_class_diagram}. The \textit{apply} method is the publicly available method extracting the information out of the given UserData object and returning the generated IdentityData object shown in \Cref{fig:identity_data}. Different protected methods are used for this process. \textit{selectCommonName} is responsible for extracting the common name from the UserData. In standard functions, the e-mail address is used. In anonymized function, a hash of the e-mail address is used. In the special function for Zürich, the student identification number is used. \textit{selectUniqueId} is responsible for extracting a unique identifier from the UserData. \textit{putInOtherValues} allows to add information in extensions of the certificate in case it cannot be included in the fields proposed in the IdentityData class. Finally, method \textit{createIdentityData} indicate which fields are put in the IdentityData object. This architecture allows to create subclasses which can overwrite some behavior of the super class. For example, method \textit{createIdentityData} in anonymized function does not include ''firstname'' and ''surname'' in the IdentityData object as this is done in standard functions.
 
 \begin{figure}[ht]
 \centerline{
@@ -215,13 +279,50 @@ The organisation of these classes is shown in \Cref{fig:identity_function_class_
 
 \subsection{Error description}
 
-Errors occurring during the issuance process should be communicated in an understandable way to the user. Exception caught in JSF result in a web page displaying the stack trace. This is not intuitive. An exception thrown in the backend result in an HTTP 500 JSON response with an error code and a default error description. Since the issuance request is done over Ajax, the response is also received through Ajax. The error code is then read in Javascript and the corresponding error description is selected in the language file. This message is then displayed to the user.
+Errors occurring during the issuance process should be communicated in an understandable way to the user. Therefore, error codes have been introduced. When an error occurs, an HTTP 500 response is sent with a JSON content containing an error code and a default error description. The error codes are listed in \Cref{t:errorCodes1} and \Cref{t:errorCodes2}.
 
-\subsection{Javascript cryptography}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|l|}
+  \hline
+  Code & Name & Description\\
+  \hline
+  100 & Not authenticated & User data not found in session, user is not\\ &&  authenticated in this session\\
+  101 & Missing argument & Some parameter is missing when requesting certificate \\
+  102 & Unknown IDP & The identity provider selected is not supported/known\\ &&  by \unicert\\
+  111 & Server error &  Error on server side (EJB not injected correctly)\\
+  120 & Unknown identity function & The identity function selected in not supported \\
+  121 & Important user data missing & An identity information required in the certificate\\ &&  is missing in the user data\\
+  122 & Problem while anonymizing & An error occurred during the anonymization process\\
+  123 & Incompatible identity function & The selected identity function is not applicable on the\\ &&   user data provided by the identity provider used\\
+  124 & Unique identifier missing & Important identity data missing to initialize unique id\\
+  125 & Unverified email address & Email provided by identity provider was not verified\\
+  130 & Cryptographic error & An error occurred during a process using cryptography\\
+  131 & Unknown key type & The selected key type is not known by \unicert\\
+  \hline
+\end{tabular}
+\caption{Errors originating from \textit{unicert-authentication}}
+\label{t:errorCodes1}
+\end{table}
 
-In the frontend, some cryptographic computation must be realized in Javascript. It concerns the generation of the key pair and the computation of the signature and proofs sent to the backend. In Javascript, a BigInteger library called Leemon \cite{leemon} is used to represent big integers. The needed cryptographic primitives are implemented on top. Because of the bad performance of Javascript in some browsers, some of these primitives have been implemented in an asynchronous way in order to avoid Javascript time outs.
-
-These signatures/proofs generated are verified in the backend using a library called UniCrypt. So, the generation of the signatures and proofs in Javascript must be completely compatible with UniCrypt. Therefore, hash function SHA-256 is used on both side. Recursive hash method is used on UniCrypt side and the equivalent is generated on Javascript side. Strings are considered encoded in UTF-8 and big integers as big endian. 
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|l|}
+  \hline
+  Code & Name & Description\\
+  \hline
+  200 & Server error & Generic error during certificate issuance\\
+  211 & Unknown role & Selected role is not known/supported\\
+  221 & Illegal crypto setting & Error in the cryptographic setting\\
+  222 & Invalid signature &  RSA signature is invalid\\
+  223 & Invalid proof & Zero knowledge proof of knowledge is invalid\\
+  224 & Incompatible crypto values & Some cryptographic values are incompatible\\
+  230 & \uniboard\ error & Error during publication on \uniboard\\
+  \hline
+\end{tabular}
+\caption{Errors originating from \textit{unicert-issuer}}
+\label{t:errorCodes2}
+\end{table}
 
 \section{unicert-issuer}
 
@@ -376,9 +477,11 @@ To work properly, \textit{unicert-issuer} require some configuration values. The
   keystorePath & Path to the keystore containing the certificate and private key\\ &  of \unicert\ for signing issued certificates\\
   keystorePass & Password for the keystore \\
   privateKeyPass & Password used to protect private key of \unicert\ certificate \\
-  issuerId & Name of the issuer of the generated certificates \\
+  issuerId & Name of the issuer of the generated certificates and id of the key in the keystore \\
   validityYears & Time slot in which the certificate is valid (2 years) \\
   uniboardURL & URL of \uniboard\ webservice (if not indicated, certificates are\\ & not published)\\
+  uniboardSection & Section where to publish on \uniboard\\
+  boardId & Id of the public key of the board in the keystore \\
   googleRedirectURI & URL of the callback servlet after Google OAuth2 authentication \\
   googleClientID & OAuth2 credentials for Google authentication\\
   googleClientSecret & OAuth2 credentials for Google authentication\\
@@ -388,42 +491,42 @@ To work properly, \textit{unicert-issuer} require some configuration values. The
 \label{t:jndi1}
 \end{table}
 
-\section{Simplification of the User Interface}\label{sec:simplification_ui}
-
-As described in \Cref{sec:issuance_process}, when the user requests a certificate, they have to provide, among other, following information:
-
-\begin{itemize}
-\item type of cryptographic values (currently supported: RSA and discrete logarithm)
-\item cryptographic parameters: size of key for RSA, values $p,q,g$ for discrete logarithm
-\item application identifier of the application the certificate is issued for
-\item role in the application the certificate is issued for
-\item the identity function that must be applied on the user's personal information
-\end{itemize}
-
-Most of the time however, these values are the same for a lot of users. For example, when a voter wants to issue a voter certificate for \univote, the cryptographic values, the application identifier (in this case \univote) and the role (in this case \textit{Voter}) are the same for all users that request a certificate. Even the identity function is the same for all voters inside a given election. So, it is unintuitive to ask each user to enter all these data. Therefore, a feature has been implemented allowing to preset all these values. It works with JNDI properties. The administrator can define multiple JNDI property sets giving them a name like ''/unicert/mypropertyset''. In this property set, the administrator can define the properties they want not to be filled by the user. The ones that are not defined must then be filled by the user in the certificate request process. The property set is loaded by the \textit{ParametersServlet} which receives the name of the property set to load through the link on which the user has clicked to start the authentication process, for example ''authenticate?params=mypropertyset''. If no property set is indicated, a default property set is loaded containing only the identity providers supported. All others information must be filled by the user. \Cref{t:jndi2} shows the JNDI properties that can be preset in a property set.
-
-\begin{table}[ht]
-
-\centering
-\begin{tabular}{|l|l|l|l|}
-  \hline
-  Property & Description & Possible values & \\
-  \hline
-  identityProvider & The identity provider to & ''SwitchAAI'', & Mandatory\\ & use for authentication & ''Google'', & \\ & & ''SwitchAAI,Google'' & \\
-  keyType & Cryptographic setup type & ''RSA'', ''DiscreteLog'' & Optional\\
-  keySize & Size of RSA keys & integer & Optional\\
-  primeP & Value of prime p & base 10 representation & Optional\\
-  primeQ & Value of prime q & base 10 representation & Optional\\
-  generator & Value of generator & base 10 representation & Optional\\
-  applicationIdentifier & Application identifier & string & Optional\\
-  role & Role & string & Optional\\
-  identityFunctionIndex & Index of identiy function & integer & Optional\\
-  & to select in dropdown & & \\
-  \hline
-\end{tabular}
-\caption{JNDI properties for presets in user interface}
-\label{t:jndi2}
-\end{table}
+%\section{Simplification of the User Interface}\label{sec:simplification_ui}
+%
+%As described in \Cref{sec:issuance_process}, when the user requests a certificate, they have to provide, among other, following information:
+%
+%\begin{itemize}
+%\item type of cryptographic values (currently supported: RSA and discrete logarithm)
+%\item cryptographic parameters: size of key for RSA, values $p,q,g$ for discrete logarithm
+%\item application identifier of the application the certificate is issued for
+%\item role in the application the certificate is issued for
+%\item the identity function that must be applied on the user's personal information
+%\end{itemize}
+%
+%Most of the time however, these values are the same for a lot of users. For example, when a voter wants to issue a voter certificate for \univote, the cryptographic values, the application identifier (in this case \univote) and the role (in this case \textit{Voter}) are the same for all users that request a certificate. Even the identity function is the same for all voters inside a given election. So, it is unintuitive to ask each user to enter all these data. Therefore, a feature has been implemented allowing to preset all these values. It works with JNDI properties. The administrator can define multiple JNDI property sets giving them a name like ''/unicert/mypropertyset''. In this property set, the administrator can define the properties they want not to be filled by the user. The ones that are not defined must then be filled by the user in the certificate request process. The property set is loaded by the \textit{ParametersServlet} which receives the name of the property set to load through the link on which the user has clicked to start the authentication process, for example ''authenticate?params=mypropertyset''. If no property set is indicated, a default property set is loaded containing only the identity providers supported. All others information must be filled by the user. \Cref{t:jndi2} shows the JNDI properties that can be preset in a property set.
+%
+%\begin{table}[ht]
+%
+%\centering
+%\begin{tabular}{|l|l|l|l|}
+%  \hline
+%  Property & Description & Possible values & \\
+%  \hline
+%  identityProvider & The identity provider to & ''SwitchAAI'', & Mandatory\\ & use for authentication & ''Google'', & \\ & & ''SwitchAAI,Google'' & \\
+%  keyType & Cryptographic setup type & ''RSA'', ''DiscreteLog'' & Optional\\
+%  keySize & Size of RSA keys & integer & Optional\\
+%  primeP & Value of prime p & base 10 representation & Optional\\
+%  primeQ & Value of prime q & base 10 representation & Optional\\
+%  generator & Value of generator & base 10 representation & Optional\\
+%  applicationIdentifier & Application identifier & string & Optional\\
+%  role & Role & string & Optional\\
+%  identityFunctionIndex & Index of identiy function & integer & Optional\\
+%  & to select in dropdown & & \\
+%  \hline
+%\end{tabular}
+%\caption{JNDI properties for presets in user interface}
+%\label{t:jndi2}
+%\end{table}
 
 
 
