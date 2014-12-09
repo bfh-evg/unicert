@@ -168,7 +168,7 @@ The generation of the private key is responsibility of the application or the us
 
 \begin{figure}[ht]
 \centerline{
-\includegraphics[width=1.0\textwidth]{figs/certificate_request_process2}}
+\includegraphics[width=1.0\textwidth]{figs/certificate_request_process}}
 \caption{Process of requesting a certificate}
 \label{fig:request_process}
 \end{figure}
@@ -186,7 +186,7 @@ This subsection describes the data that must be sent to \textit{unicert-authenti
 
 \paragraph*{Authentication process}
 
-For the authentication request, information displayed in \Cref{t:authreq} must be sent. \Cref{t:authresp} shows the information returned after successful authentication.
+For the authentication request, information displayed in \Cref{t:authreq} must be sent as HTTP GET parameters. \Cref{t:authresp} shows the information returned in the url after successful authentication.
 
 \begin{table}[ht]
 \centering
@@ -222,23 +222,81 @@ For the authentication request, information displayed in \Cref{t:authreq} must b
 
 \paragraph*{Certificate request}
 
-For the certificate request, some information must be provided. For a RSA certificate, information displayed in \Cref{t:rsa} must be sent, for a discrete logarithm certificate \Cref{t:dlog} shows them.
+For the certificate request, some information must be provided. For a RSA certificate, information displayed in \Cref{t:rsa} must be sent, for a discrete logarithm certificate \Cref{t:dlog} shows them. This time, these parameters must be sent as HTTP POST parameters.
 
-//TODO !!!
 \begin{table}[ht]
 \centering
 \begin{tabular}{|c|c|l|}
   \hline
   Key & Format & Description\\
   \hline
-  idp & "switchaai"/"google" & Key of the identity provider to use for authentication\\
-  returnurl & URL & Url to call after successful authentication\\
-  params & String (optional) & Additional parameter that must be past when\\ & & calling return url\\
+  crypto\_setup\_type & "DiscreteLog"/"RSA" & Type of certificate to issue\\
+  crypto\_setup\_size & String representing & Size of the public key (1024 or 2048)\\ & an integer  & \\
+  public\_key & String & Base 10 representation of the public key \\ & & to certify\\
+  rsa\_modulo & String & Base 10 representation of RSA modulo\\
+  application\_identifier & String & Identifier of the application in which\\ & & the certificate will be used\\
+  role & String & Roles in the application the certificate will be\\ & & used for. If multiple roles must be defined,\\ & & they must be comma separated.\\
+  identity\_function & String representing & Index of identity function\\ & an integer & to use during certification process\\
+  signature & String & Base 10 representation of signature proving\\ & & knowledge of the private key\\
   \hline
 \end{tabular}
-\caption{Information to send with authentication request}
+\caption{Information to send with certificate request for RSA certificates}
 \label{t:rsa}
 \end{table}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|l|}
+  \hline
+  Key & Format & Description\\
+  \hline
+  crypto\_setup\_type & "DiscreteLog"/"RSA" & Type of certificate to issue\\
+  crypto\_setup\_size & String representing & Size of the public\\ & an integer & key (1024 or 2048)\\
+  public\_key & String & Base 10 representation of the public key\\ & & to certify\\
+  dlog\_p & String & Base 10 representation of prime value P\\
+  dlog\_q & String & Base 10 representation of prime value Q\\
+  dlog\_generator & String & Base 10 representation of generator G\\      
+  application\_identifier & String & Identifier of the application in which\\ & & the certificate will be used\\
+  role & String & Roles in the application the certificate will be\\ & & used for. If multiple roles must be defined, \\ & & they must be comma separated.\\
+  identity\_function & String representing & Index of identity function\\ & an integer & to use during certification process\\
+  dlog\_proof\_commitment & String & Base 10 representation of commitment \\ & & of proof of knowledge of private key\\
+  dlog\_proof\_challenge & String & Base 10 representation of challenge \\ & & of proof of knowledge of private key\\
+  dlog\_proof\_response & String & Base 10 representation of response \\ & & proof of knowledge of private key\\
+  \hline
+\end{tabular}
+\caption{Information to send with certificate request for discrete logarithm certificates}
+\label{t:dlog}
+\end{table}
+
+Each identity function is identified by a number. \Cref{t:idfunc} shows which id correspond to which function.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|l|}
+  \hline
+  Id & Identity function\\
+  \hline
+  1 & Standard SwitchAAI identity function\\
+  2 & Anonymized SwitchAAI identity function\\
+  3 & SwitchAAI identity function for University of Zürich\\
+  4 & Standard Google identity function\\
+  5 & Anonymized Google identity function\\
+  \hline
+\end{tabular}
+\caption{Index of identity functions}
+\label{t:idfunc}
+\end{table}
+
+The message of the signature that must be submitted with the RSA certificate request is in fact the concatenation of the other parameter sent. Besides proving the knowledge of the private key corresponding to the public key sent, this signature allows the server to verify that the parameters received have not been modified by someone during the request. The same feature is obtained in the discrete logarithm case by pushing the same message in the hash function used during challenge generation. This messages is structured as follows (separator between values is a pipe "|"):
+
+\textit{idp|user\_email|user\_unique\_id|crypto\_setup\_type|crypto\_setup\_size|public\_key|\\rsa\_modulo|identity\_function|application\_identifier|role}
+
+for RSA and
+
+\textit{idp|user\_email|user\_unique\_id|crypto\_setup\_type|crypto\_setup\_size|public\_key|\\dlog\_p|dlog\_q|dlog\_generator|identity\_function|application\_identifier|role}
+
+for discrete logarithm.
+
 
 
 
