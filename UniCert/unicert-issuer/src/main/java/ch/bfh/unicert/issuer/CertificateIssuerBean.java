@@ -246,7 +246,7 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 	//post message on UniBoard if corresponding JNDI parameter is defined
 	if (getConfigurationHelper().getUniBoardServiceURL() != null) {
-	    postOnUniBoard(cert, getConfigurationHelper().getUniBoardServiceURL(), getConfigurationHelper().
+	    postOnUniBoard(cert, getConfigurationHelper().getUniBoardWsdlURL(), getConfigurationHelper().getUniBoardServiceURL(), getConfigurationHelper().
 		    getUniBoardSection(), (RSAPublicKey) getConfigurationHelper().getIssuerCertificate().getPublicKey(),
 		    getConfigurationHelper().getPrivateRSAKey());
 	}
@@ -265,13 +265,13 @@ public class CertificateIssuerBean implements CertificateIssuer {
      * @param privateKey the private key used to create post signature
      * @throws CertificateCreationException if an error occured during publication
      */
-    protected void postOnUniBoard(Certificate cert, String endpointUrl, String section, RSAPublicKey publicKey,
+    protected void postOnUniBoard(Certificate cert, String wsdlUrl, String endpointUrl, String section, RSAPublicKey publicKey,
 	    RSAPrivateCrtKey privateKey) throws
 	    CertificateCreationException {
 
 	UniBoardService board;
 	try {
-	    URL wsdlLocation = new URL(endpointUrl);
+	    URL wsdlLocation = new URL(wsdlUrl);
 	    QName qname = new QName("http://uniboard.bfh.ch/", "UniBoardService");
 	    UniBoardService_Service mixingService = new UniBoardService_Service(wsdlLocation, qname);
 	    board = mixingService.getUniBoardServicePort();

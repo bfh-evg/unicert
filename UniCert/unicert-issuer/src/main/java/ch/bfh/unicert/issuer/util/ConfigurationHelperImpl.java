@@ -65,6 +65,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     private X509Certificate boardCertificate;
     private String boardId;
     private SignatureHelper signatureHelper;
+    private String wsdlURL;
 
     /**
      * Private constructor, used internally only.
@@ -154,7 +155,16 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     public String getGoogleRedirectURI() {
 	return this.googleClientRedirectURI;
     }
+    
+    /**
+     * @inheritDoc
+     */
+    @Override
+    public String getUniBoardWsdlURL() {
+	return this.wsdlURL;
+    }
 
+    @Override
     public SignatureHelper getSignatureHelper() {
 	return signatureHelper;
     }
@@ -180,6 +190,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
 	this.issuerId = retrieveStringProperty(props, "issuerId");
 	this.boardId = retrieveStringProperty(props, "boardId");
 	this.uniboardURL = retrieveStringProperty(props, "uniboardURL");
+	this.wsdlURL = retrieveStringProperty(props, "uniboardWSDL");
 	this.validityYears = retrieveIntegerProperty(props, "validityYears");
 
 	this.googleClientID = retrieveStringProperty(props, "googleClientID");
@@ -360,5 +371,7 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
 	}
 	return Boolean.valueOf(propertyValue);
     }
+
+    
 
 }

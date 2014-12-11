@@ -28,7 +28,7 @@ public class CertificateIssuerMock extends CertificateIssuerBean {
 
     
     @Override
-    protected void postOnUniBoard(Certificate cert, String endpointUrl, String section, RSAPublicKey publicKey, RSAPrivateCrtKey privateKey) throws
+    protected void postOnUniBoard(Certificate cert, String wsdlUrl, String endpointUrl, String section, RSAPublicKey publicKey, RSAPrivateCrtKey privateKey) throws
 	    CertificateCreationException {
 	//Does nothing
     }

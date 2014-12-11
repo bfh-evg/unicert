@@ -79,4 +79,11 @@ public interface ConfigurationHelper {
      * @return a signautre Helper object
      */
     public SignatureHelper getSignatureHelper();
+
+    /**
+     * Returns the URL of UniBoard Webservice WSDL
+     * 
+     * @return a string representation of the url
+     */
+    public String getUniBoardWsdlURL();
 }
