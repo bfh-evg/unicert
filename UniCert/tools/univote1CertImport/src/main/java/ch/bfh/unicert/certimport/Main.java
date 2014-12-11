@@ -22,6 +22,12 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
+/**
+ * Main class of helper tool allowing to import voter certificates of UniVote 1 into UniCert.
+ * A CSV dump of of table "CertificateEntity" of the registration database must be available.
+ * 
+ * @author Philémon von Bergen
+ */
 public class Main {
 
     private static final String csvPath = "/home/phil/CERTIFICATEENTITY.csv";
@@ -46,7 +52,7 @@ public class Main {
 	logger.info("File read");
 
 	File f = new File(csvPath);
-	CSVParser parser = CSVParser.parse(f, Charset.forName("UTF-8"), CSVFormat.DEFAULT);//fileContent, CSVFormat.DEFAULT);
+	CSVParser parser = CSVParser.parse(f, Charset.forName("UTF-8"), CSVFormat.DEFAULT);
 
 	for (CSVRecord record : parser) {
 	    createCertificate(record);
@@ -54,6 +60,11 @@ public class Main {
 
     }
 
+    /**
+     * Create a certificate fot the given CSV record
+     * @param record the record to parse
+     * @throws InvalidNameException 
+     */
     private static void createCertificate(CSVRecord record) throws InvalidNameException {
 
 	int recordid = Integer.parseInt(record.get(0));
