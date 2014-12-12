@@ -41,19 +41,25 @@
             <artifactId>bcprov-jdk16</artifactId>
             <version>1.46</version>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>ch.bfh.uniboard</groupId>
             <artifactId>bfh-wsdl</artifactId>
             <version>1.0</version>
             <type>jar</type>
+        </dependency>-->
+	<dependency>
+            <groupId>ch.bfh.uniboard</groupId>
+            <artifactId>client-library</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <type>jar</type>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>ch.bfh.unicert</groupId>
             <artifactId>unicert-issuer</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>test</scope>
             <type>jar</type>
-        </dependency>
+        </dependency>-->
     </dependencies>
     
     <!-- Repository for apache-common -->

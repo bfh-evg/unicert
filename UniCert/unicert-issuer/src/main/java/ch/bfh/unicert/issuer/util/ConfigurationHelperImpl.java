@@ -165,6 +165,11 @@ public class ConfigurationHelperImpl implements ConfigurationHelper {
     }
 
     @Override
+    public X509Certificate getUniBoardCertificate() {
+	return this.boardCertificate;
+    }
+    
+    @Override
     public SignatureHelper getSignatureHelper() {
 	return signatureHelper;
     }

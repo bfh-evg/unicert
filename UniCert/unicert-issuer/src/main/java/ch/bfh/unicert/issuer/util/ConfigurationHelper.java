@@ -74,6 +74,8 @@ public interface ConfigurationHelper {
      */ 
     public String getUniBoardSection();
     
+    
+    public X509Certificate getUniBoardCertificate();
     /**
      * Returns a helper object for the verification of the board signature
      * @return a signautre Helper object

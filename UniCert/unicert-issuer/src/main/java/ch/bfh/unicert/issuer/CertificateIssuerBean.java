@@ -11,17 +11,9 @@
  */
 package ch.bfh.unicert.issuer;
 
-import ch.bfh.uniboard.UniBoardService;
-import ch.bfh.uniboard.UniBoardService_Service;
-import ch.bfh.uniboard.data.AttributesDTO;
-import ch.bfh.uniboard.data.TransformException;
-import ch.bfh.uniboard.data.Transformer;
-import ch.bfh.uniboard.service.Attributes;
-import ch.bfh.uniboard.service.ByteArrayValue;
-import ch.bfh.uniboard.service.DateValue;
-import ch.bfh.uniboard.service.IntegerValue;
-import ch.bfh.uniboard.service.StringValue;
-import ch.bfh.uniboard.service.Value;
+import ch.bfh.uniboard.clientlib.BoardErrorException;
+import ch.bfh.uniboard.clientlib.PostException;
+import ch.bfh.uniboard.clientlib.PostHelper;
 import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
@@ -34,8 +26,6 @@ import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirS
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PreimageProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.signature.classes.RSASignatureScheme;
 import ch.bfh.unicrypt.helper.Alphabet;
-import ch.bfh.unicrypt.helper.MathUtil;
-import ch.bfh.unicrypt.helper.array.classes.DenseArray;
 import ch.bfh.unicrypt.helper.converter.classes.ConvertMethod;
 import ch.bfh.unicrypt.helper.converter.classes.biginteger.FiniteByteArrayToBigInteger;
 import ch.bfh.unicrypt.helper.converter.classes.bytearray.BigIntegerToByteArray;
@@ -43,22 +33,18 @@ import ch.bfh.unicrypt.helper.converter.classes.bytearray.ByteArrayToByteArray;
 import ch.bfh.unicrypt.helper.converter.classes.bytearray.StringToByteArray;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
-import ch.bfh.unicrypt.math.algebra.concatenative.classes.ByteArrayMonoid;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringElement;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
-import ch.bfh.unicrypt.math.algebra.dualistic.classes.Z;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
-import ch.bfh.unicrypt.math.algebra.general.classes.Pair;
 import ch.bfh.unicrypt.math.algebra.general.classes.Triple;
-import ch.bfh.unicrypt.math.algebra.general.classes.Tuple;
 import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
 import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.net.URL;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
@@ -71,23 +57,16 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.Startup;
 import javax.ejb.Stateless;
-import javax.xml.namespace.QName;
-import javax.xml.ws.BindingProvider;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -268,148 +247,17 @@ public class CertificateIssuerBean implements CertificateIssuer {
     protected void postOnUniBoard(Certificate cert, String wsdlUrl, String endpointUrl, String section, RSAPublicKey publicKey,
 	    RSAPrivateCrtKey privateKey) throws
 	    CertificateCreationException {
-
-	UniBoardService board;
+	
 	try {
-	    URL wsdlLocation = new URL(wsdlUrl);
-	    QName qname = new QName("http://uniboard.bfh.ch/", "UniBoardService");
-	    UniBoardService_Service mixingService = new UniBoardService_Service(wsdlLocation, qname);
-	    board = mixingService.getUniBoardServicePort();
-	    BindingProvider bp = (BindingProvider) board;
-	    bp.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
-	} catch (Exception ex) {
-	    logger.log(Level.SEVERE, "Unable to connect to UniBoard  service: {0}, exception: {1}", new Object[]{
-		endpointUrl, ex});
-	    throw new CertificateCreationException("230 Unable to connect to UniBoard to publish certificate");
-	}
-
-	byte[] message = cert.toJSON().getBytes();
-	Attributes alpha = new Attributes();
-	alpha.add(SECTIONED, new StringValue(section));
-	alpha.add(GROUPED, new StringValue("certificate"));
-
-	Element element = createMessageElement(message, alpha);
-	ZMod n = ZMod.getInstance(publicKey.getModulus());
-	RSASignatureScheme rsa = RSASignatureScheme.getInstance(element.getSet(), n, HASH_METHOD);
-	Element rsaPrivateKeyElement = rsa.getSignatureKeySpace().getElement(privateKey.getPrivateExponent());
-	Element signature = rsa.sign(rsaPrivateKeyElement, element);
-
-	alpha.add(ATTRIBUTE_NAME_SIG, new StringValue(signature.getBigInteger().toString(10)));
-	BigInteger pair = MathUtil.pair(publicKey.getPublicExponent(), publicKey.getModulus());
-	alpha.add(ATTRIBUTE_NAME_PUBLICKEY, new StringValue(pair.toString(10)));
-
-	AttributesDTO alphaDTO;
-	Attributes beta;
-	try {
-	    alphaDTO = Transformer.convertAttributesToDTO(alpha);
-	    beta = Transformer.convertAttributesDTOtoAttributes(board.post(message, alphaDTO));
-	} catch (TransformException ex) {
-	    logger.log(Level.SEVERE, "DTO conversion error: {1}", new Object[]{ex});
-	    throw new CertificateCreationException("230 UniBoard rejected post");
-	}
-
-	if (beta.getKeys().contains("rejected") || beta.getKeys().contains("error")) {
-	    String errorKey = beta.getEntries().iterator().next().getKey();
-	    String error = (String) beta.getValue(errorKey).getValue();
-	    logger.log(Level.SEVERE, "Error on posting: UniBoard response was {0}, description: {1}", new Object[]{
-		errorKey, error});
-	    throw new CertificateCreationException("230 UniBoard rejected post: " + error);
-	} else {
-	    String boardSig = ((StringValue) beta.getValue("boardSignature")).getValue();
-	    Element postElement = createMessageElement(message, alpha, beta);
-	    
-	    //Verify signature
-	    if(!getConfigurationHelper().getSignatureHelper().verify(postElement, new BigInteger(boardSig, 10))){
-		throw new CertificateCreationException("230 UniBoard rejected post: Board signature is corrupt.");
-	    }
+	    PostHelper ph = new PostHelper(publicKey, privateKey, getConfigurationHelper().getUniBoardCertificate().getPublicKey(), wsdlUrl, endpointUrl);
+	    ph.post(cert.toJSON(), section, "certificate");
+	 } catch (PostException | ch.bfh.uniboard.clientlib.signaturehelper.SignatureException | BoardErrorException |
+		 UnsupportedEncodingException ex) {
+	    logger.log(Level.SEVERE, "230 UniBoard rejected post: {0}", ex);
+	    throw new CertificateCreationException("230 UniBoard rejected post: " + ex);
 	}
 
 	logger.log(Level.INFO, "Certificate posted on UniBoard");
-    }
-
-    protected Element createMessageElement(byte[] message, Attributes alpha) {
-	StringMonoid stringSpace = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
-	Z z = Z.getInstance();
-	ByteArrayMonoid byteSpace = ByteArrayMonoid.getInstance();
-	Element messageElement = byteSpace.getElement(message);
-	List<Element> alphaElements = new ArrayList<>();
-	//iterate over alpha until one reaches the property = signature
-	for (Map.Entry<String, Value> e : alpha.getEntries()) {
-	    if (e.getKey().equals(ATTRIBUTE_NAME_SIG)) {
-		break;
-	    }
-	    Element tmp;
-	    if (e.getValue() instanceof ByteArrayValue) {
-		tmp = byteSpace.getElement(((ByteArrayValue) e.getValue()).getValue());
-		alphaElements.add(tmp);
-	    } else if (e.getValue() instanceof DateValue) {
-		TimeZone timeZone = TimeZone.getTimeZone("UTC");
-		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-		dateFormat.setTimeZone(timeZone);
-		String stringDate = dateFormat.format(((DateValue) e.getValue()).getValue());
-		tmp = stringSpace.getElement(stringDate);
-		alphaElements.add(tmp);
-	    } else if (e.getValue() instanceof IntegerValue) {
-		tmp = z.getElement(((IntegerValue) e.getValue()).getValue());
-		alphaElements.add(tmp);
-	    } else if (e.getValue() instanceof StringValue) {
-		tmp = stringSpace.getElement(((StringValue) e.getValue()).getValue());
-		alphaElements.add(tmp);
-	    } else {
-		logger.log(Level.SEVERE, "Unsupported Value type.");
-	    }
-	}
-	DenseArray immuElements = DenseArray.getInstance(alphaElements);
-	Element alphaElement = Tuple.getInstance(immuElements);
-	return Pair.getInstance(messageElement, alphaElement);
-    }
-
-    protected Element createMessageElement(byte[] message, Attributes alpha, Attributes beta) {
-	ByteArrayMonoid byteSpace = ByteArrayMonoid.getInstance();
-	Element messageElement = byteSpace.getElement(message);
-	List<Element> alphaElements = new ArrayList<>();
-	for (Map.Entry<String, Value> e : alpha.getEntries()) {
-	    Element element = this.createValueElement(e.getValue());
-	    if (element != null) {
-		alphaElements.add(element);
-	    }
-	}
-	DenseArray alphaDenseElements = DenseArray.getInstance(alphaElements);
-	Element alphaElement = Tuple.getInstance(alphaDenseElements);
-	List<Element> betaElements = new ArrayList<>();
-	for (Map.Entry<String, Value> e : beta.getEntries()) {
-	    if(e.getKey().equals(ATTRIBUTE_NAME_BOARD_SIG))
-		break;
-	    Element element = this.createValueElement(e.getValue());
-	    if (element != null) {
-		betaElements.add(element);
-	    }
-	}
-	DenseArray beteDenseElements = DenseArray.getInstance(betaElements);
-	Element betaElement = Tuple.getInstance(beteDenseElements);
-	return Tuple.getInstance(messageElement, alphaElement, betaElement);
-    }
-
-    protected Element createValueElement(Value value) {
-	StringMonoid stringSpace = StringMonoid.getInstance(Alphabet.PRINTABLE_ASCII);
-	Z z = Z.getInstance();
-	ByteArrayMonoid byteSpace = ByteArrayMonoid.getInstance();
-	if (value instanceof ByteArrayValue) {
-	    return byteSpace.getElement(((ByteArrayValue) value).getValue());
-	} else if (value instanceof DateValue) {
-	    TimeZone timeZone = TimeZone.getTimeZone("UTC");
-	    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-	    dateFormat.setTimeZone(timeZone);
-	    String stringDate = dateFormat.format(((DateValue) value).getValue());
-	    return stringSpace.getElement(stringDate);
-	} else if (value instanceof IntegerValue) {
-	    return z.getElement(((IntegerValue) value).getValue());
-	} else if (value instanceof StringValue) {
-	    return stringSpace.getElement(((StringValue) value).getValue());
-	} else {
-	    logger.log(Level.SEVERE, "Unsupported Value type.");
-	    return null;
-	}
     }
 
     /**
