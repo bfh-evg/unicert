@@ -30,7 +30,9 @@ import org.apache.commons.csv.CSVRecord;
  */
 public class Main {
 
+    //CSV dump of MySQL database
     private static final String csvPath = "/home/phil/CERTIFICATEENTITY.csv";
+    //keystore is available in SVN
     private static final String keystorePath = "/home/phil/UniCert.jks";
     private static final String keystorePass = "123456";
     private static final String issuerId = "unicertbfh";
@@ -40,7 +42,7 @@ public class Main {
     private static final String uniBoardWSDLurl = "http://urd.bfh.ch:9080/UniBoardService/UniBoardServiceImpl?wsdl";
     private static final String section = "unicert";
 
-    private static CertificateIssuer issuer = new CertificateIssuer(keystorePath, keystorePass, issuerId, privKeyPass,
+    private static final CertificateIssuer issuer = new CertificateIssuer(keystorePath, keystorePass, issuerId, privKeyPass,
 	    boardId);
 
     private static final Logger logger = Logger.getLogger(Main.class.getSimpleName());

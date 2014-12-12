@@ -29,8 +29,8 @@
         </dependency>
 	<dependency>
             <groupId>ch.bfh.uniboard</groupId>
-            <artifactId>bfh-wsdl</artifactId>
-            <version>1.0</version>
+            <artifactId>client-library</artifactId>
+            <version>1.0-SNAPSHOT</version>
             <type>jar</type>
         </dependency>
 	<dependency>
