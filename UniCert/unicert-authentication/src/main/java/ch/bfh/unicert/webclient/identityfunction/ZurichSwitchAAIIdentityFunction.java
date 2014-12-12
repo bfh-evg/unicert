@@ -11,7 +11,10 @@
  */
 package ch.bfh.unicert.webclient.identityfunction;
 
+import ch.bfh.unicert.issuer.IdentityData;
+import ch.bfh.unicert.issuer.util.ExtensionOID;
 import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -51,4 +54,11 @@ public class ZurichSwitchAAIIdentityFunction extends StandardSwitchAAIIdentityFu
         return commonName;
     }
     
+    @Override
+    protected IdentityData createIdentityData(String commonName, String uniqueId, String organisation, String organisationUnit,
+            String countryName, String state, String locality, String surname, String givenName,
+            String identityProvider, Map<ExtensionOID, String> otherValues ){
+        return new IdentityData(commonName, uniqueId, organisation, organisationUnit, countryName, state,
+                locality, null, null, identityProvider, otherValues);
+    }
 }
