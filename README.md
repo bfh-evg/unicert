@@ -1,4 +1,6 @@
-unicert
+UniCert
 =======
 
-registration component for univote2. Uses uniboard to publish the certificates.
+Certificate authority that supports the creation of user certificates over SwitchAAI and other services.
+Requires an UniBoard instance to publish the created certificates.
+Is mainly used for UniVote2 user identification.
