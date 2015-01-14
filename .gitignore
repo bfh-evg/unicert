@@ -1,3 +1,1 @@
-UniCert/UniCert-ear/target/*
-UniCert/UniCertClient/target/*
-UniCert/UniCertSubsystem/target/*
+*/target/*
