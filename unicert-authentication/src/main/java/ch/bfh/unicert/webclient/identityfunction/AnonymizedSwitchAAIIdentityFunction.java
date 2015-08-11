@@ -14,83 +14,92 @@ package ch.bfh.unicert.webclient.identityfunction;
 import ch.bfh.unicert.issuer.IdentityData;
 import ch.bfh.unicert.issuer.util.ExtensionOID;
 import ch.bfh.unicert.webclient.userdata.SwitchAAIUserData;
-import ch.bfh.unicrypt.helper.Alphabet;
+import ch.bfh.unicrypt.helper.converter.classes.ConvertMethod;
+import ch.bfh.unicrypt.helper.converter.classes.bytearray.BigIntegerToByteArray;
+import ch.bfh.unicrypt.helper.converter.classes.bytearray.StringToByteArray;
 import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import ch.bfh.unicrypt.helper.hash.HashMethod;
+import ch.bfh.unicrypt.helper.math.Alphabet;
 import ch.bfh.unicrypt.math.algebra.concatenative.classes.StringMonoid;
+import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * This function is a specialization of the Standard SwitchAAI function which
- * uses hash value of the mail adress as common name and the hash of the unique id as unique id
+ * This function is a specialization of the Standard SwitchAAI function which uses hash value of the mail adress as
+ * common name and the hash of the unique id as unique id
  *
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 public class AnonymizedSwitchAAIIdentityFunction extends StandardSwitchAAIIdentityFunction {
 
-    private static final Logger logger = Logger.getLogger(AnonymizedSwitchAAIIdentityFunction.class.getName());
+	private static final Logger logger = Logger.getLogger(AnonymizedSwitchAAIIdentityFunction.class.getName());
+	protected static final HashMethod HASH_METHOD = HashMethod.getInstance(HashAlgorithm.SHA256);
+	protected static final ConvertMethod CONVERT_METHOD = ConvertMethod.getInstance(
+			BigIntegerToByteArray.getInstance(ByteOrder.BIG_ENDIAN),
+			StringToByteArray.getInstance(Charset.forName("UTF-8")));
 
-    @Override
-    protected void putInOtherValues(Map otherValues, SwitchAAIUserData ud){
-    }
-    
-    @Override
-    protected String selectCommonName(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException {
+	@Override
+	protected void putInOtherValues(Map otherValues, SwitchAAIUserData ud) {
+	}
 
-        String commonName = super.selectCommonName(ud);
+	@Override
+	protected String selectCommonName(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException {
 
-        //Anonymization of commonName by hashing it with SHA256
-        try {
-            StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
-            commonName = getHexValue(sm.getElement(commonName).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getBytes());
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
-            throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing");
-        }
+		String commonName = super.selectCommonName(ud);
 
-        return commonName;
-    }
-    
-    @Override
-    protected String selectUniqueId(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException {
+		//Anonymization of commonName by hashing it with SHA256
+		try {
+			StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
+			commonName = getHexValue(sm.getElement(commonName).getHashValue(CONVERT_METHOD, HASH_METHOD).getBytes());
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
+			throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing");
+		}
 
-        String uniqueID = super.selectUniqueId(ud);
-        
-        //Anonymization of commonName by hashing it with SHA256
-        try {
-            StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
-            uniqueID = getHexValue(sm.getElement(uniqueID).getHashValue(HashMethod.getInstance(HashAlgorithm.SHA256)).getBytes());
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
-            throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing");
-        }
+		return commonName;
+	}
 
-        return uniqueID;
-    }
-    
-    @Override
-    protected IdentityData createIdentityData(String commonName, String uniqueId, String organisation, String organisationUnit,
-            String countryName, String state, String locality, String surname, String givenName,
-            String identityProvider, Map<ExtensionOID, String> otherValues ){
-        return new IdentityData(commonName, uniqueId, organisation, organisationUnit, countryName, state,
-                locality, null, null, identityProvider, otherValues);
-    }
+	@Override
+	protected String selectUniqueId(SwitchAAIUserData ud) throws IdentityFunctionNotApplicableException {
 
-    private String getHexValue(byte[] array) {
-        char[] symbols = "0123456789ABCDEF".toCharArray();
-        char[] hexValue = new char[array.length * 2];
+		String uniqueID = super.selectUniqueId(ud);
 
-        for (int i = 0; i < array.length; i++) {
-            //convert the byte to an int
-            int current = array[i] & 0xff;
-            //determine the Hex symbol for the last 4 bits
-            hexValue[i * 2 + 1] = symbols[current & 0x0f];
-            //determine the Hex symbol for the first 4 bits
-            hexValue[i * 2] = symbols[current >> 4];
-        }
-        return String.valueOf(hexValue);
-    }
+		//Anonymization of commonName by hashing it with SHA256
+		try {
+			StringMonoid sm = StringMonoid.getInstance(Alphabet.UNICODE_BMP);
+			uniqueID = getHexValue(sm.getElement(uniqueID).getHashValue(CONVERT_METHOD, HASH_METHOD).getBytes());
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "Problem while anonimizing: {0}", e.getMessage());
+			throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing");
+		}
+
+		return uniqueID;
+	}
+
+	@Override
+	protected IdentityData createIdentityData(String commonName, String uniqueId, String organisation, String organisationUnit,
+			String countryName, String state, String locality, String surname, String givenName,
+			String identityProvider, Map<ExtensionOID, String> otherValues) {
+		return new IdentityData(commonName, uniqueId, organisation, organisationUnit, countryName, state,
+				locality, null, null, identityProvider, otherValues);
+	}
+
+	private String getHexValue(byte[] array) {
+		char[] symbols = "0123456789ABCDEF".toCharArray();
+		char[] hexValue = new char[array.length * 2];
+
+		for (int i = 0; i < array.length; i++) {
+			//convert the byte to an int
+			int current = array[i] & 0xff;
+			//determine the Hex symbol for the last 4 bits
+			hexValue[i * 2 + 1] = symbols[current & 0x0f];
+			//determine the Hex symbol for the first 4 bits
+			hexValue[i * 2] = symbols[current >> 4];
+		}
+		return String.valueOf(hexValue);
+	}
 
 }
