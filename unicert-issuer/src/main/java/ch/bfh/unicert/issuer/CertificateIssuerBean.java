@@ -18,6 +18,7 @@ import ch.bfh.unicert.issuer.cryptography.CryptographicSetup;
 import ch.bfh.unicert.issuer.cryptography.DiscreteLogSetup;
 import ch.bfh.unicert.issuer.cryptography.RsaSetup;
 import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
+import ch.bfh.unicert.issuer.exceptions.JSONException;
 import ch.bfh.unicert.issuer.util.CertificateHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelper;
 import ch.bfh.unicert.issuer.util.ConfigurationHelperImpl;
@@ -57,6 +58,7 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -244,9 +246,9 @@ public class CertificateIssuerBean implements CertificateIssuer {
 		try {
 			PostHelper ph = new PostHelper(publicKey, privateKey,
 					getConfigurationHelper().getUniBoardCertificate().getPublicKey(), wsdlUrl, endpointUrl);
-			ph.post(cert.toJSON(), section, "certificate");
-		} catch (PostException | ch.bfh.uniboard.clientlib.signaturehelper.SignatureException | BoardErrorException |
-				UnsupportedEncodingException ex) {
+			ph.post(JSONConverter.marshal(cert), section, "certificate");
+		} catch (PostException | BoardErrorException | UnsupportedEncodingException | JSONException |
+				ch.bfh.uniboard.clientlib.signaturehelper.SignatureException ex) {
 			logger.log(Level.SEVERE, "230 UniBoard rejected post: {0}", ex);
 			throw new CertificateCreationException("230 UniBoard rejected post: " + ex);
 		}
@@ -465,8 +467,8 @@ public class CertificateIssuerBean implements CertificateIssuer {
 
 		return new Certificate(clientCert, id.getCommonName(), id.getUniqueIdentifier(), id.getOrganisation(), id.
 				getOrganisationUnit(), id.getCountryName(),
-				id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), applicationIdentifier, roles, id.
-				getIdentityProvider(), extensionMap);
+				id.getState(), id.getLocality(), id.getSurname(), id.getGivenName(), applicationIdentifier,
+				Arrays.asList(roles), id.getIdentityProvider());
 
 	}
 

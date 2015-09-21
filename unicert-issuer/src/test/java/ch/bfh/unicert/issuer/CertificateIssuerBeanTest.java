@@ -203,12 +203,6 @@ public class CertificateIssuerBeanTest {
 		assertEquals("CN=Certificate Authority", createdX509Cert.getIssuerDN().getName());
 		assertEquals(new DSAPublicKeyImpl(y.convertToBigInteger(), p, q, g.convertToBigInteger()), createdX509Cert.getPublicKey());
 
-		assertTrue(cert.toJSON().contains(
-				"{ \"commonName\": \"test@bfh.ch\", \"uniqueIdentifier\": \"234-5678-90\", \"organisation\": \"University of Bern\", \"organisationUnit\": \"CS\", \"issuer\": \"CN=Certificate Authority\", \"serialNumber\": "));
-		assertTrue(cert.toJSON().contains("\"validFrom\": "));
-		assertTrue(cert.toJSON().contains("\"validUntil\":"));
-		assertTrue(cert.toJSON().contains("\"test\": \"test\", \"pem\":"));
-
 	}
 
 	/**
@@ -311,12 +305,6 @@ public class CertificateIssuerBeanTest {
 
 		assertEquals("CN=Certificate Authority", createdX509Cert.getIssuerDN().getName());
 		assertEquals(new RSAPublicKeyImpl(n, keys.getAt(1).convertToBigInteger()), createdX509Cert.getPublicKey());
-		System.out.println(cert.toJSON());
-		assertTrue(cert.toJSON().contains(
-				"{ \"commonName\": \"test@bfh.ch\", \"uniqueIdentifier\": \"234-5678-90\", \"organisation\": \"University of Bern\", \"organisationUnit\": \"CS\", \"issuer\": \"CN=Certificate Authority\", \"serialNumber\": "));
-		assertTrue(cert.toJSON().contains("\"validFrom\": "));
-		assertTrue(cert.toJSON().contains("\"validUntil\":"));
-		assertTrue(cert.toJSON().contains("\"test\": \"test\", \"pem\":"));
 
 	}
 
