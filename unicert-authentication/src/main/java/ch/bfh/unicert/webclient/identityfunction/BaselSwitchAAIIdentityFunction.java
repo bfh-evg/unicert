@@ -32,7 +32,7 @@ public class BaselSwitchAAIIdentityFunction
 
 	protected static final HashAlgorithm HASH_ALGORITHM = HashAlgorithm.SHA256;
 	protected static final Converter<String, ByteArray> STRING_TO_BYTEARRAY = StringToByteArray.getInstance(Charset.forName("UTF-8"));
-	protected static final Converter<ByteArray, String> BYREARRAY_TO_STRING = ByteArrayToString.getInstance(ByteArrayToString.Radix.HEX);
+	protected static final Converter<ByteArray, String> BYTEARRAY_TO_STRING = ByteArrayToString.getInstance(ByteArrayToString.Radix.HEX);
 
 	@Override
 	public IdentityData apply(UserData userData) throws IdentityFunctionNotApplicableException {
@@ -48,7 +48,7 @@ public class BaselSwitchAAIIdentityFunction
 		}
 
 		try {
-			commonName = BYREARRAY_TO_STRING.convert(HASH_ALGORITHM.getHashValue(STRING_TO_BYTEARRAY.convert(commonName)));
+			commonName = BYTEARRAY_TO_STRING.convert(HASH_ALGORITHM.getHashValue(STRING_TO_BYTEARRAY.convert(commonName)));
 		} catch (Exception e) {
 			throw new IdentityFunctionNotApplicableException("122 Problem while anonimizing: " + e);
 		}
