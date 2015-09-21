@@ -22,6 +22,7 @@ import ch.bfh.unicert.issuer.exceptions.CertificateCreationException;
 import ch.bfh.unicert.issuer.exceptions.JSONException;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedGoogleIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.AnonymizedSwitchAAIIdentityFunction;
+import ch.bfh.unicert.webclient.identityfunction.BaselSwitchAAIIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.IdentityFunctionNotApplicableException;
 import ch.bfh.unicert.webclient.identityfunction.StandardGoogleIdentityFunction;
 import ch.bfh.unicert.webclient.identityfunction.StandardSwitchAAIIdentityFunction;
@@ -41,12 +42,14 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
- * Proxy for the certificate issuence process between the UniCertIssuer and the web client pages
- *
+ * Proxy for the certificate issuence process between the UniCertIssuer and the
+ * web client pages
+ * <p>
  * @author Philémon von Bergen &lt;philemon.vonbergen@bfh.ch&gt;
  */
 @WebServlet("/certificate-request/*")
-public class CertificateRequestServlet extends HttpServlet {
+public class CertificateRequestServlet
+	   extends HttpServlet {
 
 	/**
 	 * The injected proxy for accessing the effective certificate issuer.
@@ -82,15 +85,16 @@ public class CertificateRequestServlet extends HttpServlet {
 	private static final String SEPARATOR = "|";
 
 	/**
-	 * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-	 *
-	 * @param request servlet request
+	 * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
+	 * methods.
+	 * <p>
+	 * @param request  servlet request
 	 * @param response servlet response
 	 * @throws ServletException if a servlet-specific error occurs
-	 * @throws IOException if an I/O error occurs
+	 * @throws IOException      if an I/O error occurs
 	 */
 	protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
+		   throws ServletException, IOException {
 
 		// Set character encoding of the response.
 		response.setCharacterEncoding("UTF-8");
@@ -118,7 +122,7 @@ public class CertificateRequestServlet extends HttpServlet {
 		}
 
 		String messageForSignature = ud.getIdentityProvider() + SEPARATOR + ud.getMail() + SEPARATOR
-				+ ud.getUniqueIdentifier() + SEPARATOR;
+			   + ud.getUniqueIdentifier() + SEPARATOR;
 
 		try {
 
@@ -188,6 +192,9 @@ public class CertificateRequestServlet extends HttpServlet {
 				case 5:
 					idData = new AnonymizedGoogleIdentityFunction().apply(ud);
 					break;
+				case 6:
+					idData = new BaselSwitchAAIIdentityFunction().apply(ud);
+					break;
 				default:
 					internalServerErrorHandler(response, "120 Unknown identity function");
 					logger.log(Level.SEVERE, "Unknown identity function");
@@ -241,35 +248,35 @@ public class CertificateRequestServlet extends HttpServlet {
 
 	/**
 	 * Handles the HTTP <code>GET</code> method.
-	 *
-	 * @param request servlet request
+	 * <p>
+	 * @param request  servlet request
 	 * @param response servlet response
 	 * @throws ServletException if a servlet-specific error occurs
-	 * @throws IOException if an I/O error occurs
+	 * @throws IOException      if an I/O error occurs
 	 */
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
+		   throws ServletException, IOException {
 		processRequest(request, response);
 	}
 
 	/**
 	 * Handles the HTTP <code>POST</code> method.
-	 *
-	 * @param request servlet request
+	 * <p>
+	 * @param request  servlet request
 	 * @param response servlet response
 	 * @throws ServletException if a servlet-specific error occurs
-	 * @throws IOException if an I/O error occurs
+	 * @throws IOException      if an I/O error occurs
 	 */
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
+		   throws ServletException, IOException {
 		processRequest(request, response);
 	}
 
 	/**
 	 * Returns a short description of the servlet.
-	 *
+	 * <p>
 	 * @return a String containing servlet description
 	 */
 	@Override
@@ -278,9 +285,10 @@ public class CertificateRequestServlet extends HttpServlet {
 	}
 
 	/**
-	 * Returns the reference for the certificate issuer component. If faces properties 'dev-mode' is true then a mock
-	 * instance is returned, otherwise the EJB injected bean is returned
-	 *
+	 * Returns the reference for the certificate issuer component. If faces
+	 * properties 'dev-mode' is true then a mock instance is returned, otherwise
+	 * the EJB injected bean is returned
+	 * <p>
 	 * @return the certificate issuer
 	 * @throws Exception if there is a problem
 	 */
@@ -301,9 +309,9 @@ public class CertificateRequestServlet extends HttpServlet {
 
 	/**
 	 * Error code returned for the case of an error while processing a request.
-	 *
+	 * <p>
 	 * @param response a HTTP response object
-	 * @param kind a detailed indication
+	 * @param kind     a detailed indication
 	 * @throws IOException if the response cannot be written
 	 */
 	private void internalServerErrorHandler(HttpServletResponse response, String kind) throws IOException {
@@ -324,8 +332,9 @@ public class CertificateRequestServlet extends HttpServlet {
 	}
 
 	/**
-	 * Error code returned for the case of missing SWITCHaai authentication information.
-	 *
+	 * Error code returned for the case of missing SWITCHaai authentication
+	 * information.
+	 * <p>
 	 * @param response a HTTP response object
 	 * @throws IOException if the response cannot be written
 	 */
@@ -335,7 +344,8 @@ public class CertificateRequestServlet extends HttpServlet {
 		response.setCharacterEncoding("UTF-8");
 
 		response.getWriter().write(
-				"{\"error\": \"100\", \"message\": \"You are not yet authenticated. Go back to the UniVote start page and authenticate yourself.\"}");
+			   "{\"error\": \"100\", \"message\": \"You are not yet authenticated. Go back to the UniVote start page and authenticate yourself.\"}");
 
 	}
+
 }
