@@ -22,13 +22,13 @@ import ch.bfh.unicrypt.helper.hash.HashAlgorithm;
 import java.nio.charset.Charset;
 
 /**
- * This function is a specialization of the standard Switch-AAI function used
- * for Basel. The hashed matriculation number is used as common name.
+ * This function is a specialization of the standard Switch-AAI function used for Basel. The hashed matriculation number
+ * is used as common name.
  * <p>
  * @author Philipp
  */
 public class BaselSwitchAAIIdentityFunction
-	   implements IdentityFunction {
+		implements IdentityFunction {
 
 	protected static final HashAlgorithm HASH_ALGORITHM = HashAlgorithm.SHA256;
 	protected static final Converter<String, ByteArray> STRING_TO_BYTEARRAY = StringToByteArray.getInstance(Charset.forName("UTF-8"));
@@ -42,9 +42,9 @@ public class BaselSwitchAAIIdentityFunction
 		}
 		SwitchAAIUserData ud = (SwitchAAIUserData) userData;
 
-		String commonName = ud.getMatriculationNumber();
+		String commonName = ud.getMail();
 		if (commonName == null) {
-			throw new IdentityFunctionNotApplicableException("121 Required matriculation number missing");
+			throw new IdentityFunctionNotApplicableException("121 Required mail missing");
 		}
 
 		try {
